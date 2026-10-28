@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { AURA, CALM, CLAWD, breakLine, faceOf, parseMinutes, satAt, STARTER_SONGS, clawdScene, petSuggestions, sceneSvg, songbookLines, spinnerTake, tasteFrom, withStarters } from '../hooks/clawd'
+import { AURA, CALM, CLAWD, breakLine, faceOf, joinRuns, parseMinutes, satAt, STARTER_SONGS, clawdScene, petSuggestions, sceneSvg, songbookLines, spinnerTake, tasteFrom, withStarters } from '../hooks/clawd'
 
 const BAND = {
   plugin: 'clawd',
@@ -265,11 +265,11 @@ test('Clawd is drawn in NarutoDark orange', { options: OPTIONS }, async ($, on) 
   const ui = await $.ui.mount(BAND)
   // Reading glasses: a dark frame round each of its own eyes, the bridge across the orange face,
   // and the outer rims past the face's edges, on no orange of their own.
-  const rims = (await ui.findAll({ type: 'Text', text: /^\($/ })).map(one => one.props)
+  const rims = (await ui.findAll({ type: 'Text', text: /\(/ })).map(one => one.props)
   expect(rims).toContainEqual(expect.objectContaining({ color: '#1a1a1a', backgroundColor: '#ff8800' }))
   expect(rims.some(one => one.backgroundColor === undefined)).toBe(true)
   expect(await ui.find({ type: 'Text', text: /^▐▛$/ })).toBeTruthy()
-  expect((await ui.find({ type: 'Text', text: /^─$/ }))?.props.backgroundColor).toBe('#ff8800')
+  expect((await ui.find({ type: 'Text', text: /^\)─\($/ }))?.props.backgroundColor).toBe('#ff8800')
   // Busy reading, its claws go up and down.
   expect((await ui.find({ type: 'Text', text: /^(▝▜█████▛▘|▗▟█████▙▖)$/ }))?.props.color).toBe('#ff8800')
   expect(await ui.find({ type: 'Text', text: /reading app\.py/ })).toBeTruthy()
@@ -281,8 +281,10 @@ test('/pet glasses puts the reading glasses on', { options: OPTIONS }, async ($,
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ command: 'pet', args: 'glasses' })
-  expect(await ui.findAll({ type: 'Text', text: /^\($/ })).toHaveLength(2)
-  expect(await ui.findAll({ type: 'Text', text: /^\)$/ })).toHaveLength(2)
+  // Runs of one style are joined, so count the rims within the colored runs.
+  const runs = (await ui.findAll({ type: 'Text' })).filter(one => one.props.color !== undefined).map(one => one.text).join('')
+  expect([...runs].filter(ch => ch === '(')).toHaveLength(2)
+  expect([...runs].filter(ch => ch === ')')).toHaveLength(2)
   expect(await ui.find({ type: 'Text', text: /\(glasses\)/ })).toBeTruthy()
   await ui.unmount()
 })
@@ -1286,6 +1288,23 @@ test('heart eyes are drawn in deep red, so they show on the orange face', () => 
   for (const heart of hearts) expect(heart).toMatchObject({ color: '#c0143c', backgroundColor: CLAWD })
 })
 
+test('neighbouring runs in one style are joined, so a terminal draws fewer pieces', () => {
+  const local = { hour: 10, weekday: 2, month: 10, day: 27 }
+  const rows = clawdScene({ kind: 'idle', emote: undefined, frame: 1, nowMs: NOON_IST, local })
+  const joined = joinRuns(rows)
+  const text = (row: { text: string }[]) => row.map(part => part.text).join('')
+
+  // The same picture, in fewer pieces: the sky's empty cells become one run.
+  expect(joined.map(text)).toEqual(rows.map(text))
+  expect(joined[0]!.length).toBeLessThan(rows[0]!.length)
+  for (const row of joined) {
+    for (const [i, part] of row.entries()) {
+      const next = row[i + 1]
+      if (next !== undefined) expect([next.color, next.backgroundColor]).not.toEqual([part.color, part.backgroundColor])
+    }
+  }
+})
+
 test('a spinning Clawd turns round a quarter a frame: front, side, back, other side', () => {
   const local = { hour: 21, weekday: 2, month: 10, day: 27 }
   const text = (row: { text: string }[]) => row.map(part => part.text).join('').trim()
@@ -1437,16 +1456,16 @@ test('/pet vibe puts on headphones, then Clawd breaks into song with them on', {
 
   await $.command.run({ command: 'pet', args: 'vibe' })
   expect(await ui.find({ type: 'Text', text: /^♪ \*vibing\* ♪$/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /^╭$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /╭/ })).toBeTruthy()
   expect((await ui.find({ type: 'Text', text: /^█$/ }))?.props.color).toBe('#8a8fbf')
 
   await clock.advance(5_000 + 6_000)
   expect(await ui.find({ type: 'Text', text: /^ooh, the tests are green ♪$/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /^╭$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /╭/ })).toBeTruthy()
 
   // The headphones come off once the song is over.
   await clock.advance(2_000)
-  expect(await ui.find({ type: 'Text', text: /^╭$/ })).toBeFalsy()
+  expect(await ui.find({ type: 'Text', text: /╭/ })).toBeFalsy()
   await ui.unmount()
 })
 
@@ -1456,7 +1475,7 @@ test('away by day, Clawd may listen to music with its headphones on', { options:
   const ui = await $.ui.mount(BAND)
 
   expect(await ui.find({ type: 'Text', text: /^♪ \*vibing\* ♪$/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /^╭$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /╭/ })).toBeTruthy()
   await ui.unmount()
 })
 
@@ -1546,7 +1565,7 @@ test('a cooking word puts the chef hat on for every chef line, and a crumb by ev
     const line = [...CHEF_LINES, ...SNACK_LINES].find(one => texts.includes(one))
     expect(line).toBeDefined()
     said.add(line!)
-    expect(await shows(ui, /^▀$/, TOQUE)).toBe(CHEF_LINES.includes(line!))
+    expect(await shows(ui, /▀/, TOQUE)).toBe(CHEF_LINES.includes(line!))
     expect(await shows(ui, /^·$/, GOLD)).toBe(SNACK_LINES.includes(line!))
     await clock.advance(12_000)
   }
@@ -1562,12 +1581,12 @@ test('/pet chef, /pet hardhat and /pet cry show those emotes', { options: OPTION
 
   await $.command.run({ command: 'pet', args: 'chef' })
   expect(await ui.find({ type: 'Text', text: /^\(chef\)$/ })).toBeTruthy()
-  expect(await shows(ui, /^▀$/, TOQUE)).toBe(true)
+  expect(await shows(ui, /▀/, TOQUE)).toBe(true)
 
   await $.command.run({ command: 'pet', args: 'hardhat' })
   expect(await ui.find({ type: 'Text', text: /^\(hardhat\)$/ })).toBeTruthy()
-  expect(await shows(ui, /^▗$/, GOLD)).toBe(true)
-  expect(await shows(ui, /^▀$/, TOQUE)).toBe(false)
+  expect(await shows(ui, /▗/, GOLD)).toBe(true)
+  expect(await shows(ui, /▀/, TOQUE)).toBe(false)
 
   await $.command.run({ command: 'pet', args: 'cry' })
   expect(await ui.find({ type: 'Text', text: /^\(cry\)$/ })).toBeTruthy()

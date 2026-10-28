@@ -991,6 +991,24 @@ export function petSuggestions(draft: string): { text: string; description?: str
   return [...commands, ...emotes].filter(one => one.text !== typed)
 }
 
+// The rows with each run of neighbouring segments in one style joined into one: fewer elements
+// for a terminal to draw each frame.
+export function joinRuns(rows: readonly Row[]): Row[] {
+  return rows.map(row => {
+    const joined: Row = []
+    for (const part of row) {
+      const last = joined[joined.length - 1]
+      if (last !== undefined && last.color === part.color && last.backgroundColor === part.backgroundColor) {
+        joined[joined.length - 1] = { ...last, text: last.text + part.text }
+      } else {
+        joined.push(part)
+      }
+    }
+
+    return joined
+  })
+}
+
 // Clawd's scene as an SVG drawing, for the apps that draw pictures rather than a terminal's grid
 // of characters: block glyphs as pixel rectangles, merged along each half row, and other glyphs as
 // text, each placed in its own cell so no font can push them out of line.
