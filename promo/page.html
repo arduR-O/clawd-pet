@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- One frame of the promo video at a time: promo/render.cjs loads this page, hands it the
+     timeline and Clawd's frames, then calls render(t) and screenshots it for every frame. -->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #120e18; }
+  body { font-family: 'Inter Display', 'Inter', sans-serif; color: #f4eefc; }
+  .layer { position: absolute; inset: 0; }
+  #bg { background: radial-gradient(ellipse at 50% 60%, #2a1d33 0%, #160f1d 55%, #0c080f 100%); }
+  #grid { background-image: linear-gradient(#ffffff08 1px, transparent 1px), linear-gradient(90deg, #ffffff08 1px, transparent 1px); background-size: 48px 48px; }
+  #glow { background: radial-gradient(circle at 50% 58%, #ff880055 0%, transparent 45%); }
+  #vignette { background: radial-gradient(ellipse at center, transparent 55%, #000000aa 100%); }
+  .mono { font-family: 'DejaVu Sans Mono', monospace; }
+  .abs { position: absolute; }
+  .center { left: 50%; transform: translateX(-50%); text-align: center; white-space: nowrap; }
+  .title { font-weight: 900; letter-spacing: -0.02em; }
+  .orange { color: #ff8800; }
+  .dim { color: #a8a2b8; }
+  .window { position: absolute; left: 340px; top: 330px; width: 1240px; height: 604px; border-radius: 18px; background: #17131d; box-shadow: 0 30px 80px #000a, 0 0 0 1px #ffffff14; overflow: hidden; }
+  .bar { height: 44px; background: #241e2c; display: flex; align-items: center; padding-left: 20px; gap: 10px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .bar .name { position: absolute; left: 0; right: 0; text-align: center; font: 16px 'DejaVu Sans Mono', monospace; color: #a8a2b8; }
+  .transcript { position: absolute; left: 36px; top: 76px; font-size: 26px; line-height: 40px; white-space: pre; }
+  .band { position: absolute; left: 36px; top: 222px; display: flex; align-items: flex-start; gap: 34px; }
+  .band .who { font: 700 28px 'DejaVu Sans Mono', monospace; color: #ff8800; margin-top: 52px; }
+  .band .said { font: 26px 'DejaVu Sans Mono', monospace; color: #a8a2b8; margin-top: 10px; white-space: pre; }
+  .rule { position: absolute; left: 24px; right: 24px; height: 2px; background: #3a3346; }
+  .prompt { position: absolute; left: 36px; top: 526px; font: 28px 'DejaVu Sans Mono', monospace; color: #eeeaf4; white-space: pre; }
+  .caret { display: inline-block; width: 14px; height: 30px; background: #eeeaf4; vertical-align: -5px; margin-left: 2px; }
+  .chip { font: 25px 'DejaVu Sans Mono', monospace; background: #241e2c; border: 1px solid #3a3346; border-radius: 12px; padding: 14px 24px; color: #eeeaf4; white-space: nowrap; }
+  .tile { position: absolute; width: 640px; height: 250px; border-radius: 18px; background: #1d1725; box-shadow: 0 0 0 1px #ffffff12; }
+  .tile .label { position: absolute; left: 30px; bottom: 26px; font-weight: 700; font-size: 32px; }
+  #flash { background: #fff; opacity: 0; }
+  /* Pixel art scaled up without seams between its blocks. */
+  svg rect { shape-rendering: crispEdges; }
+</style>
+</head>
+<body>
+<div id="bg" class="layer"></div>
+<div id="grid" class="layer"></div>
+<div id="glow" class="layer"></div>
+<div id="stage" class="layer"></div>
+<div id="vignette" class="layer"></div>
+<div id="flash" class="layer"></div>
+<script>
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const lerp = (a, b, k) => a + (b - a) * k
+const outCubic = k => 1 - Math.pow(1 - clamp(k), 3)
+const outBack = k => { k = clamp(k); const c = 1.7; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2) }
+const outBounce = k => {
+  k = clamp(k); const n = 7.5625, d = 2.75
+  if (k < 1 / d) return n * k * k
+  if (k < 2 / d) return n * (k -= 1.5 / d) * k + 0.75
+  if (k < 2.5 / d) return n * (k -= 2.25 / d) * k + 0.9375
+  return n * (k -= 2.625 / d) * k + 0.984375
+}
+// How far in from 0 to 1 a thing that starts at `at` and takes `d` seconds is at time t.
+const ramp = (t, at, d) => clamp((t - at) / d)
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+let TL, SCENES, TYPED
+function setup(timeline, data) { TL = timeline; SCENES = data.scenes; TYPED = data.typed }
+
+const BEAT = () => 60 / TL.bpm
+// Clawd's frames step on every half beat, twice the mod's own pace, to keep up with the music.
+const STEP = () => BEAT() / 2
+const frameOf = (id, t, start) => { const f = SCENES[id]; return f[Math.floor(Math.max(0, t - start) / STEP()) % f.length] }
+
+// A pulse on every beat, for the glow.
+const pulse = t => Math.exp(-((t % BEAT()) / BEAT()) * 5)
+
+function scaled(svg, scale) {
+  return `<div style="transform:scale(${scale});transform-origin:top left">${svg}</div>`
+}
+
+function windowHtml(shot, t) {
+  const k = t - shot.start
+  const typed = shot.id === 'typing' ? TYPED.slice(0, Math.round(TYPED.length * clamp(k / 1.7))) : ''
+  const lines = (shot.transcript || []).map((line, i) => {
+    const show = clamp((k - i * 0.18) / 0.18)
+    const isTool = line.startsWith('⏺')
+    const isResult = line.startsWith('  ⎿')
+    const colour = line.startsWith('>') ? '#eeeaf4' : isTool ? '#eeeaf4' : '#a8a2b8'
+    const text = isTool ? `<span style="color:#56c271">⏺</span>${esc(line.slice(1))}` : esc(line)
+    return `<div style="opacity:${show};transform:translateY(${(1 - show) * 10}px);color:${colour}">${isResult ? text : text}</div>`
+  }).join('')
+  const said = shot.said || ''
+  const sayK = clamp((k - 0.25) / 0.5)
+  const shown = said.slice(0, Math.round(said.length * sayK))
+  return `
+  <div class="window">
+    <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><div class="name">claude — ~/projects/app</div></div>
+    <div class="transcript mono">${lines}</div>
+    <div class="band">${scaled(frameOf(shot.id, t, shot.start), shot.id === 'typing' ? 1.25 : 1)}<div><div class="who">Clawd</div><div class="said">${esc(shown)}</div></div></div>
+    <div class="rule" style="top:506px"></div>
+    <div class="prompt">❯ ${esc(typed)}<span class="caret" style="opacity:${Math.floor(t * 4) % 2 ? 0.25 : 1}"></span></div>
+    <div class="rule" style="top:576px"></div>
+  </div>`
+}
+
+function render(t) {
+  const stage = document.getElementById('stage')
+  const shot = TL.shots.find(s => t >= s.start && t < s.end) || TL.shots[TL.shots.length - 1]
+  const k = t - shot.start
+  let html = ''
+  let glow = 0.35 + 0.35 * pulse(t)
+  let flash = 0
+
+  if (shot.id === 'cold') {
+    // Two lines typed out, a caret blinking after them.
+    const lines = ['your terminal does a lot of work.', 'it could use a friend.']
+    const first = lines[0].slice(0, Math.round(lines[0].length * clamp(k / 1.4)))
+    const second = lines[1].slice(0, Math.round(lines[1].length * clamp((k - 2.0) / 1.0)))
+    const caretOn = Math.floor(t * 4) % 2 === 0
+    html += `<div class="abs center mono" style="top:420px;font-size:54px;color:#eeeaf4">${esc(first)}${k < 2 && caretOn ? '▌' : ''}</div>`
+    html += `<div class="abs center mono" style="top:520px;font-size:54px;color:#ff8800">${esc(second)}${k >= 2 && caretOn ? '▌' : ''}</div>`
+    glow = 0.15 * clamp(k / 3)
+    flash = clamp((k - 3.85) / 0.15) * 0.9
+  } else if (shot.id === 'meet') {
+    // Clawd drops in and lands on the beat, then waves while its name pops up.
+    const fall = outBounce(ramp(t, shot.start, 0.6))
+    const y = lerp(-500, 330, fall)
+    const frame = k < 0.5 ? SCENES.meet[0] : k < 0.75 ? SCENES.meet[1] : frameOf('meet', t - 0.75 + 2 * STEP(), shot.start)
+    // Centred on Clawd's body, which sits left of the middle of its sky.
+    html += `<div class="abs" style="left:${960 - 7.5 * 24 * 2.5}px;top:${y}px">${scaled(frame, 2.5)}</div>`
+    const pop = outBack(ramp(t, shot.start + 1.0, 0.45))
+    html += `<div class="abs center title" style="top:800px;font-size:${150 * pop}px;opacity:${clamp(pop * 2)}">Meet <span class="orange">Clawd.</span></div>`
+    const sub = outCubic(ramp(t, shot.start + 2.0, 0.5))
+    html += `<div class="abs center" style="top:${990 - sub * 20}px;font-size:40px;opacity:${sub};color:#a8a2b8">a pet crab that lives above your Claude Code prompt</div>`
+    flash = (1 - clamp(k / 0.25)) * 0.9
+    glow = 0.5 + 0.5 * pulse(t)
+  } else if (shot.caption) {
+    // The montage: one window, a new trick on every bar.
+    const slide = outCubic(clamp(k / 0.35))
+    html += `<div class="abs center title" style="top:${150 + (1 - slide) * 30}px;font-size:84px;opacity:${slide}">Clawd <span class="orange">${esc(shot.caption)}</span></div>`
+    const first = TL.shots.find(s => s.caption)
+    const rise = outCubic(ramp(t, first.start, 0.5))
+    html += `<div style="position:absolute;inset:0;transform:translateY(${(1 - rise) * 120}px);opacity:${rise}">${windowHtml(shot, t)}</div>`
+    // A beat counter down the side: which trick of how many.
+    const tricks = TL.shots.filter(s => s.caption)
+    const index = tricks.indexOf(shot)
+    html += `<div class="abs" style="left:110px;top:430px;display:flex;flex-direction:column;gap:22px">${tricks.map((_, i) => `<div style="width:14px;height:14px;border-radius:50%;background:${i === index ? '#ff8800' : '#3a3346'}"></div>`).join('')}</div>`
+    flash = (1 - clamp(k / 0.12)) * 0.25
+  } else if (shot.id === 'list') {
+    // Four more of its pastimes, one tile per beat.
+    const tiles = [
+      ['sing', 'sings from your Last.fm'],
+      ['fish', 'goes fishing while you are away'],
+      ['castle', 'builds a sandcastle all day'],
+      ['meditate', 'meditates through "Pondering…"'],
+    ]
+    const head = outCubic(clamp(k / 0.35))
+    html += `<div class="abs center title" style="top:${110 + (1 - head) * 30}px;font-size:84px;opacity:${head}">and a whole lot <span class="orange">more.</span></div>`
+    tiles.forEach(([id, label], i) => {
+      const at = shot.start + i * BEAT()
+      const pop = outBack(ramp(t, at, 0.4))
+      const x = 300 + (i % 2) * 680
+      const y = 290 + Math.floor(i / 2) * 290
+      html += `<div class="tile" style="left:${x}px;top:${y}px;transform:scale(${pop});opacity:${clamp(pop * 3)}">
+        <div class="abs" style="left:24px;top:14px">${frameOf(id, t, at)}</div>
+        <div class="label">${esc(label)}</div></div>`
+    })
+    flash = (1 - clamp(k / 0.15)) * 0.4
+  } else if (shot.id === 'end') {
+    // The end card: Clawd waving, its name, how to get it.
+    const inK = outCubic(clamp(k / 0.6))
+    html += `<div class="abs" style="left:${170 - (1 - inK) * 200}px;top:330px;opacity:${inK}">${scaled(frameOf('end', t, shot.start), 1.8)}</div>`
+    const name = outBack(ramp(t, shot.start + 0.25, 0.5))
+    html += `<div class="abs title" style="left:900px;top:250px;font-size:${170 * name}px;line-height:1">Clawd</div>`
+    const sub = outCubic(ramp(t, shot.start + 0.75, 0.5))
+    html += `<div class="abs" style="left:906px;top:${450 - (1 - sub) * 16}px;font-size:44px;opacity:${sub};color:#a8a2b8">a pet crab for Claude Code</div>`
+    const cmds = ['claude plugin marketplace add arduR-O/clawd-pet', 'claude plugin install clawd@clawd']
+    cmds.forEach((cmd, i) => {
+      const c = outCubic(ramp(t, shot.start + 1.25 + i * 0.4, 0.4))
+      html += `<div class="abs chip" style="left:${900 - (1 - c) * 30}px;top:${560 + i * 96}px;opacity:${c}"><span class="orange">$</span> ${esc(cmd)}</div>`
+    })
+    const link = outCubic(ramp(t, shot.start + 2.2, 0.5))
+    html += `<div class="abs mono" style="left:906px;top:800px;font-size:34px;opacity:${link};color:#ff8800">github.com/arduR-O/clawd-pet</div>`
+    html += `<div class="abs center" style="top:1010px;font-size:22px;opacity:${link * 0.7};color:#a8a2b8">An unofficial fan mod. Not made or endorsed by Anthropic.</div>`
+    flash = (1 - clamp(k / 0.2)) * 0.6
+    glow = 0.45 + 0.25 * pulse(t)
+  }
+
+  // The last second fades to black.
+  const out = clamp((t - (TL.duration - 1.0)) / 1.0)
+  stage.innerHTML = html
+  stage.style.opacity = 1 - out
+  document.getElementById('glow').style.opacity = glow * (1 - out)
+  document.getElementById('grid').style.opacity = 1 - out
+  document.getElementById('grid').style.backgroundPosition = `0 ${(t * 24) % 48}px`
+  document.getElementById('flash').style.opacity = flash
+  document.getElementById('bg').style.opacity = 1 - out * 0.9
+}
+</script>
+</body>
+</html>
