@@ -317,7 +317,7 @@ test('Clawd does an emote now and then while Claude works', { options: OPTIONS }
   await clock.advance(24_000)
   // A song shows its first letters so far: one of the starter songs' openings.
   const emotes =
-    /o\/|crab rave|blub|scuttle|did you hear|munch|soaking it in|shades on|six… seven|UwU|\*hic\*|SEAGULL|molts|cousin|pearl|tide's in|rain|vibing|wheee|^(mama|is th|we wi|don't|anoth|under|goodn|we sa|soft)/
+    /o\/|crab rave|blub|scuttle|did you hear|munch|soaking it in|shades on|six… seven|UwU|\*hic\*|SEAGULL|molts|cousin|pearl|tide's in|rain|vibing|wheee|^(mama|is th|we wi|don't|anoth|under|we met|we wou|remem|and so|I can|stones|we had|I beca|I am w|Amie|nothing)/
   expect(await ui.find({ type: 'Text', text: emotes })).toBeTruthy()
   await ui.unmount()
 })
@@ -1154,7 +1154,7 @@ test('with no music and no Last.fm set, Clawd sings its built-in songs and calls
   await $.command.run({ command: 'pet', args: 'sing' })
 
   expect(asked).toBe(0)
-  expect(await ui.find({ type: 'Text', text: /^(mama|is th|we wi|don't|anoth|under|goodn|we sa|soft)/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^(mama|is th|we wi|don't|anoth|under|we met|we wou|remem|and so|I can|stones|we had|I beca|I am w|Amie|nothing)/ })).toBeTruthy()
   await ui.unmount()
 })
 

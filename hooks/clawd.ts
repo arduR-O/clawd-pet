@@ -162,9 +162,17 @@ export const STARTER_SONGS = [
   "don't stop me now, I'm compiliiing ♪",
   'another one bites the bug ♪',
   'under pressuuure… from the deadline ♪',
-  'goodnight, staging… ♪',
-  "we said we'd all ship together… ♪",
-  'soft piano, softer cooode… ♪',
+  'we met as soulmates… on a shared branch ♪',
+  'we would all go down… with the deploy ♪',
+  'remember Charlie, remember Baker ♪',
+  'we had no AI-dea… how to ship it ♪',
+  'I became a connoisseur… of bad excuses ♪',
+  'I am waking up… to a red build ♪',
+  'Amie, come sit… and read me the diff ♪',
+  'nothing unusual, nothing strange… just a flaky test ♪',
+  'and so it iiis… a failing test ♪',
+  "I can't take my eyes… off the logs ♪",
+  'stones taught me to fly ♪',
 ]
 
 // What you've been playing, from Last.fm's replies (parsed JSON), as a grouped list for the songbook
