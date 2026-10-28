@@ -21,6 +21,9 @@ import {
   sungSoFar,
   pastimeOf,
   leaveLine,
+  breakLine,
+  parseMinutes,
+  satAt,
   localTime,
   parseClock,
   parseOffset,
@@ -101,6 +104,8 @@ const life = {
   // The pose Clawd was last drawn in, and since when, so a pose's own moves start at its start.
   pose: undefined as EmoteName | undefined,
   poseSince: 0,
+  // The person's current stretch of work, for break nudges.
+  sitting: { since: 0, lastSeen: -Infinity, nudgedAt: 0 },
 }
 
 const SPECIES: readonly Species[] = ['garden', 'clawd', 'moss']
@@ -498,6 +503,7 @@ function plants(g: number): [Cell[], Cell[]] {
 export const register: Register = (on, options) => {
   const offsetMinutes = parseOffset(String(options.utc_offset ?? '+05:30'))
   const leaveAt = parseClock(String(options.leave_at ?? ''))
+  const breakEvery = parseMinutes(String(options.break_every ?? '50'))
   const music = String(options.music ?? '').trim()
   const lastfm = { user: String(options.lastfm_user ?? '').trim(), key: String(options.lastfm_api_key ?? '').trim() }
 
@@ -548,6 +554,7 @@ export const register: Register = (on, options) => {
     }
     seen = fresh()
     life.isBusy = true
+    life.sitting = satAt(life.sitting, await $.clock.now())
     life.failStreak = 0
     life.talks = 0
     life.prompts += 1
@@ -680,10 +687,19 @@ export const register: Register = (on, options) => {
     life.castleDay = today
     await $.store.set('castle', { day: today, turns: life.castleTurns })
     const isClawd = (await read($, species)) === 'clawd'
-    const local = localTime(await $.clock.now(), offsetMinutes)
+    const now = await $.clock.now()
+    const local = localTime(now, offsetMinutes)
+    const leaving = isClawd ? leaveLine(local, leaveAt, 'done') : undefined
+    const stretch = isClawd && leaving === undefined ? breakLine(life.sitting, now, breakEvery) : undefined
+    if (stretch !== undefined) {
+      // A long stretch of work: Clawd stretches, and suggests the person does too.
+      life.sitting = { ...life.sitting, nudgedAt: now }
+      await update($, emote, (): Emote => ({ name: 'stretch', line: stretch, until: now + EMOTE_MS }))
+    }
     const line = !isClawd
       ? 'done!'
-      : (leaveLine(local, leaveAt, 'done') ??
+      : (leaving ??
+        stretch ??
         (seen.tools >= 15
           ? `finally. ${seen.tools} tools, that was a lot.`
           : seen.tools === 0
@@ -696,6 +712,7 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: 'pet' }, async ($, e) => {
     const asked = e.args.trim().toLowerCase()
+    life.sitting = satAt(life.sitting, await $.clock.now())
     if (asked === 'off' || asked === 'on') {
       await $.store.set('off', asked === 'off')
       await update($, isOff, () => asked === 'off')

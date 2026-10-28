@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { AURA, CALM, CLAWD, faceOf, STARTER_SONGS, clawdScene, petSuggestions, sceneSvg, songbookLines, spinnerTake, tasteFrom, withStarters } from '../hooks/clawd'
+import { AURA, CALM, CLAWD, breakLine, faceOf, parseMinutes, satAt, STARTER_SONGS, clawdScene, petSuggestions, sceneSvg, songbookLines, spinnerTake, tasteFrom, withStarters } from '../hooks/clawd'
 
 const BAND = {
   plugin: 'clawd',
@@ -536,6 +536,67 @@ test('a turn that finishes after leave time ends with go home', { options: OPTIO
 
   expect(await ui.find({ type: 'Text', text: /^done\. now go home\.$/ })).toBeTruthy()
   await ui.unmount()
+})
+
+// Works through `minutes`, a prompt every one of them, so no gap is long enough to be a break.
+async function workFor($: Args[0], clock: Awaited<ReturnType<typeof start>>, minutes: number) {
+  for (let at = 0; at < minutes; at++) {
+    await $.prompt.submit({ text: 'next thing' })
+    await clock.advance(60_000)
+  }
+}
+
+test('after the set minutes of work, a finished turn has Clawd stretch and suggest a break', { options: { ...OPTIONS, break_every: '2' } }, async ($, on) => {
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+  const done = () => $.turn.complete({ answer: 'ok.', durationMs: 1000, isAborted: false, turnId: 't1', reason: 'answer' })
+
+  await workFor($, clock, 1)
+  await done()
+  expect(await ui.find({ type: 'Text', text: /stretch/ })).toBeFalsy()
+
+  await workFor($, clock, 2)
+  await done()
+  expect(await ui.find({ type: 'Text', text: /^3 min in\. stretch break\?$/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('with no break time set, Clawd never suggests one', { options: { ...OPTIONS, break_every: '' } }, async ($, on) => {
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await workFor($, clock, 3)
+  await $.turn.complete({ answer: 'fixed.', durationMs: 1000, isAborted: false, turnId: 't1', reason: 'answer' })
+
+  expect(await ui.find({ type: 'Text', text: /stretch/ })).toBeFalsy()
+  await ui.unmount()
+})
+
+test('a break nudge waits out its snooze before asking again, and a real break starts the count over', () => {
+  const min = 60_000
+  let sitting = satAt({ since: 0, lastSeen: -Infinity, nudgedAt: 0 }, 0)
+  for (let at = 5; at <= 50; at += 5) sitting = satAt(sitting, at * min)
+  expect(breakLine(sitting, 50 * min, 50)).toBe('50 min in. stretch break?')
+  expect(breakLine(sitting, 50 * min, undefined)).toBeUndefined()
+  sitting = { ...sitting, nudgedAt: 50 * min }
+
+  for (let at = 55; at <= 95; at += 5) sitting = satAt(sitting, at * min)
+  // Snoozed for twenty minutes, then asked again; past an hour and a half, in hours.
+  expect(breakLine(sitting, 65 * min, 50)).toBeUndefined()
+  expect(breakLine(sitting, 95 * min, 50)).toBe('1h35 now. stretch with me?')
+
+  // Ten minutes and more away is a break: the count starts over from the return.
+  sitting = satAt(sitting, 110 * min)
+  expect(sitting).toEqual({ since: 110 * min, lastSeen: 110 * min, nudgedAt: 0 })
+  expect(breakLine(sitting, 125 * min, 50)).toBeUndefined()
+})
+
+test('break minutes are read from the setting, and empty, 0 or nonsense turns them off', () => {
+  expect(parseMinutes('50')).toBe(50)
+  expect(parseMinutes(' 45 ')).toBe(45)
+  for (const off of ['', '0', 'off', '-5']) expect(parseMinutes(off)).toBeUndefined()
 })
 
 test('on a weekend Clawd says nothing about leave time', { options: OPTIONS }, async ($, on) => {

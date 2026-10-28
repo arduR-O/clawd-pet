@@ -17,6 +17,12 @@
       "description": "Optional: when you leave work on weekdays, as 24-hour HH:MM, for Clawd's going-home nudges. Empty turns them off",
       "default": ""
     },
+    "break_every": {
+      "type": "string",
+      "title": "Break every",
+      "description": "Minutes of work before Clawd stretches and suggests a break, like 50. Empty or 0 turns it off",
+      "default": "50"
+    },
     "music": {
       "type": "string",
       "title": "Music",
