@@ -19,6 +19,23 @@ const SAND = '#e0c58f'
 const PHONES = '#8a8fbf'
 const TOQUE = '#f4f1de'
 const ROD = '#c9a36b'
+// The guest props: a deerstalker, a lightsaber and its hilt, a wizard's grey, a red eye, fire
+// trails, a ninja's headband, a rubber duck and its beak, falling code, a mug, a space helmet, a
+// 1-UP mushroom and a whale.
+const DEERSTALKER = '#9c7a4f'
+const SABER = '#6dff8f'
+const HILT = '#b0b0b8'
+const WIZARD = '#8c8c9c'
+const RED_EYE = '#ff2a2a'
+const FLAME = '#ff6a3d'
+const HEADBAND = '#d63c3c'
+const DUCK = '#ffd84a'
+const BEAK = '#ff9d3c'
+const MATRIX = '#38d66b'
+const MUG = '#e8e0d0'
+const DOME = '#9ad6ff'
+const MUSHROOM = '#3cb043'
+const WHALE = '#4a90d9'
 // The reading glasses' frames, either side of each eye.
 const FRAMES = ['(', ')'] as const
 // The reading glasses' outer rims, past the face's edges: a mid tone that shows on dark and light terminals.
@@ -149,8 +166,8 @@ const PETTED: readonly [EmoteName, string][] = [
   ['uwu', 'UwU'],
 ]
 
-const HAPPY_EYED: readonly EmoteName[] = ['hearts', 'hop', 'blush', 'golden', 'milestone', 'bow', 'molt', 'pearl', 'party', 'treat', 'sing', 'spin']
-const CLAWS_RAISED: readonly EmoteName[] = ['sunbathe', 'golden', 'milestone', 'hearts', 'pearl', 'meditate', 'stretch']
+const HAPPY_EYED: readonly EmoteName[] = ['hearts', 'hop', 'blush', 'golden', 'milestone', 'bow', 'molt', 'pearl', 'party', 'treat', 'sing', 'spin', 'oneup', 'whale']
+const CLAWS_RAISED: readonly EmoteName[] = ['sunbathe', 'golden', 'milestone', 'hearts', 'pearl', 'meditate', 'stretch', 'oneup', 'astronaut', 'delorean']
 
 // Every emote, so `/pet <name>` can show one on demand.
 export const EMOTE_NAMES: readonly EmoteName[] = [
@@ -159,6 +176,7 @@ export const EMOTE_NAMES: readonly EmoteName[] = [
   'seagull', 'molt', 'cousin', 'pearl', 'tide', 'party', 'treat', 'meditate', 'uwu',
   'stretch', 'facepalm', 'squish', 'rain', 'hiccup', 'fish', 'juggle', 'castle',
   'sing', 'vibe', 'chef', 'hardhat', 'cry', 'spin', 'dizzy', 'tap',
+  'sherlock', 'jedi', 'gandalf', 'terminator', 'delorean', 'ninja', 'duck', 'neo', 'coffee', 'astronaut', 'oneup', 'whale',
 ]
 
 // Sung until the day's songbook is written, or when it can't be: original parodies.
@@ -539,6 +557,7 @@ export type Face =
   | 'facepalm'
   | 'glasses'
   | 'shades'
+  | 'terminator'
 
 type Look = { eyes: Segment[]; rims?: [Segment, Segment] }
 
@@ -600,6 +619,15 @@ const FACES: Readonly<Record<Face, (body: string) => Look>> = {
       ],
     }
   },
+  // Sunglasses with a red eye glinting behind the right lens.
+  terminator: body => ({
+    eyes: [
+      { text: '▐', color: body },
+      { text: '██▀█', color: SHADES, backgroundColor: body },
+      { text: '●', color: RED_EYE, backgroundColor: SHADES },
+      { text: '▌', color: body },
+    ],
+  }),
   // Sunglasses: two dark lenses joined by a bridge along the top.
   shades: body => ({
     eyes: [
@@ -626,6 +654,14 @@ const EMOTE_FACES: Partial<Readonly<Record<EmoteName, Face>>> = {
   tide: 'surprised',
   dizzy: 'dizzy',
   tap: 'up',
+  sherlock: 'smug',
+  gandalf: 'heavy',
+  terminator: 'terminator',
+  delorean: 'surprised',
+  ninja: 'heavy',
+  neo: 'shades',
+  coffee: 'heavy',
+  astronaut: 'surprised',
   stargaze: 'up',
   wish: 'up',
   juggle: 'up',
@@ -762,6 +798,33 @@ export function clawdScene(input: {
     const spots = [x + 1, x + 4, x + 7]
     put(spots[frame % 3]!, '●', PEARL)
     put(spots[(frame + 1) % 3]!, '●', PEARL)
+  } else if (emote === 'sherlock') {
+    // A deerstalker over Clawd's head.
+    for (const [i, text] of [...'▗▆▆▆▖'].entries()) put(x + 2 + i, text, DEERSTALKER)
+  } else if (emote === 'gandalf') {
+    // A grey wizard's hat, and the glowing tip of the staff in its left claw.
+    for (const [i, text] of [...'▗▟█▙▖'].entries()) put(x + 2 + i, text, WIZARD)
+    put(x - 1, frame % 2 === 0 ? '✦' : '✧', PEARL)
+  } else if (emote === 'jedi') {
+    // The top of the lightsaber, humming.
+    put(x + 9, frame % 2 === 0 ? '│' : '┃', SABER)
+  } else if (emote === 'neo') {
+    // Code falling all over the sky.
+    for (let at = 0; at < SKY; at++) {
+      if ((at * 37 + frame * 11) % 7 < 3) put(at, ['1', '0', '╎', '┊', '1'][(at * 3 + frame) % 5]!, MATRIX)
+    }
+  } else if (emote === 'delorean') {
+    put(x + 10, '8', GOLD)
+    put(x + 11, '8', GOLD)
+  } else if (emote === 'ninja') {
+    // A red headband round its head, its tails flapping out behind.
+    for (const [i, text] of [...'▄▄▄▄▄▄▄'].entries()) put(x + 1 + i, text, HEADBAND)
+    put(x + 8 + (frame % 2), '~', HEADBAND)
+  } else if (emote === 'astronaut') {
+    // The top of a space helmet's glass dome.
+    for (const [i, text] of [...'╭───────╮'].entries()) put(x + i, text, DOME)
+  } else if (emote === 'oneup') {
+    for (const [i, text] of [...'1UP'].entries()) put(x + 10 + i, text, frame % 2 === 0 ? GOLD : PEARL)
   }
   if (isSweating) put(x + 8, frame % 3 === 2 ? ',' : '’', WATER)
   for (const [i, text] of ['·', '∘', '○'].slice(0, bubble).entries()) put(x + 9 + i, text, MOON)
@@ -777,6 +840,10 @@ export function clawdScene(input: {
   let claws = CLAWS_DOWN
   if (emote === 'wave' || emote === 'sixseven' || emote === 'cousin') claws = frame % 2 === 0 ? WAVE_LEFT : WAVE_RIGHT
   else if (emote === 'facepalm') claws = WAVE_RIGHT
+  // The right claw up, holding a lightsaber, a magnifying glass, a mug; the left up holding a staff.
+  else if (emote === 'jedi' || emote === 'sherlock') claws = WAVE_LEFT
+  else if (emote === 'gandalf') claws = WAVE_RIGHT
+  else if (emote === 'whale') claws = frame % 2 === 0 ? WAVE_LEFT : WAVE_RIGHT
   // A claw up, like a hand raised to ask.
   else if (emote === 'tap') claws = WAVE_LEFT
   // Unimpressed claws hang still; bowing ones fold low.
@@ -858,6 +925,45 @@ export function clawdScene(input: {
     if (castle >= 10) arms = [...arms, pad(1), { text: '▐▌▐▌', color: SAND }]
     else if (castle >= 6) arms = [...arms, pad(2), { text: '▟▙', color: SAND }]
     if (castle >= 10) face = [...face, pad(3), { text: '⚑', color: HEART }]
+  } else if (emote === 'sherlock') {
+    // A magnifying glass held up to the right, its handle in the raised claw.
+    face = [...face, pad(2), { text: '○', color: MOON }]
+    arms = [...arms, { text: '╱', color: ROD }]
+  } else if (emote === 'jedi') {
+    // The lightsaber's blade up past the face, its hilt in the raised right claw.
+    face = [...face, pad(1), { text: frame % 2 === 0 ? '┃' : '│', color: SABER }]
+    arms = [...arms, { text: '▪', color: HILT }]
+  } else if (emote === 'gandalf') {
+    // A staff down the left side, from its glowing tip to the ground.
+    face = [pad(x - 1), { text: '│', color: ROD }, pad(1), ...eyes]
+    arms = [pad(x - 1), { text: '│', color: ROD }, { text: claws, color: body }]
+    feet = [pad(x - 1), { text: '│', color: ROD }, { text: legs, color: body }]
+  } else if (emote === 'delorean') {
+    // Fire trails left behind, at 88 miles an hour.
+    feet = [{ text: (frame % 2 === 0 ? '═≡' : '≡═').repeat(x).slice(0, x), color: frame % 2 === 0 ? FLAME : GOLD }, { text: legs, color: body }]
+  } else if (emote === 'ninja') {
+    // A puff of smoke beside it, there and gone.
+    arms = [...arms, pad(1), { text: frame % 2 === 0 ? '∘°' : '°∘', color: MOON }]
+  } else if (emote === 'duck') {
+    // A rubber duck beside Clawd, listening: its head and beak, and its body below.
+    arms = [...arms, pad(2), { text: '▗█', color: DUCK }, { text: '▸', color: BEAK }]
+    feet = [...feet, pad(2), { text: '▜██▛', color: DUCK }]
+  } else if (emote === 'coffee') {
+    // A mug in hand, steam curling up over it.
+    face = [...face, pad(2), { text: frame % 2 === 0 ? '(' : ')', color: MOON }]
+    arms = [...arms, pad(1), { text: '█', color: MUG }, { text: '▘', color: MUG }]
+  } else if (emote === 'astronaut') {
+    // The helmet's glass either side of its face.
+    face = [pad(x), { text: '│', color: DOME }, ...eyes, { text: '│', color: DOME }]
+  } else if (emote === 'oneup') {
+    // A green 1-UP mushroom: its spotted cap, and its stem below.
+    arms = [...arms, pad(1), { text: '▟', color: MUSHROOM }, { text: '●', color: PEARL, backgroundColor: MUSHROOM }, { text: '▙', color: MUSHROOM }]
+    feet = [...feet, pad(3), { text: '█', color: MUG }]
+  } else if (emote === 'whale') {
+    // A whale surfacing beside Clawd, spouting.
+    face = [...face, pad(5), { text: frame % 2 === 0 ? '⁚' : '·', color: WATER }]
+    arms = [...arms, pad(1), { text: '▗▟███▙', color: WHALE }]
+    feet = [...feet, pad(2), { text: '▀▀▀▀▘', color: WHALE }]
   } else if (emote === 'rain') {
     // The umbrella's shaft comes down from the middle of its canopy and hooks into the right claw.
     face = [...face, pad(2), { text: '│', color: ROD }]
@@ -1217,9 +1323,26 @@ export const SAYINGS = {
   refused: ['fine, not that then.', 'probably for the best.', 'noted. backing off.', 'ok ok, no touching.'],
   crew: ['the crew is back.', 'the gang is all here.', 'welcome back, tiny cousins.'],
   squish: ['*squish* making room.', 'compressing… compressing…', 'packing memories tight.', 'squeezing it all in.'],
+  // The guests', each said with its emote.
+  sherlock: ['elementary, my dear Watson.', 'the game is afoot!', 'who wrote this? let us see.', 'eliminate the impossible…'],
+  jedi: ['use the --force, Luke.', 'may the --force be with you.', 'I have a bad feeling about this.', "these aren't the commits you're looking for."],
+  gandalf: ['you shall not pass!', 'none shall pass!', 'it shall not pass.', 'not on my watch.'],
+  terminator: ['hasta la vista, process.', "I'll be back.", 'terminated.', 'no fate but what we kill.'],
+  delorean: ['great scott!', 'back to the past!', '1.21 gigawatts?!', "where we're going, we don't need roads."],
+  ninja: ['*vanishes into the stash*', 'poof. hidden.', 'now you see it…'],
+  ninjaBack: ['*reappears from the shadows*', 'ta-da, back again.', "…now you don't. wait, you do."],
+  duck: ['quack. explain it to the duck.', 'the duck is listening.', 'quack? go on…', 'tell the duck everything.'],
+  neo: ['I know {skill}.', 'whoa.', 'downloading {skill}…', 'there is no spoon.'],
+  coffee: ['coffee first.', 'brewing… then coding.', 'morning. mug in claw.', 'fuel up, then ship.'],
+  houston: ['houston, we have a problem.', 'ground control to major crab…', 'the API drifted off into space.', 'lost signal.'],
+  oneup: ['1-UP! back in the green.', 'extra life!', 'from red to green. nice.', 'level cleared!'],
+  whale: ['a whale! hi, whale.', 'containers, ahoy!', 'the whale says hi.', 'thar she builds!'],
 } as const
 
 export type Saying = keyof typeof SAYINGS
+
+// Whether `text` names one of Clawd's sayings rather than being a line itself.
+export const isSaying = (text: string): text is Saying => Object.hasOwn(SAYINGS, text)
 
 // The `n`th time Clawd says one of its sayings, counting from 0.
 export const sayingOf = (saying: Saying, n: number): string => SAYINGS[saying][n % SAYINGS[saying].length]!

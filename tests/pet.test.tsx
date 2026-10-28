@@ -91,6 +91,7 @@ test('typing /pet offers the commands, and a few letters in, the emotes', () => 
   expect(petSuggestions('/pet o')).toEqual([
     { text: 'off', description: 'hide the pet until /pet on' },
     { text: 'on', description: 'bring the pet back' },
+    { text: 'oneup' },
   ])
   expect(names('/pet off')).toEqual([])
   expect(names('/pet treat')).toEqual([])

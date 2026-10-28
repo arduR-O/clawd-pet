@@ -11,6 +11,7 @@ import {
   start,
   istOn,
   workFor,
+  saying,
 } from './helpers'
 
 test('an hour before leave time, idle Clawd counts down to it', { options: OPTIONS }, async ($, on) => {
@@ -138,8 +139,10 @@ test('a turn stopped short is not cheered', { options: OPTIONS }, async ($, on) 
   expect(await ui.find({ type: 'Text', text: /^ok, stopping\.$/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /done/ })).toBeFalsy()
 
+  // Lost to an API error: Clawd puts its helmet on and radios Houston.
   await $.turn.complete({ answer: '', durationMs: 1000, isAborted: false, turnId: 't2', reason: 'error' })
-  expect(await ui.find({ type: 'Text', text: /^that ended badly\.$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: saying('houston') })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /╭───────╮/ })).toBeTruthy()
   await ui.unmount()
 })
 
