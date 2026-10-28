@@ -3,6 +3,7 @@
   "owner": {
     "name": "arduR-O"
   },
+  "description": "Clawd, a pet crab for Claude Code that lives above your prompt",
   "plugins": [
     {
       "name": "clawd",
