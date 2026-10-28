@@ -12,12 +12,14 @@ or moon over its head by your local time, sings from a little songbook, builds a
 storey per finished turn, and may go fishing when you step away. While you read Claude's answer it
 keeps still.
 
-It keeps an eye on you as well: its eyes follow the caret as you type, it taps its foot while a
-permission prompt waits on you, it wears a face for each mood (a `> <` wince when something breaks,
-heart eyes for a kind word), and after a long stretch of work it stretches and suggests you do too.
-A long turn ends in confetti, and its "done!" stays up a minute for when you look back.
+It keeps an eye on you as well: its eyes follow the caret as you type, it thanks you when you
+allow a permission prompt and shrugs when you don't, it wears a face for each mood (a `> <` wince
+when something breaks, heart eyes for a kind word), and after a long stretch of work it stretches
+and suggests you do too. A long turn ends in confetti, and its "done!" stays up a minute for when
+you look back. Where the band stays on screen during a permission prompt, Clawd taps its foot
+until you answer; in the terminal the prompt takes the band's place.
 
-<p align="center"><img src="assets/tricks.svg" alt="Clawd's newer tricks: watching you type, tapping its foot at a permission prompt, a face for every mood, reading glasses, stretch breaks and confetti for long turns" width="640"></p>
+<p align="center"><img src="assets/tricks.svg" alt="Clawd's newer tricks: watching you type, thanking you for an ok, a face for every mood, reading glasses, stretch breaks and confetti for long turns" width="640"></p>
 
 Claude can talk to it too: a `clawd` tool lets Claude have Clawd act something out, sing, or say
 how it's doing, now and then when a moment earns it.
