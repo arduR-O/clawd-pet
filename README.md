@@ -40,6 +40,7 @@ Needs a recent Claude Code; tested on 2.1.312.
 | `/pet treat` | Feed it a treat. |
 | `/pet trick` | It does a trick. |
 | `/pet <emote>` | Shows an emote now, e.g. `/pet meditate`, `/pet sing`, `/pet spin`, `/pet uwu`. |
+| `/pet refresh-songs` | Forgets the songbook and writes a new one now. One small Haiku call; with no music or Last.fm set it does nothing. |
 | `/pet off`, `/pet on` | Hides the band above the prompt until `/pet on`, in every chat. |
 | `/pet garden`, `/pet moss`, `/pet clawd` | Switches critter: a garden that grows as you work, or Moss. |
 

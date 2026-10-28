@@ -502,7 +502,7 @@ export const register: Register = (on, options) => {
     life.prompts = 0
     await $.command.register({
       name: 'pet',
-      description: 'Pet the critter above the prompt; /pet garden, /pet clawd or /pet moss to switch; /pet off to hide it',
+      description: 'Pet the critter above the prompt; /pet garden, /pet clawd or /pet moss to switch; /pet off to hide it; /pet refresh-songs for a new songbook',
       // A pet only touches the critter's own state, so it need not wait for Claude's turn.
       immediate: true,
     })
@@ -701,6 +701,18 @@ export const register: Register = (on, options) => {
     }
     if (await read($, isOff)) {
       return { text: 'The pet is hidden; /pet on brings it back.' }
+    }
+    if (asked === 'refresh-songs') {
+      // Forget the songbook and write a new one now, from Last.fm or the music setting.
+      if (music === '' && !(lastfm.user !== '' && lastfm.key !== '')) {
+        return { text: 'No music or Last.fm is set, so Clawd only sings its built-in songs. Set one with /plugin configure.' }
+      }
+      await $.store.set('songbook', null)
+      life.songs = STARTER_SONGS
+      void refreshSongbook($, music, lastfm, dayOf(localTime(await $.clock.now(), offsetMinutes)))
+      await react($, 'happy', 'new songs coming…')
+
+      return {}
     }
     if (asked === 'treat' || asked === 'trick') {
       if ((await read($, species)) !== 'clawd') {

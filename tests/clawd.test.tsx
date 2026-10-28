@@ -97,6 +97,35 @@ test('Clawd is the default', { options: OPTIONS }, async ($, on) => {
   await ui.unmount()
 })
 
+test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, async ($, on) => {
+  const prompts: string[] = []
+  on('model.complete', (_, e) => {
+    prompts.push(e.prompt)
+    const usage = { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
+
+    return { value: { isAnswered: true, text: 'where do i begiiin\nwe will, we will\nsomebody to looove', usage } }
+  })
+  on('http.fetch', () => ({ value: { ok: true, status: 200, text: '{}' } }))
+  const songbook = { day: '10-27', source: 'lastfm:listener', style: 4, taste: 'x', checkedAt: NOON_IST, lines: ['old song ♪'] }
+  const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
+  await clock.advance(1_500)
+  expect(prompts.length).toBe(0)
+
+  const ran = await $.command.run({ command: 'pet', args: 'refresh-songs' })
+  await clock.advance(1_500)
+
+  expect(ran.text).toBeUndefined()
+  expect(prompts.length).toBe(1)
+})
+
+test('/pet refresh-songs with no music set says Clawd keeps its built-in songs', { options: { utc_offset: '+05:30' } }, async ($, on) => {
+  await start($, on, { species: 'clawd' }, NOON_IST)
+
+  const ran = await $.command.run({ command: 'pet', args: 'refresh-songs' })
+
+  expect(ran.text).toContain('built-in songs')
+})
+
 test('/pet off hides the pet, and Clawd turns down pets and Claude', { options: OPTIONS }, async ($, on) => {
   // The engine's own band, drawn when the pet steps aside.
   on('ui.render', ($, e) => {
