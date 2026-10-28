@@ -523,6 +523,8 @@ export function ambient(local: Local, nowMs: number, leaveAt: number | undefined
 // Clawd's faces: its eyes along the face row, and anything either side of it past its edges.
 export type Face =
   | 'open'
+  | 'left'
+  | 'right'
   | 'up'
   | 'happy'
   | 'shut'
@@ -552,6 +554,9 @@ const marks = (body: string, left: string, right: string, color = SHADES, betwee
 
 const FACES: Readonly<Record<Face, (body: string) => Look>> = {
   open: body => ({ eyes: [{ text: EYES, color: body }] }),
+  // Both pupils to one side, watching the caret down in the prompt.
+  left: body => ({ eyes: [{ text: '▐▜███▜▌', color: body }] }),
+  right: body => ({ eyes: [{ text: '▐▛███▛▌', color: body }] }),
   up: body => ({ eyes: [{ text: EYES_UP, color: body }] }),
   happy: body => ({ eyes: [{ text: EYES_HAPPY, color: body }] }),
   shut: body => marks(body, '─', '─'),
@@ -625,8 +630,9 @@ const EMOTE_FACES: Partial<Readonly<Record<EmoteName, Face>>> = {
   rain: 'up',
 }
 
-// Which face Clawd wears for its mood and what it is acting out; `isShut` when its pose shuts its eyes.
-export function faceOf(kind: Kind, emote: EmoteName | undefined, frame: number, isShut = false): Face {
+// Which face Clawd wears for its mood and what it is acting out; `isShut` when its pose shuts its eyes,
+// and `gaze` where it watches the person type when it has nothing else on its mind.
+export function faceOf(kind: Kind, emote: EmoteName | undefined, frame: number, isShut = false, gaze?: Face): Face {
   if (isShut) return 'shut'
   const own = emote === undefined ? undefined : EMOTE_FACES[emote]
   if (own !== undefined) return own
@@ -641,7 +647,7 @@ export function faceOf(kind: Kind, emote: EmoteName | undefined, frame: number, 
   if (kind === 'think') return 'up'
   // A blink now and then while nothing is going on.
   if (kind === 'idle' && emote === undefined && frame % BLINK_EVERY === 0) return 'shut'
-  return 'open'
+  return gaze ?? 'open'
 }
 
 // The sky over Clawd and Clawd under it: four rows of colored segments.
@@ -663,6 +669,8 @@ export function clawdScene(input: {
   castle?: number
   // Frames since the current pose began, so a pose with moves of its own starts from the top.
   poseFrame?: number
+  // While the person types: the caret's column down in the prompt, and whether they are typing /pet.
+  typing?: { caret: number; isPet: boolean }
 }): Row[] {
   const { kind, emote, frame, nowMs, local, crew = 0, isSweating = false, bubble = 0, castle = 0, hasHeadphones = false } = input
   const poseFrame = input.poseFrame ?? frame
@@ -758,7 +766,11 @@ export function clawdScene(input: {
 
   const isShut =
     isAsleep || emote === 'meditate' || emote === 'vibe' || ((emote === 'yawn' || emote === 'stretch') && frame % 4 < 2)
-  const { eyes, rims } = FACES[faceOf(kind, emote, frame, isShut)](body)
+  // Watching the caret: straight down while it is under the face, to one side past it; perked up for a /pet.
+  const { typing } = input
+  const gaze: Face | undefined =
+    typing === undefined ? undefined : typing.isPet ? 'happy' : typing.caret < x + 1 ? 'left' : typing.caret > x + 7 ? 'right' : undefined
+  const { eyes, rims } = FACES[faceOf(kind, emote, frame, isShut, gaze)](body)
 
   let claws = CLAWS_DOWN
   if (emote === 'wave' || emote === 'sixseven' || emote === 'cousin') claws = frame % 2 === 0 ? WAVE_LEFT : WAVE_RIGHT

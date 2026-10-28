@@ -978,6 +978,40 @@ test('a question from Claude is announced as one', { options: OPTIONS }, async (
   await ui.unmount()
 })
 
+// The person types `text` into an empty prompt, in one go.
+async function typeIn($: Args[0], text: string) {
+  await $.prompt.edit({ origin: { kind: 'composer' }, text: '', cursor: 0, start: 0, end: 0, inputText: text })
+}
+
+test('Clawd watches the person type, eyes on the caret, and looks back up once they stop', { options: OPTIONS }, async ($, on) => {
+  on('prompt.edit', (_, e) => ({ text: e.inputText, cursor: e.inputText.length }))
+  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+  // Past the settling after the session's start, and off a blink.
+  await clock.advance(5 * 800)
+
+  await typeIn($, 'fix the login bug please')
+  await clock.advance(800)
+  expect(await ui.find({ type: 'Text', text: /▐▛███▛▌/ })).toBeTruthy()
+
+  await clock.advance(1600)
+  expect(await ui.find({ type: 'Text', text: /▐▛███▛▌/ })).toBeFalsy()
+  await ui.unmount()
+})
+
+test('Clawd perks up when it sees /pet being typed', { options: OPTIONS }, async ($, on) => {
+  on('prompt.edit', (_, e) => ({ text: e.inputText, cursor: e.inputText.length }))
+  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+  await clock.advance(5 * 800)
+
+  await typeIn($, '/pet')
+  await clock.advance(800)
+
+  expect(await ui.find({ type: 'Text', text: /▐▀███▀▌/ })).toBeTruthy()
+  await ui.unmount()
+})
+
 test('a failure after a success is not facepalmed', { options: OPTIONS }, async ($, on) => {
   on('tool.call', { tool: 'Bash' }, () => ({ result: 'make: *** No rule', isError: true }))
   await start($, on, { species: 'clawd' }, NOON_IST)
