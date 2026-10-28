@@ -1008,7 +1008,7 @@ test('Clawd perks up when it sees /pet being typed', { options: OPTIONS }, async
   await typeIn($, '/pet')
   await clock.advance(800)
 
-  expect(await ui.find({ type: 'Text', text: /▐▀███▀▌/ })).toBeTruthy()
+  expect(await ui.findAll({ type: 'Text', text: /^\^$/ })).toHaveLength(2)
   await ui.unmount()
 })
 
@@ -1291,7 +1291,7 @@ test('a spinning Clawd turns round a quarter a frame: front, side, back, other s
   const text = (row: { text: string }[]) => row.map(part => part.text).join('').trim()
   const views = Array.from({ length: 5 }, (_, frame) => clawdScene({ kind: 'idle', emote: 'spin', frame, nowMs: NOON_IST, local }))
 
-  expect(views.map(rows => text(rows[1]!))).toEqual(['▐▀███▀▌', '▐██▜▌', '▐█████▌', '▐▛██▌', '▐▀███▀▌'])
+  expect(views.map(rows => text(rows[1]!))).toEqual(['▐^███^▌', '▐██▜▌', '▐█████▌', '▐▛██▌', '▐^███^▌'])
   // Side on, it trails a swoosh behind it; front and back, none.
   expect(text(views[1]![2]!)).toBe('≈▐████▙▖')
   expect(text(views[3]![2]!)).toBe('▗▟████▌≈')
