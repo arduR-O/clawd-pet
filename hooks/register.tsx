@@ -8,6 +8,7 @@ import {
   EMOTE_NAMES,
   ambient,
   clawdScene,
+  joinRuns,
   withStarters,
   petSuggestions,
   sceneSvg,
@@ -437,8 +438,12 @@ async function refreshSongbook($: EngineInterface, music: string, lastfm: { user
 // Now and then while Claude works, Clawd does a little something: then the person is waiting,
 // not reading Claude's answer.
 async function maybeEmote($: EngineInterface, offsetMinutes: number) {
+  // Runs every tick: the cheap checks first.
+  if (!life.isBusy || life.waitingOn !== undefined) {
+    return
+  }
   const now = await $.clock.now()
-  if (!life.isBusy || life.waitingOn !== undefined || now < life.nextEmoteAt || (await read($, species)) !== 'clawd') {
+  if (now < life.nextEmoteAt || (await read($, species)) !== 'clawd') {
     return
   }
   const m = await read($, mood)
@@ -568,8 +573,12 @@ export const register: Register = (on, options) => {
       void refresh()
     })
     $.clock.every(TICK_MS, () => {
-      void update($, tick, n => n + 1)
-      void maybeEmote($, offsetMinutes)
+      void (async () => {
+        // Hidden, nothing moves: no redraws until /pet on.
+        if (await read($, isOff)) return
+        await update($, tick, n => n + 1)
+        await maybeEmote($, offsetMinutes)
+      })()
     })
 
     return next(e)
@@ -974,8 +983,9 @@ export const register: Register = (on, options) => {
     const now = await $.clock.now()
     const [kind, line] = current(m, now, e.props.isWorking)
     const room = Math.max(10, e.props.bodyColumns - 16)
+    const critter = await read($, species)
 
-    if ((await read($, species)) === 'garden') {
+    if (critter === 'garden') {
       const g = await read($, growth)
       const bloomed = Array.from({ length: PLANTS }, (_, i) => stage(i, g)).filter(s => s === 3).length
       const isNight = kind === 'sleep'
@@ -1003,7 +1013,7 @@ export const register: Register = (on, options) => {
       )
     }
 
-    if ((await read($, species)) === 'clawd') {
+    if (critter === 'clawd') {
       const local = localTime(now, offsetMinutes)
       const act = await read($, emote)
       let pose = act.name !== null && now < act.until ? act.name : undefined
@@ -1064,7 +1074,7 @@ export const register: Register = (on, options) => {
       if (e.surface === 'terminal') {
         drawing = (
           <Box flexDirection="column">
-            {rows.map(row => (
+            {joinRuns(rows).map(row => (
               <Text>
                 {row.map(part => (
                   <Text color={part.color} backgroundColor={part.backgroundColor}>
