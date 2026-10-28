@@ -51,17 +51,19 @@ const FLOAT = [0, 1, 2, 1]
 // Its hum stretching out over the same frames, as long as fits beside it.
 const HUM = ['ᵒᵐ', 'ᵒᵐᵐ', 'ᵒᵐᵐᵐ', 'ᵒᵐᵐᵐ']
 // A meditating Clawd as pixels, two across and two down a cell, from its left claw's column:
-// small claws at its sides, tips turned up.
+// claws raised beside its face, tips up, sitting wide and settled.
 const MEDITATING = [
   '                  ',
   '                  ',
   '   ############   ',
-  ' # ############ # ',
+  '#  ############  #',
+  '## ############ ##',
   ' ################ ',
-  '   ############   ',
 ]
 // Its shut eyes: the cells they're in, from the left claw's, and the pixel row they run along the top of.
 const MEDITATING_EYES = { cells: [2, 6], top: 3 }
+// A mote of light drifting up beside a meditating Clawd.
+const MOTE = ['·', '˚', '✧']
 // The aura round a meditating Clawd, pulsing between two shades.
 export const AURA = ['#241e33', '#2d2540']
 // Block glyphs by the quadrants they fill: top-left 8, top-right 4, bottom-left 2, bottom-right 1.
@@ -907,7 +909,10 @@ export function clawdScene(input: {
       const glyph = glyphOf(isFilled)
       const glow = glyphOf(isAura)
       if (glyph !== ' ') return { text: glyph, color: body, ...(glow === ' ' ? {} : { backgroundColor: aura }) }
-      return glow === ' ' ? undefined : { text: glow, color: aura }
+      if (glow !== ' ') return { text: glow, color: aura }
+      // The mote rises a row a frame up its left side, from the ground to the sky.
+      if (c === x - 2 && r === 3 - (poseFrame % MOTE.length)) return { text: MOTE[poseFrame % MOTE.length]!, color: MOON }
+      return undefined
     }
     // In the sky row the sun, moon and stars show through the aura; below it, runs of cells join up.
     const top = sky.map((cell, c) => {
