@@ -459,6 +459,36 @@ export function leaveLine(local: Local, leaveAt: number | undefined, moment: 'id
   return `weren't you leaving at ${at}?`
 }
 
+// Away this long, the person has had a break: the next stretch of work starts over.
+export const BREAK_RESET_MS = 10 * 60_000
+// After suggesting a break that was not taken, Clawd asks again this much later.
+export const BREAK_SNOOZE_MS = 20 * 60_000
+
+// A stretch of work: when it began, when the person was last seen, and when Clawd last suggested a break.
+export type Sitting = { since: number; lastSeen: number; nudgedAt: number }
+
+// Minutes from a setting like `50`; undefined for empty, `0`, `off` or nonsense.
+export function parseMinutes(text: string): number | undefined {
+  const minutes = Number(text.trim())
+
+  return text.trim() !== '' && Number.isFinite(minutes) && minutes > 0 ? minutes : undefined
+}
+
+// The stretch of work after the person shows up at `now`: a fresh one if they had been away a while.
+export function satAt(sitting: Sitting, now: number): Sitting {
+  return now - sitting.lastSeen >= BREAK_RESET_MS ? { since: now, lastSeen: now, nudgedAt: 0 } : { ...sitting, lastSeen: now }
+}
+
+// What Clawd says to suggest a break, once `every` minutes of work are in and not again until the snooze is up.
+export function breakLine(sitting: Sitting, now: number, every: number | undefined): string | undefined {
+  if (every === undefined || now - sitting.lastSeen >= BREAK_RESET_MS) return undefined
+  const minutes = Math.floor((now - sitting.since) / 60_000)
+  if (minutes < every || (sitting.nudgedAt !== 0 && now - sitting.nudgedAt < BREAK_SNOOZE_MS)) return undefined
+  const time = minutes >= 90 ? `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}` : `${minutes} min`
+
+  return sitting.nudgedAt === 0 ? `${time} in. stretch break?` : `${time} now. stretch with me?`
+}
+
 // What Clawd mutters when nothing else is going on.
 export function ambient(local: Local, nowMs: number, leaveAt: number | undefined): string {
   const { month, day, weekday, hour } = local
