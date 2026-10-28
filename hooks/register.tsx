@@ -8,6 +8,7 @@ import {
   EMOTE_NAMES,
   ambient,
   clawdScene,
+  withStarters,
   petSuggestions,
   sceneSvg,
   pastimeLine,
@@ -377,7 +378,7 @@ async function refreshSongbook($: EngineInterface, music: string, lastfm: { user
   type Songbook = { day?: string; source?: string; style?: number; taste?: string; lines?: string[] }
   const kept = (await $.store.get('songbook')) as Songbook | undefined
   if (kept?.lines !== undefined && kept.lines.length > 0) {
-    life.songs = kept.lines
+    life.songs = withStarters(kept.lines)
   }
   const isCurrent = kept?.day === today && kept.source === source && kept.style === SONGBOOK_STYLE
   if (isCurrent) {
@@ -393,7 +394,7 @@ async function refreshSongbook($: EngineInterface, music: string, lastfm: { user
     .catch(() => undefined)
   const lines = reply?.isAnswered === true ? songbookLines(reply.text) : []
   if (lines.length >= 3) {
-    life.songs = lines
+    life.songs = withStarters(lines)
     await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines })
   }
 }

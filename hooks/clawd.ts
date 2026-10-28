@@ -157,23 +157,51 @@ export const EMOTE_NAMES: readonly EmoteName[] = [
 // Sung until the day's songbook is written, or when it can't be: original parodies.
 export const STARTER_SONGS = [
   'mama, oooooo… I broke the build ♪',
-  'is this the real prod? is this just staging? ♪',
-  'we will, we will… lint you ♪',
-  "don't stop me now, I'm compiliiing ♪",
-  'another one bites the bug ♪',
-  'under pressuuure… from the deadline ♪',
-  'we met as soulmates… on a shared branch ♪',
-  'we would all go down… with the deploy ♪',
+  'is this the real life? is this just fantasy? ♪',
+  'we will, we will rock you ♪',
+  "don't stop me now, I'm having such a good time ♪",
+  'another one bites the dust ♪',
+  'under pressuuure, pushing down on me ♪',
+  'we met as soulmates on Parris Island ♪',
+  'and we would all go down together ♪',
   'remember Charlie, remember Baker ♪',
-  'we had no AI-dea… how to ship it ♪',
-  'I became a connoisseur… of bad excuses ♪',
-  'I am waking up… to a red build ♪',
-  'Amie, come sit… and read me the diff ♪',
-  'nothing unusual, nothing strange… just a flaky test ♪',
-  'and so it iiis… a failing test ♪',
-  "I can't take my eyes… off the logs ♪",
+  'and so it iiis, just like you said ♪',
+  "I can't take my eyes off of you ♪",
   'stones taught me to fly ♪',
+  'I became a connoisseur of great excuse ♪',
+  'I am waking up ♪',
+  'Amie, come sit on my wall and read me the story of O ♪',
+  'nothing unusual, nothing strange ♪',
+  "I'll follow you into the dark ♪",
+  'they will see us waving from such great heights ♪',
+  'those were the best days of my life ♪',
+  "please forgive me, I can't stop loving you ♪",
+  "nothing's gonna change my love for you ♪",
+  'near, far, wherever you are ♪',
+  'every night in my dreams ♪',
+  'welcome to the Hotel California ♪',
+  'you can check out any time you like ♪',
+  "there's a lady who's sure all that glitters is gold ♪",
+  'nothing lasts forever, even cold November rain ♪',
+  'in sleep he sang to me, in dreams he came ♪',
+  'that voice which calls to me and speaks my name ♪',
+  'sing once again with me our strange duet ♪',
 ]
+
+// A songbook with one starter song woven in after every nine of its lines, so the built-in songs
+// turn up now and then (one in ten) without crowding out the book's own. The starters are taken
+// spread out through their list, not in order.
+export function withStarters(book: readonly string[]): string[] {
+  const mixed: string[] = []
+  book.forEach((line, at) => {
+    mixed.push(line)
+    if ((at + 1) % 9 === 0) {
+      mixed.push(STARTER_SONGS[(((at + 1) / 9) * 7) % STARTER_SONGS.length]!)
+    }
+  })
+
+  return mixed
+}
 
 // What you've been playing, from Last.fm's replies (parsed JSON), as a grouped list for the songbook
 // prompt: the latest plays first, then this week's repeats, artists, a few all-time favourites; ''
@@ -221,24 +249,24 @@ export function tasteFrom(artists: unknown, weekTracks: unknown, recentPlays: un
 }
 
 // The songbook prompt's version: a songbook written by an older prompt is written again.
-export const SONGBOOK_STYLE = 5
+export const SONGBOOK_STYLE = 7
 
-// What Claude is asked for the songbook: hooks actually sung in the songs of `music`, most sung as
-// is and about one in four carried on into code.
+// What Claude is asked for the songbook: lines actually sung in the songs of `music`, each from
+// the line's start, most sung as is and about one in four carried on into code.
 export function songbookPrompt(music: string): string {
   return [
     "Write 12 short lines for Clawd, a tiny crab who lives in a programmer's terminal, to sing.",
     `Use songs by these artists, or these songs: ${music}. A different song for each line where you can.`,
-    'Each line is a hook the listener knows at once: words the singer actually sings, its opening or',
-    "its chorus (five words at most), never a title the song doesn't sing. Most lines are only that",
-    'hook, sung as the song sings it, e.g. "where do i begiiin" or "and so it iiis". About one line in',
-    'four carries the sung hook on into code (bugs, builds, tests, git, deploys) or crab life, keeping',
-    'its rhythm, e.g. "before you go… run the linter". Never make up words and pass them off as the',
-    "song's: if unsure of its opening or chorus, sing another line of it you know word for word,",
-    'still five words at most.',
+    'Each line is a line of a song, taken from its start, never from the middle: the whole line, never',
+    "cut off where it loses its sense, only words the singer actually sings and never a title the song",
+    "doesn't sing. Most lines are only that, sung as the song sings it, e.g. \"where do i",
+    'begiiin" or "and so it iiis". About one line in four carries the sung words on into code (bugs,',
+    'builds, tests, git) or crab life, keeping its rhythm, e.g. "before you go… run the linter"; vary',
+    'the jokes, never the same one twice. Never make up words and pass them off as the song\'s: if',
+    "unsure of a song's opening, sing another of its lines you know word for word, from its start.",
     'If the list is grouped, lean on the newest plays and this week\'s repeats, and use an all-time',
     'favourite now and then.',
-    'Never copy more of the real lyrics than that hook; at most 9 words a line; lowercase;',
+    'Never join two lines of a song; at most 12 words a line; lowercase;',
     'stretch a vowel in some ("ooooh"). One line each, no numbering, no quotes, no commentary.',
   ].join('\n')
 }
@@ -249,7 +277,7 @@ export function songbookLines(reply: string): string[] {
   const lines = reply
     .split('\n')
     .map(line => line.trim().replace(/^(\d+[.)]|[-*•])\s*/, '').replace(/^["“']|["”']$/g, '').trim())
-    .filter(line => line.length >= 6 && line.length <= 60)
+    .filter(line => line.length >= 6 && line.length <= 72)
     .map(line => (line.includes('♪') ? line : `${line} ♪`))
 
   return [...new Set(lines)].slice(0, 20)
