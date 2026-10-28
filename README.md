@@ -110,6 +110,17 @@ claude plugin test .
 CI runs both on every push. `bun scripts/tricks.ts > assets/tricks.svg` redraws the gallery above
 from the mod's own drawing code.
 
+## Credits
+
+Several of Clawd's newer tricks were inspired by
+[physics-clawd-pet](https://github.com/Ramirez0291/physics-clawd-pet) by
+[Ramirez0291](https://github.com/Ramirez0291), a desktop Clawd with exaggerated cartoon physics
+that you can grab and fling around your screen. Its per-mood faces, its reactions to permission
+prompts, its long-turn celebrations, its break reminders and its eyes that follow your cursor
+gave us the ideas for Clawd's face table, its thanks after a permission prompt, its confetti for
+long turns, its stretch breaks and its eyes on your typing. No code was copied: the two are built
+very differently, and Clawd draws everything above the prompt itself. Go fling theirs around.
+
 ## Uninstall
 
 ```sh
