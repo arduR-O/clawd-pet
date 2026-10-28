@@ -12,8 +12,9 @@ a desktop Clawd with cartoon physics.
   a smug look for a bow or a sudo, `^ ^` when happy.
 - **Dizzy.** A third failed tool in a row leaves Clawd x-eyed, with stars going round its head.
   `/pet dizzy` shows it on demand.
-- **Waiting on you.** While a permission prompt waits, Clawd raises a claw, taps its foot and says
-  what needs your ok, then thanks you or shrugs when you answer.
+- **Permission prompts.** Clawd thanks you when you allow one and shrugs when you don't. Where the
+  band stays on screen while one waits, it raises a claw, taps its foot and says what needs your
+  ok; in the terminal the prompt takes the band's place, so there you see only the answer.
 - **Watching you type.** Clawd's eyes follow the caret as you type; typing `/pet` gets happy eyes
   ahead of the pet.
 - **Stretch breaks.** After 50 minutes of work (the new `break_every` setting; empty or `0` turns

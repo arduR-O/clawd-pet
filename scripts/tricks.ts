@@ -39,8 +39,8 @@ const PANELS: Panel[] = [
     frames: [0, 4, 8, 12, 16, 20, 24, 24, 24].map(n => ({ line: '', typed: typing.slice(0, n) })),
   },
   {
-    title: 'taps its foot while you decide',
-    frames: [...repeat({ emote: 'tap', line: 'psst. Bash needs your ok.' }, 6), ...repeat({ kind: 'happy', emote: 'hop', line: 'thanks!' }, 2)],
+    title: 'thanks you for an ok',
+    frames: [...repeat({ kind: 'happy', emote: 'hop', line: 'thanks!' }, 4), ...repeat({ emote: 'enough', line: 'fine, not that then.' }, 4)],
   },
   {
     title: 'a face for every mood',
@@ -117,7 +117,7 @@ for (const [p, panel] of PANELS.entries()) {
 }
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="15">
-<title>Clawd's newer tricks: watching you type, tapping its foot at a permission prompt, a face for every mood, reading glasses, stretch breaks and confetti for long turns</title>
+<title>Clawd's newer tricks: watching you type, thanking you for an ok, a face for every mood, reading glasses, stretch breaks and confetti for long turns</title>
 <style>
 ${styles.join('\n')}
 </style>
