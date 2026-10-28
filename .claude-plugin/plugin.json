@@ -2,6 +2,9 @@
   "name": "clawd",
   "version": "0.1.0",
   "description": "Clawd, a little crab above your prompt that reacts to what Claude is doing (or a garden, or Moss)",
+  "author": {
+    "name": "arduR-O"
+  },
   "license": "MIT",
   "types": "./types/index.d.ts",
   "userConfig": {
