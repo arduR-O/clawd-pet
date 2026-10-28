@@ -558,6 +558,7 @@ export type Face =
   | 'glasses'
   | 'shades'
   | 'terminator'
+  | 'cry'
 
 type Look = { eyes: Segment[]; rims?: [Segment, Segment] }
 
@@ -587,6 +588,8 @@ const FACES: Readonly<Record<Face, (body: string) => Look>> = {
   smug: body => marks(body, '¬', '¬'),
   // Squeezed shut: > <.
   wince: body => marks(body, '>', '<'),
+  // Shut, tears streaming down from under each lid.
+  cry: body => marks(body, '╥', '╥'),
   surprised: body => marks(body, 'O', 'O'),
   love: body => marks(body, '♥', '♥', HEART_EYES),
   // Seeing stars.
@@ -642,7 +645,7 @@ const FACES: Readonly<Record<Face, (body: string) => Look>> = {
 const EMOTE_FACES: Partial<Readonly<Record<EmoteName, Face>>> = {
   enough: 'heavy',
   uwu: 'uwu',
-  cry: 'shut',
+  cry: 'cry',
   facepalm: 'facepalm',
   glasses: 'glasses',
   sunbathe: 'shades',
@@ -798,6 +801,10 @@ export function clawdScene(input: {
     const spots = [x + 1, x + 4, x + 7]
     put(spots[frame % 3]!, '●', PEARL)
     put(spots[(frame + 1) % 3]!, '●', PEARL)
+  } else if (emote === 'stretch' && frame % 2 === 0) {
+    // Reaching up: both claws above its head.
+    put(x + 1, '▟', body)
+    put(x + 7, '▙', body)
   } else if (emote === 'sherlock') {
     // A deerstalker over Clawd's head.
     for (const [i, text] of [...'▗▆▆▆▖'].entries()) put(x + 2 + i, text, DEERSTALKER)
@@ -840,6 +847,8 @@ export function clawdScene(input: {
   let claws = CLAWS_DOWN
   if (emote === 'wave' || emote === 'sixseven' || emote === 'cousin') claws = frame % 2 === 0 ? WAVE_LEFT : WAVE_RIGHT
   else if (emote === 'facepalm') claws = WAVE_RIGHT
+  // Stretching, its claws are up over its head on every other frame.
+  else if (emote === 'stretch') claws = frame % 2 === 0 ? CLAWS_REST : CLAWS_UP
   // The right claw up, holding a lightsaber, a magnifying glass, a mug; the left up holding a staff.
   else if (emote === 'jedi' || emote === 'sherlock') claws = WAVE_LEFT
   else if (emote === 'gandalf') claws = WAVE_RIGHT
@@ -899,6 +908,10 @@ export function clawdScene(input: {
   else if (emote === 'molt') held = [pad(1), { text: '▟▀▙', color: SHELL }]
   else if (emote === 'pearl') held = [pad(1), { text: '●', color: PEARL }]
   let arms: Row = [pad(x), { text: claws, color: body }, ...held]
+  if (emote === 'yawn' && frame % 4 < 2) {
+    // Mid-yawn, eyes shut: its mouth wide open in the middle of its body.
+    arms = [pad(x), { text: claws.slice(0, 4), color: body }, { text: 'O', color: SHADES, backgroundColor: body }, { text: claws.slice(5), color: body }, ...held]
+  }
 
   let feet: Row = [pad(x), { text: legs, color: body }]
   if (emote === 'tide') {

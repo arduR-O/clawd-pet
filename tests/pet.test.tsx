@@ -299,8 +299,8 @@ test('/pet chef, /pet hardhat and /pet cry show those emotes', { options: OPTION
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'cry' })
   expect(await ui.find({ type: 'Text', text: /^\(cry\)$/ })).toBeTruthy()
-  // Shut eyes and a tear.
-  expect(await ui.find({ type: 'Text', text: /^─$/ })).toBeTruthy()
+  // Eyes shut, tears streaming from under the lids, and one dropping beside it.
+  expect(await ui.findAll({ type: 'Text', text: /^╥$/ })).toHaveLength(2)
   expect(await shows(ui, /^[‚¸]$/, WATER)).toBe(true)
   await ui.unmount()
 })

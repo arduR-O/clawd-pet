@@ -289,3 +289,15 @@ test('/pet meditate glows and hums in the band', { options: OPTIONS }, async ($,
   expect(await ui.find({ type: 'Text', text: /^ᵒᵐ$/ })).toBeTruthy()
   await ui.unmount()
 })
+
+test('a stretch reaches both claws up over its head, and a yawn opens wide', () => {
+  const local = { hour: 10, weekday: 2, month: 10, day: 27 }
+  const text = (row: { text: string }[]) => row.map(part => part.text).join('')
+  const [sky, , claws] = clawdScene({ kind: 'idle', emote: 'stretch', frame: 0, nowMs: NOON_IST, local }).map(text)
+  expect(sky).toMatch(/▟.{5}▙/)
+  expect(claws).toContain('▗▄█████▄▖')
+
+  const [, face, body] = clawdScene({ kind: 'idle', emote: 'yawn', frame: 0, nowMs: NOON_IST, local }).map(text)
+  expect(face).toContain('─███─')
+  expect(body).toContain('▝▜██O██▛▘')
+})
