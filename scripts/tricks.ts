@@ -1,11 +1,12 @@
-// Draws assets/tricks.svg, the README's gallery of Clawd's newer tricks, from the mod's own scene
-// code, so the pictures can't drift from what Clawd draws. Run from the repository's root:
+// Draws the README's galleries from the mod's own scene code, so the pictures can't drift from
+// what Clawd draws: its newer tricks, or with `guests` its guests. Run from the repository's root:
 //
 //   bun scripts/tricks.ts > assets/tricks.svg
+//   bun scripts/tricks.ts guests > assets/guests.svg
 
 import type { EmoteName, Kind } from '../types'
 
-import { clawdScene, sceneSvg } from '../hooks/clawd'
+import { SAYINGS, clawdScene, sceneSvg } from '../hooks/clawd'
 
 type Frame = {
   kind?: Kind
@@ -17,11 +18,18 @@ type Frame = {
 
 type Panel = { title: string; frames: Frame[] }
 
+// A gallery: what it shows, in how many columns, at what size.
+type Sheet = {
+  title: string
+  columns: number
+  cell: { width: number; height: number }
+  panel: { width: number; height: number }
+  fontSize: number
+  panels: Panel[]
+}
+
 // Each frame shows this long, the mod's own tick.
 const FRAME_S = 0.8
-// One cell of the band, as the hero picture draws it.
-const CELL = { width: 10, height: 20 }
-const PANEL = { width: 320, height: 172 }
 const GAP = 20
 const BG = '#17131d'
 const CARD = '#1f1a27'
@@ -33,7 +41,7 @@ const ORANGE = '#ff8800'
 const repeat = (frame: Frame, times: number): Frame[] => Array.from({ length: times }, () => frame)
 const typing = 'fix the login bug please'
 
-const PANELS: Panel[] = [
+const TRICKS: Panel[] = [
   {
     title: 'watches you type',
     frames: [0, 4, 8, 12, 16, 20, 24, 24, 24].map(n => ({ line: '', typed: typing.slice(0, n) })),
@@ -66,11 +74,62 @@ const PANELS: Panel[] = [
   },
 ]
 
+// The guests, each with what brings it and the first thing it says.
+const GUESTS: [EmoteName, string, Kind?][] = [
+  ['sherlock', 'git blame'],
+  ['jedi', 'git push --force'],
+  ['gandalf', 'you say no'],
+  ['terminator', 'kill -9'],
+  ['delorean', 'git revert'],
+  ['ninja', 'git stash'],
+  ['duck', 'a bug story'],
+  ['neo', 'a skill loads'],
+  ['coffee', 'morning'],
+  ['astronaut', 'an API error', 'oops'],
+  ['oneup', 'red, then green', 'happy'],
+  ['whale', 'docker'],
+]
+const firstLine: Partial<Record<EmoteName, string>> = {
+  sherlock: SAYINGS.sherlock[1],
+  jedi: SAYINGS.jedi[0],
+  gandalf: SAYINGS.gandalf[0],
+  terminator: SAYINGS.terminator[1],
+  delorean: SAYINGS.delorean[0],
+  ninja: 'poof. hidden.',
+  duck: SAYINGS.duck[1],
+  neo: 'I know pdf.',
+  coffee: SAYINGS.coffee[0],
+  astronaut: 'houston, a problem.',
+  oneup: SAYINGS.oneup[1],
+  whale: SAYINGS.whale[0],
+}
+
+const SHEETS: Record<string, Sheet> = {
+  tricks: {
+    title: "Clawd's newer tricks: watching you type, thanking you for an ok, a face for every mood, reading glasses, stretch breaks and confetti for long turns",
+    columns: 2,
+    // One cell of the band, as the hero picture draws it.
+    cell: { width: 10, height: 20 },
+    panel: { width: 320, height: 172 },
+    fontSize: 15,
+    panels: TRICKS,
+  },
+  guests: {
+    title: "Clawd's guests: Sherlock, a Jedi, Gandalf, the Terminator, a DeLorean, a ninja, a rubber duck, Neo, coffee, an astronaut, a 1-UP mushroom and a whale",
+    columns: 3,
+    cell: { width: 8, height: 16 },
+    panel: { width: 210, height: 150 },
+    fontSize: 13,
+    panels: GUESTS.map(([emote, when, kind]) => ({ title: `${emote === 'oneup' ? '1-UP' : emote} · ${when}`, frames: repeat({ kind, emote, line: firstLine[emote] ?? '' }, 4) })),
+  },
+}
+const sheet = SHEETS[process.argv[2] ?? 'tricks']!
+const { columns, cell: CELL, panel: PANEL, panels: PANELS } = sheet
+
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const local = { hour: 12, weekday: 2, month: 10, day: 27 }
 const noon = Date.UTC(2026, 9, 27, 6, 30)
 
-const columns = 2
 const width = columns * PANEL.width + (columns + 1) * GAP
 const height = Math.ceil(PANELS.length / columns) * (PANEL.height + GAP) + GAP
 
@@ -101,8 +160,9 @@ for (const [p, panel] of PANELS.entries()) {
     let parts = scene
     if (frame.line !== '') {
       // As in the band: its name, and under it what it says.
-      parts += `<text x="${x + 14}" y="${y + 130}" fill="${ORANGE}" font-weight="700">Clawd</text>`
-      parts += `<text x="${x + 14}" y="${y + 152}" fill="${DIM}">${escape(frame.line)}</text>`
+      const named = y + 34 + 4 * CELL.height + 16
+      parts += `<text x="${x + 14}" y="${named}" fill="${ORANGE}" font-weight="700">Clawd</text>`
+      parts += `<text x="${x + 14}" y="${named + sheet.fontSize + 7}" fill="${DIM}">${escape(frame.line)}</text>`
     }
     if (frame.typed !== undefined) {
       const top = y + 122
@@ -116,8 +176,8 @@ for (const [p, panel] of PANELS.entries()) {
   cards.push(card + frames.join(''))
 }
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="15">
-<title>Clawd's newer tricks: watching you type, thanking you for an ok, a face for every mood, reading glasses, stretch breaks and confetti for long turns</title>
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="${sheet.fontSize}">
+<title>${escape(sheet.title)}</title>
 <style>
 ${styles.join('\n')}
 </style>

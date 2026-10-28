@@ -24,6 +24,27 @@ until you answer; in the terminal the prompt takes the band's place.
 Claude can talk to it too: a `clawd` tool lets Claude have Clawd act something out, sing, or say
 how it's doing, now and then when a moment earns it.
 
+**Guests.** Now and then someone else turns up, always for a reason:
+
+| Guest | When |
+|---|---|
+| Sherlock, in a deerstalker | Claude runs `git blame`, `git bisect` or `git log -S`, or searches three times in a row |
+| A Jedi, lightsaber up | `git push --force`. *use the --force, Luke.* |
+| Gandalf | you turn down a destructive command at a permission prompt. *you shall not pass!* |
+| The Terminator | `kill`, `pkill`, `killall` |
+| A DeLorean, at 88 | `git revert`, the reflog, a soft reset, an old commit checked out |
+| A ninja | `git stash`, and `git stash pop` to reappear |
+| A rubber duck | you write a long prompt working through a bug |
+| Neo | Claude loads a skill Clawd has no opinion on. *I know pdf.* |
+| A mug of coffee | your first prompt of the morning, once a day |
+| An astronaut | a turn is lost to an API error. *houston, we have a problem.* |
+| A 1-UP mushroom | the tests go green after going red in the same turn |
+| A whale | `docker` or `podman` |
+
+<p align="center"><img src="assets/guests.svg" alt="Clawd's guests: Sherlock, a Jedi, Gandalf, the Terminator, a DeLorean, a ninja, a rubber duck, Neo, coffee, an astronaut, a 1-UP mushroom and a whale" width="640"></p>
+
+`/pet <name>` shows any of them on demand, `/pet sherlock` say.
+
 In a terminal Clawd is drawn in block characters; in VS Code and the desktop app it is drawn as a
 picture, since their fonts pull block characters apart.
 
@@ -107,8 +128,9 @@ claude plugin validate .
 claude plugin test .
 ```
 
-CI runs both on every push. `bun scripts/tricks.ts > assets/tricks.svg` redraws the gallery above
-from the mod's own drawing code.
+CI runs both on every push. `bun scripts/tricks.ts > assets/tricks.svg` and
+`bun scripts/tricks.ts guests > assets/guests.svg` redraw the galleries above from the mod's own
+drawing code.
 
 ## Credits
 
