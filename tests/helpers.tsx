@@ -4,7 +4,7 @@ import { mock, test } from 'claude-code/testing'
 import type { Mounted, TestBody } from 'claude-code/testing'
 import type { PromptEditInput, SessionMessage } from 'claude-code'
 
-import { AURA, CALM } from '../hooks/clawd'
+import { AURA, CALM, SAYINGS, type Saying } from '../hooks/clawd'
 
 export const BAND = {
   plugin: 'clawd',
@@ -204,3 +204,6 @@ export const LASTFM_SONGBOOK = {
 }
 
 export const TALK = 'mcp__clawd__clawd'
+
+// Any line of one of Clawd's sayings, whole.
+export const saying = (name: Saying) => new RegExp(`^(${SAYINGS[name].map(line => line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`)
