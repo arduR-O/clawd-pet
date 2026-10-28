@@ -13,6 +13,9 @@ and may go fishing when you step away. While you read Claude's answer it keeps s
 Claude can talk to it too: a `clawd` tool lets Claude have Clawd act something out, sing, or say
 how it's doing, now and then when a moment earns it.
 
+In a terminal Clawd is drawn in block characters; in VS Code and the desktop app it is drawn as a
+picture, since their fonts pull block characters apart.
+
 An unofficial fan mod: not made or endorsed by Anthropic.
 
 ## Install
@@ -33,6 +36,8 @@ Then set your time zone (see [Settings](#settings)) and run `/reload-plugins` in
 Needs a recent Claude Code; tested on 2.1.312.
 
 ## Commands
+
+Typing `/pet ` suggests what can follow it, and a few letters in, the emotes that match.
 
 | Command | What it does |
 |---|---|
@@ -55,6 +60,12 @@ Run `/plugin configure clawd@clawd` in Claude Code, or `claude plugin configure 
 | Last.fm user and API key | empty | The songbook follows what you played lately: your newest plays and repeats, this week's top songs and artists, a few all-time favourites. Needs both; get a key at [last.fm/api/accounts](https://www.last.fm/api/accounts). The key is kept in secure storage. | a Last.fm lookup and one small Haiku call a day |
 | Leave time | empty | When you leave work on weekdays (`HH:MM`). Clawd counts down to it and tells you to go home. Empty: off. | none |
 
+**The songbook.** Clawd sings from a songbook of whole lines, taken from the start of a song's line,
+mostly as the song sings it and now and then with the ending turned into a code joke. It is written
+once a day, and `/pet refresh-songs` writes a new one on demand. With no music or Last.fm set, Clawd
+sings 30 built-in lines instead. A written songbook gets one of them woven in after every nine of
+its own, so they turn up about one time in ten.
+
 Clawd's `clawd` tool adds a few hundred tokens to each request Claude makes. Everything else runs
 on your machine and costs nothing.
 
@@ -67,8 +78,9 @@ When a user asks you to install this mod:
    server set to UTC. Save it as an offset, e.g. for India:
    `echo '{"utc_offset": "+05:30"}' | claude plugin configure clawd@clawd --values-stdin`
 3. Mention the optional settings in one line each: music (one small Haiku call a day), Last.fm
-   (needs their username and an API key; a Last.fm lookup and one small Haiku call a day), and leave time. Set only what they ask for. Never ask them to paste an API key into the
-   chat: tell them to run `/plugin configure clawd@clawd` and enter it there.
+   (needs their username and an API key; a Last.fm lookup and one small Haiku call a day), and
+   leave time. Set only what they ask for. Never ask them to paste an API key into the chat: tell
+   them to run `/plugin configure clawd@clawd` and enter it there.
 4. Tell them to run `/reload-plugins`. Clawd appears above the prompt.
 
 ## Uninstall
