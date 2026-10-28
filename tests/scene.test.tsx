@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { CLAWD, faceOf, joinRuns, clawdScene, sceneSvg } from '../hooks/clawd'
+import { CLAWD, faceOf, joinRuns, clawdScene, sceneSvg, EMOTE_NAMES } from '../hooks/clawd'
 import {
   BAND,
   auraShown,
@@ -300,4 +300,16 @@ test('a stretch reaches both claws up over its head, and a yawn opens wide', () 
   const [, face, body] = clawdScene({ kind: 'idle', emote: 'yawn', frame: 0, nowMs: NOON_IST, local }).map(text)
   expect(face).toContain('─███─')
   expect(body).toContain('▝▜██O██▛▘')
+})
+
+test('every emote, on every frame, by day and by night, fits within the band', () => {
+  const width = (row: { text: string }[]) => row.reduce((cells, part) => cells + [...part.text].length, 0)
+  for (const emote of EMOTE_NAMES) {
+    for (const hour of [10, 22]) {
+      for (let frame = 0; frame < 8; frame++) {
+        const rows = clawdScene({ kind: 'idle', emote, frame, poseFrame: frame, nowMs: NOON_IST, local: { hour, weekday: 2, month: 10, day: 27 }, castle: 10 })
+        expect({ emote, frame, widest: Math.max(...rows.map(width)) <= 17 }).toEqual({ emote, frame, widest: true })
+      }
+    }
+  }
 })

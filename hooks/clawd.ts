@@ -974,9 +974,9 @@ export function clawdScene(input: {
     feet = [...feet, pad(3), { text: '█', color: MUG }]
   } else if (emote === 'whale') {
     // A whale surfacing beside Clawd, spouting.
-    face = [...face, pad(5), { text: frame % 2 === 0 ? '⁚' : '·', color: WATER }]
-    arms = [...arms, pad(1), { text: '▗▟███▙', color: WHALE }]
-    feet = [...feet, pad(2), { text: '▀▀▀▀▘', color: WHALE }]
+    face = [...face, pad(4), { text: frame % 2 === 0 ? '⁚' : '·', color: WATER }]
+    arms = [...arms, pad(1), { text: '▟██▙', color: WHALE }]
+    feet = [...feet, pad(2), { text: '▀▀▀▘', color: WHALE }]
   } else if (emote === 'rain') {
     // The umbrella's shaft comes down from the middle of its canopy and hooks into the right claw.
     face = [...face, pad(2), { text: '│', color: ROD }]

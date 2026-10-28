@@ -323,6 +323,11 @@ for i, m in enumerate([93, 96, 100, 98]):
 for i in range(4):
     pop(listing['start'] + i * BEAT, 76 + i * 3)
 crash(listing['start'], 0.2)
+# The guests pop in on every half beat, climbing a pentatonic scale.
+guests = SHOTS['guests']
+crash(guests['start'], 0.25)
+for i, m in enumerate([69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96]):
+    pop(guests['start'] + 0.3 + i * EIGHTH, m, 0.13)
 
 # The end: a stab, the theme once more, and the final chord rings out.
 crash(end['start'], 0.4)
