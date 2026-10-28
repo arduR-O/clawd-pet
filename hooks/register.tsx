@@ -47,6 +47,10 @@ const LONG_TURN_MS = 120_000
 const LONG_DONE_MS = 60_000
 // How long Clawd keeps asking at most while a permission prompt waits; its answer ends it sooner.
 const WAIT_MS = 10 * 60_000
+// Clawd watches the prompt this long after the last key.
+const TYPING_MS = 1_500
+// Where the prompt's text starts, past its `> `.
+const PROMPT_INDENT = 2
 // After this much thinking a thought bubble starts to grow, a step every BUBBLE_STEP_MS.
 const BUBBLE_AFTER_MS = 6_000
 const BUBBLE_STEP_MS = 3_000
@@ -108,6 +112,8 @@ const life = {
   // The pose Clawd was last drawn in, and since when, so a pose's own moves start at its start.
   pose: undefined as EmoteName | undefined,
   poseSince: 0,
+  // What the person last typed in the prompt and when, for Clawd to watch.
+  typed: { at: -Infinity, draft: '', caret: 0 },
   // The tool whose permission prompt is waiting on the person, while one is.
   waitingOn: undefined as string | undefined,
   // The person's current stretch of work, for break nudges.
@@ -626,6 +632,16 @@ export const register: Register = (on, options) => {
     return next(e)
   }).catch(($, e, next) => next(e))
 
+  // Every key the person types: kept cheap, as it runs per keystroke. Clawd only notes the draft
+  // and the time; the next tick's drawing has it watch.
+  on('prompt.edit', async ($, e, next) => {
+    const now = await $.clock.now()
+    life.typed = { at: now, draft: e.text.slice(0, e.start) + e.inputText + e.text.slice(e.end), caret: e.start + e.inputText.length }
+    life.sitting = satAt(life.sitting, now)
+
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
   // A pet must never stand between Claude and a tool: next replays, never reruns.
   on('tool.call', async ($, e, next) => {
     // Claude talking to Clawd is answered by its own hook, with no reaction to the call itself.
@@ -1034,6 +1050,12 @@ export const register: Register = (on, options) => {
         bubble: thinking < 0 ? 0 : Math.min(3, Math.floor(thinking / BUBBLE_STEP_MS) + 1),
         castle,
         hasHeadphones: isListening,
+        ...(now - life.typed.at < TYPING_MS && {
+          typing: {
+            caret: (PROMPT_INDENT + life.typed.caret) % Math.max(1, e.props.bodyColumns),
+            isPet: /^\/pet\b/.test(life.typed.draft),
+          },
+        }),
       })
 
       // A terminal draws the rows as characters; the apps that draw pictures get them as a drawing,
