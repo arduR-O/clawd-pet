@@ -6,10 +6,18 @@ prompt in the terminal, VS Code and the desktop app, and keeps you company while
 <p align="center"><img src="assets/clawd.svg" alt="Clawd above the Claude Code prompt: waving, meditating, singing and spinning" width="640"></p>
 
 Clawd reacts to what Claude is doing: it puts on reading glasses when Claude reads a file, throws
-confetti for a commit, facepalms when two tools fail in a row and sweats through long turns. It
-riffs on the spinner's word ("Pondering…" may get a meditation), keeps a sun or moon over its head
-by your local time, sings from a little songbook, builds a sandcastle a storey per finished turn,
-and may go fishing when you step away. While you read Claude's answer it keeps still.
+confetti for a commit, facepalms when two tools fail in a row, goes dizzy at the third and sweats
+through long turns. It riffs on the spinner's word ("Pondering…" may get a meditation), keeps a sun
+or moon over its head by your local time, sings from a little songbook, builds a sandcastle a
+storey per finished turn, and may go fishing when you step away. While you read Claude's answer it
+keeps still.
+
+It keeps an eye on you as well: its eyes follow the caret as you type, it taps its foot while a
+permission prompt waits on you, it wears a face for each mood (a `> <` wince when something breaks,
+heart eyes for a kind word), and after a long stretch of work it stretches and suggests you do too.
+A long turn ends in confetti, and its "done!" stays up a minute for when you look back.
+
+<p align="center"><img src="assets/tricks.svg" alt="Clawd's newer tricks: watching you type, tapping its foot at a permission prompt, a face for every mood, reading glasses, stretch breaks and confetti for long turns" width="640"></p>
 
 Claude can talk to it too: a `clawd` tool lets Claude have Clawd act something out, sing, or say
 how it's doing, now and then when a moment earns it.
@@ -60,6 +68,7 @@ Run `/plugin configure clawd@clawd` in Claude Code, or `claude plugin configure 
 | Music | empty | Artists or songs for Clawd's songbook, comma-separated. Empty: Clawd sings its built-in songs. | one small Haiku call a day |
 | Last.fm user and API key | empty | The songbook follows what you played lately: your newest plays and repeats, this week's top songs and artists, a few all-time favourites. Needs both; get a key at [last.fm/api/accounts](https://www.last.fm/api/accounts). The key is kept in secure storage. | a Last.fm lookup and one small Haiku call a day |
 | Leave time | empty | When you leave work on weekdays (`HH:MM`). Clawd counts down to it and tells you to go home. Empty: off. | none |
+| Break every | `50` | Minutes of work before Clawd stretches and suggests a break, at the end of a turn. Ten minutes away counts as a break and starts the count over; an untaken break is suggested again 20 minutes later. Empty or `0`: off. | none |
 
 **The songbook.** Clawd sings from a songbook of whole lines, taken from the start of a song's line,
 mostly as the song sings it and now and then with the ending turned into a code joke. It is written
@@ -79,10 +88,23 @@ When a user asks you to install this mod:
    server set to UTC. Save it as an offset, e.g. for India:
    `echo '{"utc_offset": "+05:30"}' | claude plugin configure clawd@clawd --values-stdin`
 3. Mention the optional settings in one line each: music (one small Haiku call a day), Last.fm
-   (needs their username and an API key; a Last.fm lookup and one small Haiku call a day), and
-   leave time. Set only what they ask for. Never ask them to paste an API key into the chat: tell
+   (needs their username and an API key; a Last.fm lookup and one small Haiku call a day), leave
+   time, and break reminders (on by default, every 50 minutes). Set only what they ask for. Never ask them to paste an API key into the chat: tell
    them to run `/plugin configure clawd@clawd` and enter it there.
 4. Tell them to run `/reload-plugins`. Clawd appears above the prompt.
+
+## Developing
+
+The mod is a Claude Code hooks module: `hooks/register.tsx` hooks the session, `hooks/clawd.ts`
+draws Clawd's scene, and `tests/` holds its tests. With Claude Code installed:
+
+```sh
+claude plugin validate .
+claude plugin test .
+```
+
+CI runs both on every push. `bun scripts/tricks.ts > assets/tricks.svg` redraws the gallery above
+from the mod's own drawing code.
 
 ## Uninstall
 
