@@ -23,6 +23,8 @@ const ROD = '#c9a36b'
 const FRAMES = ['(', ')'] as const
 // The reading glasses' outer rims, past the face's edges: a mid tone that shows on dark and light terminals.
 const GLASSES = '#7a7f9a'
+// Heart eyes: a deep red, so they show on the orange face.
+const HEART_EYES = '#c0143c'
 const CONFETTI: readonly [string, string][] = [
   ['*', HEART],
   ['·', GOLD],
@@ -153,7 +155,7 @@ export const EMOTE_NAMES: readonly EmoteName[] = [
   'hearts', 'hop', 'wiggle', 'blush', 'shy', 'bow', 'golden', 'enough', 'milestone', 'sixseven',
   'seagull', 'molt', 'cousin', 'pearl', 'tide', 'party', 'treat', 'meditate', 'uwu',
   'stretch', 'facepalm', 'squish', 'rain', 'hiccup', 'fish', 'juggle', 'castle',
-  'sing', 'vibe', 'chef', 'hardhat', 'cry', 'spin',
+  'sing', 'vibe', 'chef', 'hardhat', 'cry', 'spin', 'dizzy',
 ]
 
 // Sung until the day's songbook is written, or when it can't be: original parodies.
@@ -486,6 +488,129 @@ export function ambient(local: Local, nowMs: number, leaveAt: number | undefined
   }
 }
 
+// Clawd's faces: its eyes along the face row, and anything either side of it past its edges.
+export type Face =
+  | 'open'
+  | 'up'
+  | 'happy'
+  | 'shut'
+  | 'heavy'
+  | 'smug'
+  | 'wince'
+  | 'surprised'
+  | 'love'
+  | 'dizzy'
+  | 'uwu'
+  | 'facepalm'
+  | 'glasses'
+  | 'shades'
+
+type Look = { eyes: Segment[]; rims?: [Segment, Segment] }
+
+// Eyes drawn as dark marks on the face, `between` the two, so any shape stays visible.
+const marks = (body: string, left: string, right: string, color = SHADES, between: Segment[] = [{ text: '███', color: body }]): Look => ({
+  eyes: [
+    { text: '▐', color: body },
+    { text: left, color, backgroundColor: body },
+    ...between,
+    { text: right, color, backgroundColor: body },
+    { text: '▌', color: body },
+  ],
+})
+
+const FACES: Readonly<Record<Face, (body: string) => Look>> = {
+  open: body => ({ eyes: [{ text: EYES, color: body }] }),
+  up: body => ({ eyes: [{ text: EYES_UP, color: body }] }),
+  happy: body => ({ eyes: [{ text: EYES_HAPPY, color: body }] }),
+  shut: body => marks(body, '─', '─'),
+  // Unimpressed: heavy lids.
+  heavy: body => marks(body, '▀', '▀'),
+  // Lids half down, looking off to the side.
+  smug: body => marks(body, '¬', '¬'),
+  // Squeezed shut: > <.
+  wince: body => marks(body, '>', '<'),
+  surprised: body => marks(body, 'O', 'O'),
+  love: body => marks(body, '♥', '♥', HEART_EYES),
+  // Seeing stars.
+  dizzy: body => marks(body, '×', '×'),
+  uwu: body =>
+    marks(body, 'U', 'U', SHADES, [
+      { text: '█', color: body },
+      { text: 'w', color: SHADES, backgroundColor: body },
+      { text: '█', color: body },
+    ]),
+  // One claw over the right eye.
+  facepalm: body => ({
+    eyes: [
+      { text: '▐', color: body },
+      { text: '─', color: SHADES, backgroundColor: body },
+      { text: '██', color: body },
+      { text: '▟█', color: COUSIN },
+      { text: '▌', color: body },
+    ],
+  }),
+  // Big reading glasses: a frame round each of its own eyes, joined by a bridge. The face keeps
+  // its own edges, so the head is no bigger; the outer rims stick out past them, wider than the face.
+  glasses: body => {
+    const rim = (text: string): Segment => ({ text, color: SHADES, backgroundColor: body })
+    return {
+      eyes: [{ text: '▐▛', color: body }, rim(FRAMES[1]), rim('─'), rim(FRAMES[0]), { text: '▜▌', color: body }],
+      rims: [
+        { text: FRAMES[0], color: GLASSES },
+        { text: FRAMES[1], color: GLASSES },
+      ],
+    }
+  },
+  // Sunglasses: two dark lenses joined by a bridge along the top.
+  shades: body => ({
+    eyes: [
+      { text: '▐', color: body },
+      { text: '██▀██', color: SHADES, backgroundColor: body },
+      { text: '▌', color: body },
+    ],
+  }),
+}
+
+// Emotes that wear a face of their own; anything not here falls to Clawd's mood.
+const EMOTE_FACES: Partial<Readonly<Record<EmoteName, Face>>> = {
+  enough: 'heavy',
+  uwu: 'uwu',
+  cry: 'shut',
+  facepalm: 'facepalm',
+  glasses: 'glasses',
+  sunbathe: 'shades',
+  shades: 'shades',
+  hearts: 'love',
+  bow: 'smug',
+  golden: 'smug',
+  seagull: 'surprised',
+  tide: 'surprised',
+  dizzy: 'dizzy',
+  stargaze: 'up',
+  wish: 'up',
+  juggle: 'up',
+  rain: 'up',
+}
+
+// Which face Clawd wears for its mood and what it is acting out; `isShut` when its pose shuts its eyes.
+export function faceOf(kind: Kind, emote: EmoteName | undefined, frame: number, isShut = false): Face {
+  if (isShut) return 'shut'
+  const own = emote === undefined ? undefined : EMOTE_FACES[emote]
+  if (own !== undefined) return own
+  if (emote === 'peek') return frame % 2 === 0 ? 'up' : 'open'
+  // Each hic gives it a start.
+  if (emote === 'hiccup' && frame % 3 === 0) return 'surprised'
+  if (emote !== undefined && HAPPY_EYED.includes(emote)) return 'happy'
+  if (kind === 'oops') return 'wince'
+  if (kind === 'love') return 'love'
+  if (kind === 'happy') return 'happy'
+  if (kind === 'read') return 'glasses'
+  if (kind === 'think') return 'up'
+  // A blink now and then while nothing is going on.
+  if (kind === 'idle' && emote === undefined && frame % BLINK_EVERY === 0) return 'shut'
+  return 'open'
+}
+
 // The sky over Clawd and Clawd under it: four rows of colored segments.
 export function clawdScene(input: {
   kind: Kind
@@ -516,7 +641,7 @@ export function clawdScene(input: {
   let dx = 0
   if (emote === 'sidestep') dx = SIDESTEP[frame % SIDESTEP.length] ?? 0
   else if (emote === 'wiggle') dx = WIGGLE[frame % WIGGLE.length] ?? 0
-  else if (emote === 'dance' || emote === 'party' || kind === 'oops') dx = frame % 2
+  else if (emote === 'dance' || emote === 'party' || emote === 'dizzy' || kind === 'oops') dx = frame % 2
   // Nodding along, a beat every two frames.
   else if (emote === 'vibe') dx = Math.floor(frame / 2) % 2
   const x = BASE + dx
@@ -584,6 +709,11 @@ export function clawdScene(input: {
   } else if (emote === 'hardhat') {
     // A yellow hard hat over Clawd's head.
     for (const [i, text] of [...'▗▄▄▄▖'].entries()) put(x + 2 + i, text, GOLD)
+  } else if (emote === 'dizzy') {
+    // Stars going round over its head, a big one and a small one across from it.
+    const orbit = [x + 1, x + 3, x + 5, x + 7, x + 5, x + 3]
+    put(orbit[frame % orbit.length]!, '✦', GOLD)
+    put(orbit[(frame + 3) % orbit.length]!, '·', GOLD)
   } else if (emote === 'juggle') {
     // Two of three pearls in the air, going round.
     const spots = [x + 1, x + 4, x + 7]
@@ -595,73 +725,7 @@ export function clawdScene(input: {
 
   const isShut =
     isAsleep || emote === 'meditate' || emote === 'vibe' || ((emote === 'yawn' || emote === 'stretch') && frame % 4 < 2)
-  const isHappy = kind === 'happy' || kind === 'love' || (emote !== undefined && HAPPY_EYED.includes(emote))
-  const isLookingUp =
-    kind === 'think' ||
-    emote === 'stargaze' ||
-    emote === 'wish' ||
-    emote === 'juggle' ||
-    emote === 'rain' ||
-    (emote === 'peek' && frame % 2 === 0)
-  const isShaded = emote === 'sunbathe' || emote === 'shades'
-  const isReading = kind === 'read' || emote === 'glasses'
-  // A blink behind sunglasses would not show.
-  const isBlinking = kind === 'idle' && emote === undefined && !isShaded && frame % BLINK_EVERY === 0
-  // Eyes drawn as dark marks on the face, so shut eyes stay visible.
-  const lidded = (lid: string): Segment[] => [
-    { text: '▐', color: body },
-    { text: lid, color: SHADES, backgroundColor: body },
-    { text: '███', color: body },
-    { text: lid, color: SHADES, backgroundColor: body },
-    { text: '▌', color: body },
-  ]
-  let eyes: Segment[]
-  // Whatever sits either side of the face, past its edges: the reading glasses' outer rims.
-  let rims: [Segment, Segment] | undefined
-  if (isShut || isBlinking) {
-    eyes = lidded('─')
-  } else if (emote === 'enough') {
-    // Unimpressed: heavy lids.
-    eyes = lidded('▀')
-  } else if (emote === 'uwu') {
-    eyes = [
-      { text: '▐', color: body },
-      { text: 'U', color: SHADES, backgroundColor: body },
-      { text: '█', color: body },
-      { text: 'w', color: SHADES, backgroundColor: body },
-      { text: '█', color: body },
-      { text: 'U', color: SHADES, backgroundColor: body },
-      { text: '▌', color: body },
-    ]
-  } else if (emote === 'cry') {
-    eyes = lidded('─')
-  } else if (emote === 'facepalm') {
-    // One claw over the right eye.
-    eyes = [
-      { text: '▐', color: body },
-      { text: '─', color: SHADES, backgroundColor: body },
-      { text: '██', color: body },
-      { text: '▟█', color: COUSIN },
-      { text: '▌', color: body },
-    ]
-  } else if (isHappy) {
-    eyes = [{ text: EYES_HAPPY, color: body }]
-  } else if (isReading) {
-    // Big reading glasses: a frame round each of its own eyes, joined by a bridge. The face keeps
-    // its own edges, so the head is no bigger; the outer rims stick out past them, wider than the face.
-    const rim = (text: string): Segment => ({ text, color: SHADES, backgroundColor: body })
-    eyes = [{ text: '▐▛', color: body }, rim(FRAMES[1]), rim('─'), rim(FRAMES[0]), { text: '▜▌', color: body }]
-    rims = [{ text: FRAMES[0], color: GLASSES }, { text: FRAMES[1], color: GLASSES }]
-  } else if (isShaded) {
-    // Sunglasses: two dark lenses joined by a bridge along the top.
-    eyes = [
-      { text: '▐', color: body },
-      { text: '██▀██', color: SHADES, backgroundColor: body },
-      { text: '▌', color: body },
-    ]
-  } else {
-    eyes = [{ text: isLookingUp ? EYES_UP : EYES, color: body }]
-  }
+  const { eyes, rims } = FACES[faceOf(kind, emote, frame, isShut)](body)
 
   let claws = CLAWS_DOWN
   if (emote === 'wave' || emote === 'sixseven' || emote === 'cousin') claws = frame % 2 === 0 ? WAVE_LEFT : WAVE_RIGHT

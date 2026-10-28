@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { AURA, CALM, CLAWD, STARTER_SONGS, clawdScene, petSuggestions, sceneSvg, songbookLines, spinnerTake, tasteFrom, withStarters } from '../hooks/clawd'
+import { AURA, CALM, CLAWD, faceOf, STARTER_SONGS, clawdScene, petSuggestions, sceneSvg, songbookLines, spinnerTake, tasteFrom, withStarters } from '../hooks/clawd'
 
 const BAND = {
   plugin: 'clawd',
@@ -817,6 +817,21 @@ test('two failed tools in a row make Clawd facepalm', { options: OPTIONS }, asyn
   await ui.unmount()
 })
 
+test('a third failure in a row leaves Clawd dizzy, seeing stars', { options: OPTIONS }, async ($, on) => {
+  on('tool.call', { tool: 'Bash' }, () => ({ result: 'make: *** No rule', isError: true }))
+  await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+  await $.tool.call({ tool: 'Bash', command: 'make' })
+  await $.tool.call({ tool: 'Bash', command: 'make' })
+
+  await $.tool.call({ tool: 'Bash', command: 'make' })
+
+  expect(await ui.find({ type: 'Text', text: /^everything is spinning\.$/ })).toBeTruthy()
+  expect(await ui.findAll({ type: 'Text', text: /^×$/ })).toHaveLength(2)
+  expect(await ui.find({ type: 'Text', text: /✦/ })).toBeTruthy()
+  await ui.unmount()
+})
+
 test('a failure after a success is not facepalmed', { options: OPTIONS }, async ($, on) => {
   on('tool.call', { tool: 'Bash' }, () => ({ result: 'make: *** No rule', isError: true }))
   await start($, on, { species: 'clawd' }, NOON_IST)
@@ -1063,6 +1078,32 @@ test('reading glasses stick out past the face, but the head under them stays its
     expect(text[head(plain[1]!).first - 1]).toBe('(')
     expect(text[head(plain[1]!).last + 1]).toBe(')')
   }
+})
+
+test("Clawd's face follows its mood: a wince for trouble, hearts for love, a start at a seagull", () => {
+  expect(faceOf('oops', undefined, 1)).toBe('wince')
+  expect(faceOf('love', undefined, 1)).toBe('love')
+  expect(faceOf('idle', 'hearts', 1)).toBe('love')
+  expect(faceOf('idle', 'seagull', 1)).toBe('surprised')
+  expect(faceOf('idle', 'bow', 1)).toBe('smug')
+  expect(faceOf('read', undefined, 1)).toBe('glasses')
+  expect(faceOf('think', undefined, 1)).toBe('up')
+  // An emote's own face wins over the mood; a happy-eyed one wins over trouble.
+  expect(faceOf('read', 'shades', 1)).toBe('shades')
+  expect(faceOf('oops', 'party', 1)).toBe('happy')
+  // A pose that shuts its eyes shuts them, whatever else.
+  expect(faceOf('oops', 'hearts', 1, true)).toBe('shut')
+  // It blinks now and then, but only with nothing going on.
+  expect(faceOf('idle', undefined, 0)).toBe('shut')
+  expect(faceOf('oops', undefined, 0)).toBe('wince')
+})
+
+test('heart eyes are drawn in deep red, so they show on the orange face', () => {
+  const local = { hour: 10, weekday: 2, month: 10, day: 27 }
+  const [, face] = clawdScene({ kind: 'love', emote: undefined, frame: 1, nowMs: NOON_IST, local })
+  const hearts = face!.filter(part => part.text === '♥')
+  expect(hearts).toHaveLength(2)
+  for (const heart of hearts) expect(heart).toMatchObject({ color: '#c0143c', backgroundColor: CLAWD })
 })
 
 test('a spinning Clawd turns round a quarter a frame: front, side, back, other side', () => {

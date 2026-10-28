@@ -58,6 +58,7 @@ export type EmoteName =
   | 'hardhat'
   | 'cry'
   | 'spin'
+  | 'dizzy'
 
 export type Emote = { name: EmoteName | null; line: string; until: number }
 
