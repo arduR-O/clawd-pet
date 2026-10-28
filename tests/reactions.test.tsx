@@ -9,6 +9,7 @@ import {
   SUBMITTED,
   anyTool,
   start,
+  istOn,
   promptFirst,
   SUMMARY,
   PONDERING,
@@ -131,8 +132,9 @@ test('Clawd has a line for slash commands and skills', { options: OPTIONS }, asy
   await $.tool.call({ tool: 'Skill', skill: 'some-plugin:simplify' })
   expect(await says(/less is more\./)).toBe(true)
 
+  // A skill it has no view on goes straight into Claude's head, as kung fu went into Neo's.
   await $.tool.call({ tool: 'Skill', skill: 'pdf' })
-  expect(await says(/grabbing the pdf manual\./)).toBe(true)
+  expect(await says(/^I know pdf\.$/)).toBe(true)
   await ui.unmount()
 })
 
@@ -211,11 +213,27 @@ test('a refused permission prompt gets a shrug', { options: OPTIONS }, async ($,
   clock = await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  const call = $.tool.call({ tool: 'Bash', command: 'rm -r build' })
+  const call = $.tool.call({ tool: 'Bash', command: 'make deploy' })
   await clock.advance(5000)
   await call
 
   expect(await ui.find({ type: 'Text', text: /^fine, not that then\.$/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('turning down something destructive brings out the wizard', { options: OPTIONS }, async ($, on) => {
+  let clock: Awaited<ReturnType<typeof start>> | undefined
+  promptFirst($, on, () => clock!, 'deny')
+  clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  const call = $.tool.call({ tool: 'Bash', command: 'rm -r build' })
+  await clock.advance(5000)
+  await call
+
+  expect(await ui.find({ type: 'Text', text: /^you shall not pass!$/ })).toBeTruthy()
+  // The grey hat, and the staff's glowing tip.
+  expect(await ui.find({ type: 'Text', text: /▗▟█▙▖/ })).toBeTruthy()
   await ui.unmount()
 })
 
@@ -464,4 +482,89 @@ test('Clawd rotates through its sayings, so it never says the same one twice run
     expect(new Set(lines.slice(0, -1)).size).toBe(SAYINGS[name].length)
     for (let n = 1; n < lines.length; n++) expect(lines[n]).not.toBe(lines[n - 1])
   }
+})
+
+// Commands with a guest: what Claude runs, the saying it gets, and a prop that shows it came.
+const GUESTS: readonly [string, Saying, RegExp][] = [
+  ['git push --force origin main', 'jedi', /▪/],
+  ['git blame src/app.py', 'sherlock', /▗▆▆▆▖/],
+  ['git log -S parseOffset', 'sherlock', /▗▆▆▆▖/],
+  ['git revert HEAD', 'delorean', /88/],
+  ['git checkout 4f2a91c', 'delorean', /88/],
+  ['git stash', 'ninja', /▄▄▄▄▄▄▄/],
+  ['git stash pop', 'ninjaBack', /▄▄▄▄▄▄▄/],
+  ['kill -9 4242', 'terminator', /●/],
+  ['docker compose up', 'whale', /▗▟███▙/],
+]
+
+test('some commands bring a guest: a Jedi, Sherlock, a DeLorean, a ninja, the Terminator, a whale', { options: OPTIONS }, async ($, on) => {
+  await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  for (const [command, name, prop] of GUESTS) {
+    await $.tool.call({ tool: 'Bash', command })
+    expect(await ui.find({ type: 'Text', text: saying(name) })).toBeTruthy()
+    expect(await ui.find({ type: 'Text', text: prop })).toBeTruthy()
+  }
+  // Still a warning first for the ones that can lose work.
+  await $.tool.call({ tool: 'Bash', command: 'git reset --hard HEAD~1' })
+  expect(await ui.find({ type: 'Text', text: /^reset --hard\. no take-backs\.$/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('a third search in a row puts the deerstalker on', { options: OPTIONS }, async ($, on) => {
+  await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  for (const pattern of ['TODO', 'FIXME', 'XXX']) await $.tool.call(anyTool({ tool: 'Grep', pattern }))
+
+  expect(await ui.find({ type: 'Text', text: /^search #3\. lost, are we\?$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /▗▆▆▆▖/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('tests going green after going red in a turn earn a 1-UP; green on the first try only a squint', { options: OPTIONS }, async ($, on) => {
+  let fails = true
+  on('tool.call', { tool: 'Bash' }, () => (fails ? { result: '1 failed', isError: true } : { result: 'all passed' }))
+  await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.tool.call({ tool: 'Bash', command: 'npm test' })
+  fails = false
+  await $.tool.call({ tool: 'Bash', command: 'npm test' })
+  expect(await ui.find({ type: 'Text', text: saying('oneup') })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /1UP/ })).toBeTruthy()
+
+  await $.tool.call({ tool: 'Bash', command: 'npm test' })
+  expect(await ui.find({ type: 'Text', text: saying('passed') })).toBeTruthy()
+  await ui.unmount()
+})
+
+test("the day's first prompt in the morning comes with coffee, once a day", { options: OPTIONS }, async ($, on) => {
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  // 08:30 in India.
+  await start($, on, { species: 'clawd' }, istOn(28, 8, 30))
+  const ui = await $.ui.mount(BAND)
+
+  await $.prompt.submit({ ...SUBMITTED, text: 'morning! where were we' })
+  expect(await ui.find({ type: 'Text', text: saying('coffee') })).toBeTruthy()
+
+  await $.prompt.submit({ ...SUBMITTED, text: 'next thing' })
+  expect(await ui.find({ type: 'Text', text: saying('coffee') })).toBeFalsy()
+  await ui.unmount()
+})
+
+test('a long prompt working through a bug gets a rubber duck to listen; a long plain one does not', { options: OPTIONS }, async ($, on) => {
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+  const story = 'So the login form submits, the request goes out, the server answers 200, and then the page just sits there. '
+
+  await $.prompt.submit({ ...SUBMITTED, text: `${story.repeat(3)}I have no idea why it doesn't work.` })
+  expect(await ui.find({ type: 'Text', text: saying('duck') })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /▜██▛/ })).toBeTruthy()
+
+  await $.prompt.submit({ ...SUBMITTED, text: 'Add a settings page with a dark mode toggle, a font size slider and a language picker. '.repeat(4) })
+  expect(await ui.find({ type: 'Text', text: saying('duck') })).toBeFalsy()
+  await ui.unmount()
 })

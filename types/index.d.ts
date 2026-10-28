@@ -60,6 +60,18 @@ export type EmoteName =
   | 'spin'
   | 'dizzy'
   | 'tap'
+  | 'sherlock'
+  | 'jedi'
+  | 'gandalf'
+  | 'terminator'
+  | 'delorean'
+  | 'ninja'
+  | 'duck'
+  | 'neo'
+  | 'coffee'
+  | 'astronaut'
+  | 'oneup'
+  | 'whale'
 
 export type Emote = { name: EmoteName | null; line: string; until: number }
 

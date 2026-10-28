@@ -9,6 +9,7 @@ import {
   ambient,
   clawdScene,
   sayingOf,
+  isSaying,
   type Saying,
   joinRuns,
   withStarters,
@@ -166,14 +167,29 @@ const WORKING: readonly Kind[] = ['think', 'read', 'run', 'write']
 
 // A git commit or push, with which one in group 1.
 const SHIPS = /\bgit\s+(commit|push)\b/
+const FORCE_PUSH = /git\s+push\b.*(--force|\s-f\b)/
 const TESTS = /\b(pytest|jest|vitest|go test|cargo test|npm (run )?test)\b/
+// A command that destroys something: refusing one gets a wizard.
+const DESTRUCTIVE = /\brm\s|git\s+reset\s+--hard|git\s+push\b.*(--force|\s-f\b)|git\s+clean\s+-[a-z]*f|\bdrop\s+(table|database)\b|\bmkfs\b|\bdd\s+if=/i
+// A prompt that is debugging out loud: a rubber duck turns up to listen.
+const DEBUGGING = /\b(why|bug|broken|error|fails?|failing|doesn'?t work|weird|stuck)\b/i
+const DUCK_PROMPT = 280
 
 // Clawd's opinions on commands, with the emote it acts out when it has one; the first match speaks.
+// A line that names one of Clawd's sayings rotates through it.
 const ON_COMMANDS: readonly [RegExp, Kind, string, EmoteName?][] = [
   [/\brm\s+-[a-z]*(rf|fr)/, 'oops', 'rm -rf?! not my shells!'],
   [/git\s+reset\s+--hard/, 'oops', 'reset --hard. no take-backs.'],
-  [/git\s+push\b.*(--force|\s-f\b)/, 'oops', 'force-pushing? bold.'],
+  [FORCE_PUSH, 'run', 'jedi', 'jedi'],
   [/\bsudo\b/, 'run', 'ooh, sudo. fancy.', 'golden'],
+  // Digging through who wrote what, and when it broke.
+  [/git\s+(blame|bisect)\b|git\s+log\b.*\s-[SG]/, 'read', 'sherlock', 'sherlock'],
+  // Going back in time: a revert, the reflog, a reset, an old commit checked out.
+  [/git\s+(revert|reflog)\b|git\s+reset\b|git\s+(checkout|switch)\s+(--detach\s+)?[0-9a-f]{7,40}\b/, 'run', 'delorean', 'delorean'],
+  [/git\s+stash\s+(pop|apply)\b/, 'run', 'ninjaBack', 'ninja'],
+  [/git\s+stash\b/, 'run', 'ninja', 'ninja'],
+  [/\b(kill|pkill|killall)\b/, 'run', 'terminator', 'terminator'],
+  [/\b(docker|podman)\b/, 'run', 'whale', 'whale'],
   [/git\s+commit/, 'happy', 'commit it. claws crossed.'],
   [/git\s+(status|diff|log)/, 'read', "let's see the damage.", 'peek'],
   [TESTS, 'run', "tests! I'll watch."],
@@ -228,9 +244,11 @@ type Seen = {
   edits: Map<string, number>
   searches: number
   tools: number
+  // Whether a test run has failed this turn, for the comeback when one passes.
+  testsFailed: boolean
 }
 
-const fresh = (): Seen => ({ reads: new Set(), edits: new Map(), searches: 0, tools: 0 })
+const fresh = (): Seen => ({ reads: new Set(), edits: new Map(), searches: 0, tools: 0, testsFailed: false })
 
 type Cell = { ch: string; color?: string }
 
@@ -290,20 +308,25 @@ function opinion(e: ToolUse, seen: Seen): [Kind, string, EmoteName?] | undefined
   const isSearch = e.tool === 'Grep' || e.tool === 'Glob'
   seen.searches = isSearch ? seen.searches + 1 : 0
   if (isSearch) {
-    return seen.searches >= 3 ? ['read', `search #${seen.searches}. lost, are we?`] : undefined
+    // A search spree: Clawd puts on its deerstalker.
+    return seen.searches >= 3 ? ['read', `search #${seen.searches}. lost, are we?`, 'sherlock'] : undefined
   }
 
   if (e.tool === 'Skill') {
     const name = field(e, 'skill')
 
-    return ['think', onSkill(name, `grabbing the ${short(name, 20)} manual.`), skillPose(name)]
+    // A skill Clawd has no view on is downloaded straight into Claude's head.
+    const known = ON_SKILLS[name.split(':').pop() ?? name]
+    if (known === undefined) return ['think', say('neo').replace('{skill}', short(name.split(':').pop() ?? name, 20)), 'neo']
+
+    return ['think', known, skillPose(name)]
   }
 
   if (e.tool === 'Bash') {
     const command = field(e, 'command')
     const hit = ON_COMMANDS.find(([pattern]) => pattern.test(command))
 
-    return hit === undefined ? undefined : [hit[1], hit[2], hit[3]]
+    return hit === undefined ? undefined : [hit[1], isSaying(hit[2]) ? say(hit[2]) : hit[2], hit[3]]
   }
 
   const path = field(e, 'file_path')
@@ -655,6 +678,18 @@ export const register: Register = (on, options) => {
       if (isLate) {
         await update($, emote, (): Emote => ({ name: 'yawn', line, until: now + EMOTE_MS }))
       }
+      const phase = phaseOf(local.hour)
+      const today = dayOf(local)
+      if ((phase === 'dawn' || phase === 'morning') && (await $.store.get('coffee')) !== today) {
+        // The day's first prompt, in the morning, in any chat: coffee first.
+        await $.store.set('coffee', today)
+        line = say('coffee')
+        await update($, emote, (): Emote => ({ name: 'coffee', line, until: now + EMOTE_MS }))
+      } else if (e.text.length >= DUCK_PROMPT && DEBUGGING.test(e.text)) {
+        // A long prompt working through a bug: a rubber duck turns up to listen.
+        line = say('duck')
+        await update($, emote, (): Emote => ({ name: 'duck', line, until: now + EMOTE_MS }))
+      }
     }
     if (isClawd && e.command === undefined && NAMES_CLAWD.test(e.text)) {
       // Named in the prompt: Clawd perks up, or glows at a kind word.
@@ -714,26 +749,39 @@ export const register: Register = (on, options) => {
     const isDenied = ran.deny !== undefined
     const isFailed = !isDenied && ran.isError === true
     if (life.waitingOn === e.tool) {
-      // The person answered the prompt Clawd was waiting on.
+      // The person answered the prompt Clawd was waiting on; turning down something destructive
+      // brings out the wizard.
       life.waitingOn = undefined
       const now = await $.clock.now()
-      const line = isDenied ? (isClawd ? say('refused') : 'denied') : isClawd ? say('thanks') : 'allowed'
-      await update($, emote, (): Emote => ({ name: isDenied ? 'enough' : 'hop', line, until: now + REACTION_MS }))
+      const isWizard = isDenied && isClawd && e.tool === 'Bash' && DESTRUCTIVE.test(field(e, 'command'))
+      const line = isWizard ? say('gandalf') : isDenied ? (isClawd ? say('refused') : 'denied') : isClawd ? say('thanks') : 'allowed'
+      const pose: EmoteName = isWizard ? 'gandalf' : isDenied ? 'enough' : 'hop'
+      await update($, emote, (): Emote => ({ name: pose, line, until: now + (isWizard ? EMOTE_MS : REACTION_MS) }))
       await react($, isDenied ? 'idle' : 'happy', line)
     }
     // Only the main conversation's tools count towards a streak, and a refused call is neither.
     if (e.agentId === undefined && !isDenied) {
       life.failStreak = isFailed ? life.failStreak + 1 : 0
     }
-    const isTests = isClawd && !isDenied && e.tool === 'Bash' && TESTS.test(field(e, 'command'))
-    const shipped = isClawd && !isDenied && !isFailed && e.tool === 'Bash' ? SHIPS.exec(field(e, 'command'))?.[1] : undefined
+    const command = e.tool === 'Bash' ? field(e, 'command') : ''
+    const isTests = isClawd && !isDenied && TESTS.test(command)
+    // A force push keeps its Jedi rather than getting confetti.
+    const shipped = isClawd && !isDenied && !isFailed && !FORCE_PUSH.test(command) ? SHIPS.exec(command)?.[1] : undefined
     if (shipped !== undefined) {
       // A commit or push that went through gets confetti.
       const line = say(shipped === 'push' ? 'pushed' : 'committed')
       const now = await $.clock.now()
       await update($, emote, (): Emote => ({ name: 'party', line, until: now + EMOTE_MS }))
       await react($, 'happy', line)
+    } else if (isTests && !isFailed && seen.testsFailed) {
+      // Green after red, in the same turn: an extra life.
+      seen.testsFailed = false
+      const line = say('oneup')
+      const now = await $.clock.now()
+      await update($, emote, (): Emote => ({ name: 'oneup', line, until: now + EMOTE_MS }))
+      await react($, 'happy', line)
     } else if (isTests) {
+      seen.testsFailed ||= isFailed
       const line = say(isFailed ? 'failed' : 'passed')
       if (!isFailed) {
         // Squinting at the green, not cheering it.
@@ -807,8 +855,12 @@ export const register: Register = (on, options) => {
       await update($, emote, (): Emote => ({ name: 'stretch', line: stretch, until: now + EMOTE_MS }))
     }
     if (e.reason === 'aborted' || e.reason === 'error' || e.reason === 'refusal') {
-      // Stopped short: nothing to cheer.
-      const said = e.reason === 'aborted' ? (isClawd ? 'ok, stopping.' : 'stopped.') : isClawd ? 'that ended badly.' : 'it broke off.'
+      // Stopped short: nothing to cheer. Lost to an API error, Clawd radios Houston.
+      const isLost = e.reason === 'error' && isClawd
+      const said = e.reason === 'aborted' ? (isClawd ? 'ok, stopping.' : 'stopped.') : isLost ? say('houston') : isClawd ? 'that ended badly.' : 'it broke off.'
+      if (isLost) {
+        await update($, emote, (): Emote => ({ name: 'astronaut', line: said, until: now + EMOTE_MS }))
+      }
       await react($, e.reason === 'aborted' ? 'idle' : 'oops', said)
 
       return next(e)
