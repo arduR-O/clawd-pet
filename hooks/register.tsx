@@ -345,6 +345,26 @@ async function stopWaiting($: EngineInterface) {
   }
 }
 
+// One pet, from /pet or a click on the critter: the garden is watered, Clawd and Moss enjoy it.
+async function petOnce($: EngineInterface) {
+  const now = await $.clock.now()
+  life.sitting = satAt(life.sitting, now)
+  const pets = Number((await $.store.get('pets')) ?? 0) + 1
+  await $.store.set('pets', pets)
+  const critter = await read($, species)
+  if (critter === 'garden') {
+    await grow($)
+    await react($, 'love', `watered (#${pets})`)
+  } else if (critter === 'clawd') {
+    life.petTimes = [...life.petTimes.filter(at => now - at < PET_SPREE_MS), now]
+    const [name, line] = pickPetted(pets, life.petTimes.length, Math.random())
+    await update($, emote, (): Emote => ({ name, line, until: now + EMOTE_MS }))
+    await react($, 'love', line)
+  } else {
+    await react($, 'love', pets === 1 ? 'first pet ever!' : `purr (pet #${pets})`)
+  }
+}
+
 // Adds one round of growth to the garden, kept across sessions.
 async function grow($: EngineInterface) {
   const g = Number((await $.store.get('growth')) ?? 0) + 1
@@ -666,7 +686,8 @@ export const register: Register = (on, options) => {
     }
     await react($, kind, line)
     // A background agent's call returns as soon as it starts, so only a waited-for one is out.
-    const isAgent = e.tool === 'Agent' && e.run_in_background !== true
+    // Not every build's Agent tool takes run_in_background, so it is looked for, not assumed.
+    const isAgent = e.tool === 'Agent' && !('run_in_background' in e && e.run_in_background === true)
     if (isAgent) {
       life.agentsOut += 1
     }
@@ -867,24 +888,7 @@ export const register: Register = (on, options) => {
       return { text: `Switched to ${picked}.` }
     }
 
-    const pets = Number((await $.store.get('pets')) ?? 0) + 1
-    await $.store.set('pets', pets)
-    if ((await read($, species)) === 'garden') {
-      await grow($)
-      await react($, 'love', `watered (#${pets})`)
-
-      return {}
-    }
-    if ((await read($, species)) === 'clawd') {
-      const now = await $.clock.now()
-      life.petTimes = [...life.petTimes.filter(at => now - at < PET_SPREE_MS), now]
-      const [name, line] = pickPetted(pets, life.petTimes.length, Math.random())
-      await update($, emote, (): Emote => ({ name, line, until: now + EMOTE_MS }))
-      await react($, 'love', line)
-
-      return {}
-    }
-    await react($, 'love', pets === 1 ? 'first pet ever!' : `purr (pet #${pets})`)
+    await petOnce($)
 
     return {}
   })
@@ -977,7 +981,9 @@ export const register: Register = (on, options) => {
       return next(e)
     }
 
-    const { Box, Text } = $.ui.resolve(e)
+    const { Box, Button, Text } = $.ui.resolve(e)
+    // A click on the critter's name pets it, and on Clawd, a click anywhere on it.
+    const pet = () => void petOnce($)
     const m = await read($, mood)
     const frame = await read($, tick)
     const now = await $.clock.now()
@@ -1003,9 +1009,11 @@ export const register: Register = (on, options) => {
             ))}
           </Box>
           <Box flexDirection="column" marginLeft={3}>
-            <Text color={STEM} dimColor={isNight}>
-              garden
-            </Text>
+            <Button key="name" plain onPress={pet}>
+              <Text color={STEM} dimColor={isNight}>
+                garden
+              </Text>
+            </Button>
             <Text dimColor>{bloomed === PLANTS ? 'in full bloom' : `${bloomed}/${PLANTS} in bloom`}</Text>
             {line !== '' && <Text dimColor>{short(line, room)}</Text>}
           </Box>
@@ -1072,18 +1080,20 @@ export const register: Register = (on, options) => {
       // since their fonts and line spacing pull block characters apart.
       let drawing
       if (e.surface === 'terminal') {
+        // One plain button round the whole drawing, its rows joined by line breaks, so a click
+        // anywhere on Clawd lands on it and the pointer lights all of it up at once.
+        const lines = joinRuns(rows)
         drawing = (
-          <Box flexDirection="column">
-            {joinRuns(rows).map(row => (
-              <Text>
-                {row.map(part => (
-                  <Text color={part.color} backgroundColor={part.backgroundColor}>
-                    {part.text}
-                  </Text>
-                ))}
-              </Text>
-            ))}
-          </Box>
+          <Button key="clawd" label="pet Clawd" plain onPress={pet}>
+            {lines.flatMap((row, i) => [
+              ...row.map(part => (
+                <Text color={part.color} backgroundColor={part.backgroundColor}>
+                  {part.text}
+                </Text>
+              )),
+              ...(i < lines.length - 1 ? ['\n'] : []),
+            ])}
+          </Button>
         )
       } else {
         const { Svg } = $.ui.resolve(e)
@@ -1094,9 +1104,11 @@ export const register: Register = (on, options) => {
         <Box flexDirection="row">
           {drawing}
           <Box flexDirection="column" marginLeft={2}>
-            <Text color={CLAWD} bold>
-              Clawd{mode === 'love' ? ' ♥' : ''}
-            </Text>
+            <Button key="name" plain onPress={pet}>
+              <Text color={CLAWD} bold>
+                Clawd{mode === 'love' ? ' ♥' : ''}
+              </Text>
+            </Button>
             {said !== '' && <Text dimColor>{short(said, room)}</Text>}
           </Box>
         </Box>
@@ -1118,7 +1130,9 @@ export const register: Register = (on, options) => {
           <Text color={color}>{pad} `{face.mouth}´</Text>
         </Box>
         <Box flexDirection="column" marginLeft={2}>
-          <Text bold>Moss</Text>
+          <Button key="name" plain onPress={pet}>
+            <Text bold>Moss</Text>
+          </Button>
           {line !== '' && <Text dimColor>{short(line, room)}</Text>}
         </Box>
       </Box>

@@ -42,6 +42,10 @@ const TYPED = { origin: { kind: 'composer' }, presentation: { isFullscreen: fals
 // How a prompt typed and sent with Enter arrives, beyond its text.
 const SUBMITTED = { origin: { kind: 'composer' }, wait: false } as const
 
+// A tool call as another build of Claude Code makes it: the tools, and their arguments, differ
+// from build to build, and the types know only this one's.
+const anyTool = (input: { tool: string } & Record<string, unknown>) => input as unknown as Parameters<Args[0]['tool']['call']>[0]
+
 // What a model call that answered nothing used.
 const NO_USAGE = { input_tokens: 1, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
 
@@ -369,6 +373,41 @@ test('a pet gets a reaction, and only a long spree gets told off', { options: OP
   await ui.unmount()
 })
 
+test('a click on Clawd pets it, and a spree of clicks gets told off', { options: OPTIONS }, async ($, on) => {
+  await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await ui.press({ key: 'clawd' })
+  expect(await ui.find({ type: 'Text', text: /^Clawd ♥$/ })).toBeTruthy()
+
+  for (let pet = 2; pet <= 6; pet++) await ui.press({ key: 'clawd' })
+  expect(await ui.find({ type: 'Text', text: /ok ok, I get it\./ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('where Clawd is drawn as a picture, a click on its name pets it', { options: OPTIONS }, async ($, on) => {
+  await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+
+  await ui.press({ key: 'name' })
+
+  expect(await ui.find({ type: 'Text', text: /^Clawd ♥$/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('a click on the garden waters it, and one on Moss pets it', { options: OPTIONS }, async ($, on) => {
+  await start($, on, { species: 'garden' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await ui.press({ key: 'name' })
+  expect(await ui.find({ type: 'Text', text: /^watered \(#1\)$/ })).toBeTruthy()
+
+  await $.command.run({ ...TYPED, command: 'pet', args: 'moss' })
+  await ui.press({ key: 'name' })
+  expect(await ui.find({ type: 'Text', text: /^purr \(pet #2\)$/ })).toBeTruthy()
+  await ui.unmount()
+})
+
 test("Clawd riffs on the spinner's word while Claude works", { options: OPTIONS }, async ($, on) => {
   // Stands for the engine's own spinner beneath the plugin.
   on('ui.render', ($, e) => {
@@ -407,7 +446,7 @@ test('Clawd has opinions', { options: OPTIONS }, async ($, on) => {
   expect(await says(/app\.py again\?/)).toBe(true)
 
   for (const pattern of ['foo', 'bar', 'baz']) {
-    await $.tool.call({ tool: 'Grep', pattern })
+    await $.tool.call(anyTool({ tool: 'Grep', pattern }))
   }
   expect(await says(/search #3\. lost, are we\?/)).toBe(true)
 
@@ -1373,7 +1412,7 @@ test('a subagent sent off in the background is not waited back', { options: OPTI
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  await $.tool.call({ tool: 'Agent', description: 'look around', prompt: 'look around', run_in_background: true })
+  await $.tool.call(anyTool({ tool: 'Agent', description: 'look around', prompt: 'look around', run_in_background: true }))
 
   expect(await ui.find({ type: 'Text', text: /the crew is back/ })).toBeFalsy()
   await ui.unmount()

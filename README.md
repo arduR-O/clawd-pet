@@ -48,7 +48,9 @@ Needs a recent Claude Code; tested on 2.1.312.
 
 ## Commands
 
-Typing `/pet ` suggests what can follow it, and a few letters in, the emotes that match.
+Typing `/pet ` suggests what can follow it, and a few letters in, the emotes that match. You can
+also just click Clawd: a click anywhere on it, or on its name, is a pet (the garden's and Moss's
+names take a click too).
 
 | Command | What it does |
 |---|---|
