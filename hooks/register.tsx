@@ -45,6 +45,8 @@ const SPINNER_CYCLE_MS = 12_000
 const LONG_TURN_MS = 120_000
 // After a long turn the person has likely looked away: its "done" stays up this long to greet them.
 const LONG_DONE_MS = 60_000
+// How long Clawd keeps asking at most while a permission prompt waits; its answer ends it sooner.
+const WAIT_MS = 10 * 60_000
 // After this much thinking a thought bubble starts to grow, a step every BUBBLE_STEP_MS.
 const BUBBLE_AFTER_MS = 6_000
 const BUBBLE_STEP_MS = 3_000
@@ -106,6 +108,8 @@ const life = {
   // The pose Clawd was last drawn in, and since when, so a pose's own moves start at its start.
   pose: undefined as EmoteName | undefined,
   poseSince: 0,
+  // The tool whose permission prompt is waiting on the person, while one is.
+  waitingOn: undefined as string | undefined,
   // The person's current stretch of work, for break nudges.
   sitting: { since: 0, lastSeen: -Infinity, nudgedAt: 0 },
 }
@@ -234,6 +238,15 @@ type ToolUse = { tool: string } & Record<string, unknown>
 // A string argument of a tool call, or '' when it has none.
 const field = (e: ToolUse, key: string) => (typeof e[key] === 'string' ? (e[key] as string) : '')
 
+// What the critter says while a permission prompt for `tool` waits on the person.
+function askLine(tool: string, isClawd: boolean): string {
+  if (tool === 'AskUserQuestion') return isClawd ? 'Claude has a question for you.' : 'a question for you'
+  if (tool === 'ExitPlanMode') return isClawd ? 'a plan for you to look at.' : 'a plan to look at'
+  const name = tool.startsWith('mcp__') ? (tool.split('__').pop() ?? tool) : tool
+
+  return isClawd ? `psst. ${short(name, 24)} needs your ok.` : `waiting on you: ${short(name, 24)}`
+}
+
 // What the critter does and says when Claude reaches for a tool.
 function reaction(e: ToolUse): [Kind, string] {
   const text = (key: string) => field(e, key)
@@ -314,6 +327,15 @@ async function react($: EngineInterface, kind: Kind, line: string, ms = REACTION
     until: now + ms,
     lastActiveAt: now,
   }))
+}
+
+// Done waiting on a permission prompt that went unanswered as far as Clawd heard: it stops tapping.
+async function stopWaiting($: EngineInterface) {
+  if (life.waitingOn === undefined) return
+  life.waitingOn = undefined
+  if ((await read($, emote)).name === 'tap') {
+    await update($, emote, (): Emote => ({ name: null, line: '', until: 0 }))
+  }
 }
 
 // Adds one round of growth to the garden, kept across sessions.
@@ -410,7 +432,7 @@ async function refreshSongbook($: EngineInterface, music: string, lastfm: { user
 // not reading Claude's answer.
 async function maybeEmote($: EngineInterface, offsetMinutes: number) {
   const now = await $.clock.now()
-  if (!life.isBusy || now < life.nextEmoteAt || (await read($, species)) !== 'clawd') {
+  if (!life.isBusy || life.waitingOn !== undefined || now < life.nextEmoteAt || (await read($, species)) !== 'clawd') {
     return
   }
   const m = await read($, mood)
@@ -555,6 +577,7 @@ export const register: Register = (on, options) => {
       return next(e)
     }
     seen = fresh()
+    await stopWaiting($)
     life.isBusy = true
     life.sitting = satAt(life.sitting, await $.clock.now())
     life.failStreak = 0
@@ -632,6 +655,14 @@ export const register: Register = (on, options) => {
     }
     const isDenied = ran.deny !== undefined
     const isFailed = !isDenied && ran.isError === true
+    if (life.waitingOn === e.tool) {
+      // The person answered the prompt Clawd was waiting on.
+      life.waitingOn = undefined
+      const now = await $.clock.now()
+      const line = isDenied ? (isClawd ? 'fine, not that then.' : 'denied') : isClawd ? 'thanks!' : 'allowed'
+      await update($, emote, (): Emote => ({ name: isDenied ? 'enough' : 'hop', line, until: now + REACTION_MS }))
+      await react($, isDenied ? 'idle' : 'happy', line)
+    }
     // Only the main conversation's tools count towards a streak, and a refused call is neither.
     if (e.agentId === undefined && !isDenied) {
       life.failStreak = isFailed ? life.failStreak + 1 : 0
@@ -671,11 +702,27 @@ export const register: Register = (on, options) => {
     return ran
   }).catch(($, e, next) => next(e))
 
+  // A permission prompt is about to wait on the person: Clawd taps its foot until they answer,
+  // which the tool's own call hears when it goes on or is refused.
+  on('classic.PermissionRequest', async ($, e, next) => {
+    const isClawd = (await read($, species)) === 'clawd'
+    const now = await $.clock.now()
+    const line = askLine(e.tool_name, isClawd)
+    life.waitingOn = e.tool_name
+    if (isClawd) {
+      await update($, emote, (): Emote => ({ name: 'tap', line, until: now + WAIT_MS }))
+    }
+    await react($, 'think', line, WAIT_MS)
+
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
   on('turn.complete', async ($, e, next) => {
     // A subagent's end raises this too; only the main conversation's turn counts.
     if (e.agentId !== undefined) {
       return next(e)
     }
+    await stopWaiting($)
     life.isBusy = false
     life.spinnerWord = ''
     life.turnStartedAt = 0

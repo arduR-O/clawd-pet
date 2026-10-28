@@ -59,6 +59,7 @@ export type EmoteName =
   | 'cry'
   | 'spin'
   | 'dizzy'
+  | 'tap'
 
 export type Emote = { name: EmoteName | null; line: string; until: number }
 

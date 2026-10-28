@@ -921,6 +921,63 @@ test('a third failure in a row leaves Clawd dizzy, seeing stars', { options: OPT
   await ui.unmount()
 })
 
+// A Bash call whose permission prompt waits five seconds on the person, who then allows it or not.
+function promptFirst($: Args[0], on: Args[1], clock: () => Awaited<ReturnType<typeof start>>, answer: 'allow' | 'deny') {
+  on('classic.PermissionRequest', () => ({}))
+  on('tool.call', { tool: 'Bash' }, async () => {
+    await $.classic.PermissionRequest({ tool_name: 'Bash', tool_input: { command: 'rm -r build' } })
+    await clock().sleep(5000)
+
+    return answer === 'allow' ? { result: 'removed' } : { deny: 'The person said no.' }
+  })
+}
+
+test('while a permission prompt waits, Clawd taps its foot, and thanks the person for an ok', { options: OPTIONS }, async ($, on) => {
+  let clock: Awaited<ReturnType<typeof start>> | undefined
+  promptFirst($, on, () => clock!, 'allow')
+  clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  const call = $.tool.call({ tool: 'Bash', command: 'rm -r build' })
+  await clock.advance(4000)
+  expect(await ui.find({ type: 'Text', text: /^psst\. Bash needs your ok\.$/ })).toBeTruthy()
+  // Still asking well past an ordinary reaction, a claw up, with no idle emote over it.
+  expect(await ui.find({ type: 'Text', text: /^▗▟█████▛▘$/ })).toBeTruthy()
+
+  await clock.advance(1000)
+  await call
+  expect(await ui.find({ type: 'Text', text: /^thanks!$/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('a refused permission prompt gets a shrug', { options: OPTIONS }, async ($, on) => {
+  let clock: Awaited<ReturnType<typeof start>> | undefined
+  promptFirst($, on, () => clock!, 'deny')
+  clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  const call = $.tool.call({ tool: 'Bash', command: 'rm -r build' })
+  await clock.advance(5000)
+  await call
+
+  expect(await ui.find({ type: 'Text', text: /^fine, not that then\.$/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('a question from Claude is announced as one', { options: OPTIONS }, async ($, on) => {
+  on('classic.PermissionRequest', () => ({}))
+  await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.classic.PermissionRequest({ tool_name: 'AskUserQuestion', tool_input: {} })
+  expect(await ui.find({ type: 'Text', text: /^Claude has a question for you\.$/ })).toBeTruthy()
+
+  // The turn ending clears it, answered or not.
+  await $.turn.complete({ answer: 'ok.', durationMs: 1000, isAborted: false, turnId: 't1', reason: 'answer' })
+  expect(await ui.find({ type: 'Text', text: /question/ })).toBeFalsy()
+  await ui.unmount()
+})
+
 test('a failure after a success is not facepalmed', { options: OPTIONS }, async ($, on) => {
   on('tool.call', { tool: 'Bash' }, () => ({ result: 'make: *** No rule', isError: true }))
   await start($, on, { species: 'clawd' }, NOON_IST)
