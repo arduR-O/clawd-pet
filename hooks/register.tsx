@@ -8,6 +8,7 @@ import {
   EMOTE_NAMES,
   ambient,
   clawdScene,
+  petSuggestions,
   sceneSvg,
   pastimeLine,
   isVibeSinging,
@@ -504,6 +505,7 @@ export const register: Register = (on, options) => {
       name: 'pet',
       description: 'Pet the critter above the prompt; /pet garden, /pet clawd or /pet moss to switch; /pet off to hide it; /pet refresh-songs for a new songbook',
       // A pet only touches the critter's own state, so it need not wait for Claude's turn.
+      argumentHint: '[treat|trick|off|on|<emote>…]',
       immediate: true,
     })
     await $.tool.register(TALK_SPEC)
@@ -779,6 +781,11 @@ export const register: Register = (on, options) => {
 
     return {}
   })
+
+  // Typing /pet and a space or a few letters offers the commands and emotes it takes.
+  on('prompt.autocomplete', async ($, e, next) => ({
+    suggestions: [...(await next(e)).suggestions, ...petSuggestions(e.text.slice(0, e.cursor))],
+  }))
 
   // Talking to Clawd only changes the pet above the prompt, so it needs no permission.
   on('tool.check', { tool: 'mcp__clawd__clawd' }, () => ({

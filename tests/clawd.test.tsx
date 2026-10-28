@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { AURA, CALM, clawdScene, sceneSvg, songbookLines, spinnerTake } from '../hooks/clawd'
+import { AURA, CALM, clawdScene, petSuggestions, sceneSvg, songbookLines, spinnerTake } from '../hooks/clawd'
 
 const BAND = {
   plugin: 'clawd',
@@ -189,6 +189,23 @@ test('the picture draws block characters as pixel rectangles and the rest as tex
   expect(svg).toContain('<rect x="8" y="16" width="8" height="16" fill="#ff8800"/>')
   expect(svg).toContain('<rect x="8" y="23" width="8" height="2" fill="#1a1a1a"/>')
   expect(svg).toContain('>&lt;</text>')
+})
+
+test('typing /pet offers the commands, and a few letters in, the emotes', () => {
+  const names = (draft: string) => petSuggestions(draft).map(one => one.text)
+
+  expect(names('/pet ')).toEqual(['treat', 'trick', 'refresh-songs', 'off', 'on', 'garden', 'clawd', 'moss'])
+  expect(names('/pet tr')).toEqual(['treat', 'trick'])
+  expect(names('/pet me')).toEqual(['meditate'])
+  expect(names('/pet re')).toEqual(['refresh-songs'])
+  expect(petSuggestions('/pet o')).toEqual([
+    { text: 'off', description: 'hide the pet until /pet on' },
+    { text: 'on', description: 'bring the pet back' },
+  ])
+  expect(names('/pet off')).toEqual([])
+  expect(names('/pet treat')).toEqual([])
+  expect(names('hello /pet ')).toEqual([])
+  expect(names('/other ')).toEqual([])
 })
 
 test('the garden starts as seeds', { options: OPTIONS }, async ($, on) => {

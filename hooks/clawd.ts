@@ -771,6 +771,30 @@ export const CALM = [
   'the build will pass. ommm.',
 ]
 
+// The commands /pet takes, with what each does, for the typeahead.
+const PET_COMMANDS: readonly [string, string][] = [
+  ['treat', 'feed Clawd a treat'],
+  ['trick', 'Clawd does a trick'],
+  ['refresh-songs', 'forget the songbook and write a new one'],
+  ['off', 'hide the pet until /pet on'],
+  ['on', 'bring the pet back'],
+  ['garden', 'switch to the garden'],
+  ['clawd', 'switch to Clawd'],
+  ['moss', 'switch to Moss'],
+]
+
+// Rows for the typeahead while an argument of /pet is being typed: the commands, and once a few
+// letters are in, the emotes that start the same way. `draft` is the prompt up to the caret.
+export function petSuggestions(draft: string): { text: string; description?: string }[] {
+  const match = /^\/pet +(\S*)$/.exec(draft)
+  if (match === null) return []
+  const typed = match[1]!.toLowerCase()
+  const commands = PET_COMMANDS.filter(([name]) => name.startsWith(typed)).map(([text, description]) => ({ text, description }))
+  const emotes = typed === '' ? [] : EMOTE_NAMES.filter(name => name.startsWith(typed) && !PET_COMMANDS.some(([one]) => one === name)).map(text => ({ text }))
+
+  return [...commands, ...emotes].filter(one => one.text !== typed)
+}
+
 // Clawd's scene as an SVG drawing, for the apps that draw pictures rather than a terminal's grid
 // of characters: block glyphs as pixel rectangles, merged along each half row, and other glyphs as
 // text, each placed in its own cell so no font can push them out of line.
