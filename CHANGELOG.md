@@ -25,6 +25,16 @@ a desktop Clawd with cartoon physics.
 - **Click to pet.** A click on Clawd, or on its name, pets it, as `/pet` does; the garden's and
   Moss's names take a click too.
 
+- **Guests.** Twelve visitors, each with a real trigger: Sherlock (`git blame`, a search spree),
+  a Jedi (`git push --force`), Gandalf (turning down a destructive command), the Terminator
+  (`kill`), a DeLorean (`git revert`, the reflog), a ninja (`git stash`), a rubber duck (a long
+  debugging prompt), Neo (Claude loading a skill), coffee (the morning's first prompt), an
+  astronaut (an API error), a 1-UP mushroom (tests green after red) and a whale (`docker`).
+- **More to say.** The spinner-word nods go from 4 to 18, and the lines Clawd said every time
+  (a failure, a facepalm, a finished turn, tests, commits, permission answers) rotate through a few.
+- **Better poses.** Meditation sits wide with its claws raised and a mote of light drifting up; a
+  stretch reaches up over its head; crying shows tears (`╥ ╥`); a yawn opens wide.
+
 ### Fixed
 
 - Reading glasses no longer make Clawd's head bigger: the face keeps its own edges and the outer
@@ -34,4 +44,5 @@ a desktop Clawd with cartoon physics.
 
 - The terminal band is drawn in fewer pieces, and nothing redraws while Clawd is hidden.
 - CI validates the plugin and runs its tests on every push; the mod and its tests typecheck.
+- The tests are split by topic and run in parallel: about 8 s instead of 18 s.
 - The plugin has an icon, drawn from Clawd's own art.
