@@ -643,6 +643,10 @@ export const register: Register = (on, options) => {
         await update($, emote, (): Emote => ({ name: 'enough', line, until: now + EMOTE_MS }))
       }
       await react($, isFailed ? 'oops' : 'happy', line)
+    } else if (isFailed && isClawd && life.failStreak >= 3) {
+      const now = await $.clock.now()
+      await update($, emote, (): Emote => ({ name: 'dizzy', line: 'everything is spinning.', until: now + EMOTE_MS }))
+      await react($, 'oops', 'everything is spinning.')
     } else if (isFailed && isClawd && life.failStreak >= 2) {
       const now = await $.clock.now()
       await update($, emote, (): Emote => ({ name: 'facepalm', line: '…again.', until: now + EMOTE_MS }))
