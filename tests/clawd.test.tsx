@@ -599,6 +599,34 @@ test('break minutes are read from the setting, and empty, 0 or nonsense turns th
   for (const off of ['', '0', 'off', '-5']) expect(parseMinutes(off)).toBeUndefined()
 })
 
+test('a long turn ends with confetti, and its done stays up a minute for whoever looks back', { options: OPTIONS }, async ($, on) => {
+  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.turn.complete({ answer: 'fixed.', durationMs: 4 * 60_000, isAborted: false, turnId: 't1', reason: 'answer' })
+  expect(await ui.find({ type: 'Text', text: /^done! that took 4 min\.$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /✦|✧|\*/ })).toBeTruthy()
+
+  await clock.advance(30_000)
+  expect(await ui.find({ type: 'Text', text: /^done! that took 4 min\.$/ })).toBeTruthy()
+  await clock.advance(31_000)
+  expect(await ui.find({ type: 'Text', text: /that took/ })).toBeFalsy()
+  await ui.unmount()
+})
+
+test('a turn stopped short is not cheered', { options: OPTIONS }, async ($, on) => {
+  await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.turn.complete({ answer: '', durationMs: 5 * 60_000, isAborted: true, turnId: 't1', reason: 'aborted' })
+  expect(await ui.find({ type: 'Text', text: /^ok, stopping\.$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /done/ })).toBeFalsy()
+
+  await $.turn.complete({ answer: '', durationMs: 1000, isAborted: false, turnId: 't2', reason: 'error' })
+  expect(await ui.find({ type: 'Text', text: /^that ended badly\.$/ })).toBeTruthy()
+  await ui.unmount()
+})
+
 test('on a weekend Clawd says nothing about leave time', { options: OPTIONS }, async ($, on) => {
   // Sunday 1 Nov 2026, 17:10 IST: dusk.
   await start($, on, { species: 'clawd' }, istOn(32, 17, 10))

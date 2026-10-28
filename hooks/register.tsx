@@ -43,6 +43,8 @@ const SLEEP_AFTER_MS = 5 * 60 * 1000
 const SPINNER_CYCLE_MS = 12_000
 // A turn longer than this makes Clawd sweat.
 const LONG_TURN_MS = 120_000
+// After a long turn the person has likely looked away: its "done" stays up this long to greet them.
+const LONG_DONE_MS = 60_000
 // After this much thinking a thought bubble starts to grow, a step every BUBBLE_STEP_MS.
 const BUBBLE_AFTER_MS = 6_000
 const BUBBLE_STEP_MS = 3_000
@@ -304,12 +306,12 @@ function opinion(e: ToolUse, seen: Seen): [Kind, string, EmoteName?] | undefined
 }
 
 // Shows a reaction for a few seconds, then the critter settles back.
-async function react($: EngineInterface, kind: Kind, line: string) {
+async function react($: EngineInterface, kind: Kind, line: string, ms = REACTION_MS) {
   const now = await $.clock.now()
   await update($, mood, (): Mood => ({
     kind,
     line,
-    until: now + REACTION_MS,
+    until: now + ms,
     lastActiveAt: now,
   }))
 }
@@ -696,16 +698,31 @@ export const register: Register = (on, options) => {
       life.sitting = { ...life.sitting, nudgedAt: now }
       await update($, emote, (): Emote => ({ name: 'stretch', line: stretch, until: now + EMOTE_MS }))
     }
+    if (e.reason === 'aborted' || e.reason === 'error' || e.reason === 'refusal') {
+      // Stopped short: nothing to cheer.
+      const said = e.reason === 'aborted' ? (isClawd ? 'ok, stopping.' : 'stopped.') : isClawd ? 'that ended badly.' : 'it broke off.'
+      await react($, e.reason === 'aborted' ? 'idle' : 'oops', said)
+
+      return next(e)
+    }
+    const minutes = Math.round(e.durationMs / 60_000)
+    const isLong = e.durationMs >= LONG_TURN_MS
     const line = !isClawd
       ? 'done!'
       : (leaving ??
         stretch ??
-        (seen.tools >= 15
-          ? `finally. ${seen.tools} tools, that was a lot.`
-          : seen.tools === 0
-            ? 'just talking? fine.'
-            : 'done. not bad.'))
-    await react($, 'happy', line)
+        (isLong
+          ? `done! that took ${minutes} min.`
+          : seen.tools >= 15
+            ? `finally. ${seen.tools} tools, that was a lot.`
+            : seen.tools === 0
+              ? 'just talking? fine.'
+              : 'done. not bad.'))
+    if (isClawd && isLong && stretch === undefined) {
+      // A long turn's end: a burst of confetti, and the line stays up a while so the person sees it when they look back.
+      await update($, emote, (): Emote => ({ name: 'party', line, until: now + EMOTE_MS }))
+    }
+    await react($, 'happy', line, isLong ? LONG_DONE_MS : REACTION_MS)
 
     return next(e)
   })
