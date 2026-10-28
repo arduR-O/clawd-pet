@@ -1,0 +1,40 @@
+{
+  "name": "clawd",
+  "version": "0.1.0",
+  "description": "Clawd, a little crab above your prompt that reacts to what Claude is doing (or a garden, or Moss)",
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "utc_offset": {
+      "type": "string",
+      "title": "UTC offset",
+      "description": "Your time zone's offset from UTC, like +05:30, for Clawd's sun and moon",
+      "default": "+00:00"
+    },
+    "leave_at": {
+      "type": "string",
+      "title": "Leave time",
+      "description": "Optional: when you leave work on weekdays, as 24-hour HH:MM, for Clawd's going-home nudges. Empty turns them off",
+      "default": ""
+    },
+    "music": {
+      "type": "string",
+      "title": "Music",
+      "description": "Optional: artists or songs for Clawd's songbook, comma-separated. Empty uses its built-in songs; set, it costs one small Haiku call a day",
+      "default": ""
+    },
+    "lastfm_user": {
+      "type": "string",
+      "title": "Last.fm user",
+      "description": "Optional: your Last.fm username, so the songbook follows this week's plays. Needs the API key too; adds a Last.fm check every 3 hours and a Haiku call when your plays change",
+      "default": ""
+    },
+    "lastfm_api_key": {
+      "type": "string",
+      "title": "Last.fm API key",
+      "description": "Optional: a read-only Last.fm API key (last.fm/api/accounts), kept in secure storage",
+      "sensitive": true,
+      "default": ""
+    }
+  }
+}

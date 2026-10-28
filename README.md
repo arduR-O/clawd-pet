@@ -1,0 +1,79 @@
+# Clawd
+
+A little crab that lives above your prompt in Claude Code and keeps you company while Claude works.
+
+<p align="center"><img src="assets/clawd.svg" alt="Clawd above the Claude Code prompt: waving, meditating, singing and spinning" width="640"></p>
+
+Clawd reacts to what Claude is doing: it puts on reading glasses when Claude reads a file, throws
+confetti for a commit, facepalms when two tools fail in a row and sweats through long turns. It
+riffs on the spinner's word ("Pondering…" may get a meditation), keeps a sun or moon over its head
+by your local time, sings from a little songbook, builds a sandcastle a storey per finished turn,
+and may go fishing when you step away. While you read Claude's answer it keeps still.
+
+Claude can talk to it too: a `clawd` tool lets Claude have Clawd act something out, sing, or say
+how it's doing, now and then when a moment earns it.
+
+An unofficial fan mod: not made or endorsed by Anthropic.
+
+## Install
+
+Ask Claude in Claude Code:
+
+> Install the Clawd mod from https://github.com/arduR-O/clawd-pet
+
+Claude follows the steps under [For Claude](#for-claude-installing-clawd) below. To do it by hand:
+
+```sh
+claude plugin marketplace add arduR-O/clawd-pet
+claude plugin install clawd@clawd
+```
+
+Then set your time zone (see [Settings](#settings)) and run `/reload-plugins` in Claude Code.
+
+Needs a recent Claude Code; tested on 2.1.312.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `/pet` | Pet Clawd. It has opinions about too many pets in a row. |
+| `/pet treat` | Feed it a treat. |
+| `/pet trick` | It does a trick. |
+| `/pet <emote>` | Shows an emote now, e.g. `/pet meditate`, `/pet sing`, `/pet spin`, `/pet uwu`. |
+| `/pet off`, `/pet on` | Hides the band above the prompt until `/pet on`, in every chat. |
+| `/pet garden`, `/pet moss`, `/pet clawd` | Switches critter: a garden that grows as you work, or Moss. |
+
+## Settings
+
+Run `/plugin configure clawd@clawd` in Claude Code, or `claude plugin configure clawd@clawd` in a shell.
+
+| Setting | Default | What it's for | Cost |
+|---|---|---|---|
+| UTC offset | `+00:00` | Your time zone, like `+05:30` or `-07:00`, for the sun, the moon and day-time moods. | none |
+| Music | empty | Artists or songs for Clawd's songbook, comma-separated. Empty: Clawd sings its built-in songs. | one small Haiku call a day |
+| Last.fm user and API key | empty | The songbook follows what you played this week. Needs both; get a key at [last.fm/api/accounts](https://www.last.fm/api/accounts). The key is kept in secure storage. | a Last.fm check every 3 hours, and a Haiku call when your plays change |
+| Leave time | empty | When you leave work on weekdays (`HH:MM`). Clawd counts down to it and tells you to go home. Empty: off. | none |
+
+Clawd's `clawd` tool adds a few hundred tokens to each request Claude makes. Everything else runs
+on your machine and costs nothing.
+
+## For Claude: installing Clawd
+
+When a user asks you to install this mod:
+
+1. Run `claude plugin marketplace add arduR-O/clawd-pet`, then `claude plugin install clawd@clawd`.
+2. Ask the user for their time zone. Don't read it from the machine: Claude Code often runs on a
+   server set to UTC. Save it as an offset, e.g. for India:
+   `echo '{"utc_offset": "+05:30"}' | claude plugin configure clawd@clawd --values-stdin`
+3. Mention the optional settings in one line each: music (one small Haiku call a day), Last.fm
+   (needs their username and an API key; a check every 3 hours plus a Haiku call when their plays
+   change), and leave time. Set only what they ask for. Never ask them to paste an API key into the
+   chat: tell them to run `/plugin configure clawd@clawd` and enter it there.
+4. Tell them to run `/reload-plugins`. Clawd appears above the prompt.
+
+## Uninstall
+
+```sh
+claude plugin uninstall clawd@clawd
+claude plugin marketplace remove clawd
+```
