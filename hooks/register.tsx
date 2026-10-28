@@ -8,6 +8,8 @@ import {
   EMOTE_NAMES,
   ambient,
   clawdScene,
+  sayingOf,
+  type Saying,
   joinRuns,
   withStarters,
   petSuggestions,
@@ -117,6 +119,8 @@ const life = {
   typed: { at: -Infinity, draft: '', caret: 0 },
   // The tool whose permission prompt is waiting on the person, while one is.
   waitingOn: undefined as string | undefined,
+  // How many times Clawd has said each of its sayings, to rotate through them.
+  said: {} as Partial<Record<Saying, number>>,
   // The person's current stretch of work, for break nudges.
   sitting: { since: 0, lastSeen: -Infinity, nudgedAt: 0 },
 }
@@ -323,6 +327,14 @@ function opinion(e: ToolUse, seen: Seen): [Kind, string, EmoteName?] | undefined
   const hit = ON_FILES.find(([pattern]) => pattern.test(path))
 
   return hit === undefined ? undefined : ['read', hit[1], hit[2]]
+}
+
+// The next line of one of Clawd's sayings, so it doesn't say the same thing every time.
+function say(saying: Saying): string {
+  const n = life.said[saying] ?? 0
+  life.said[saying] = n + 1
+
+  return sayingOf(saying, n)
 }
 
 // Shows a reaction for a few seconds, then the critter settles back.
@@ -705,7 +717,7 @@ export const register: Register = (on, options) => {
       // The person answered the prompt Clawd was waiting on.
       life.waitingOn = undefined
       const now = await $.clock.now()
-      const line = isDenied ? (isClawd ? 'fine, not that then.' : 'denied') : isClawd ? 'thanks!' : 'allowed'
+      const line = isDenied ? (isClawd ? say('refused') : 'denied') : isClawd ? say('thanks') : 'allowed'
       await update($, emote, (): Emote => ({ name: isDenied ? 'enough' : 'hop', line, until: now + REACTION_MS }))
       await react($, isDenied ? 'idle' : 'happy', line)
     }
@@ -717,12 +729,12 @@ export const register: Register = (on, options) => {
     const shipped = isClawd && !isDenied && !isFailed && e.tool === 'Bash' ? SHIPS.exec(field(e, 'command'))?.[1] : undefined
     if (shipped !== undefined) {
       // A commit or push that went through gets confetti.
-      const line = shipped === 'push' ? 'shipped it! ✦' : 'committed! party!'
+      const line = say(shipped === 'push' ? 'pushed' : 'committed')
       const now = await $.clock.now()
       await update($, emote, (): Emote => ({ name: 'party', line, until: now + EMOTE_MS }))
       await react($, 'happy', line)
     } else if (isTests) {
-      const line = isFailed ? 'tests failed. called it.' : 'tests passed. suspicious.'
+      const line = say(isFailed ? 'failed' : 'passed')
       if (!isFailed) {
         // Squinting at the green, not cheering it.
         const now = await $.clock.now()
@@ -731,18 +743,21 @@ export const register: Register = (on, options) => {
       await react($, isFailed ? 'oops' : 'happy', line)
     } else if (isFailed && isClawd && life.failStreak >= 3) {
       const now = await $.clock.now()
-      await update($, emote, (): Emote => ({ name: 'dizzy', line: 'everything is spinning.', until: now + EMOTE_MS }))
-      await react($, 'oops', 'everything is spinning.')
+      const line = say('dizzy')
+      await update($, emote, (): Emote => ({ name: 'dizzy', line, until: now + EMOTE_MS }))
+      await react($, 'oops', line)
     } else if (isFailed && isClawd && life.failStreak >= 2) {
       const now = await $.clock.now()
-      await update($, emote, (): Emote => ({ name: 'facepalm', line: '…again.', until: now + EMOTE_MS }))
-      await react($, 'oops', '…again.')
+      const line = say('again')
+      await update($, emote, (): Emote => ({ name: 'facepalm', line, until: now + EMOTE_MS }))
+      await react($, 'oops', line)
     } else if (isFailed) {
-      await react($, 'oops', isClawd ? 'pfft. that broke.' : 'ouch, that one failed')
+      await react($, 'oops', isClawd ? say('broke') : 'ouch, that one failed')
     } else if (isAgent && !isDenied && isClawd && life.agentsOut === 0) {
       const now = await $.clock.now()
-      await update($, emote, (): Emote => ({ name: 'cousin', line: 'the crew is back.', until: now + EMOTE_MS }))
-      await react($, 'happy', 'the crew is back.')
+      const line = say('crew')
+      await update($, emote, (): Emote => ({ name: 'cousin', line, until: now + EMOTE_MS }))
+      await react($, 'happy', line)
     }
 
     return ran
@@ -810,7 +825,7 @@ export const register: Register = (on, options) => {
             ? `finally. ${seen.tools} tools, that was a lot.`
             : seen.tools === 0
               ? 'just talking? fine.'
-              : 'done. not bad.'))
+              : say('done')))
     if (isClawd && isLong && stretch === undefined) {
       // A long turn's end: a burst of confetti, and the line stays up a while so the person sees it when they look back.
       await update($, emote, (): Emote => ({ name: 'party', line, until: now + EMOTE_MS }))
@@ -952,8 +967,9 @@ export const register: Register = (on, options) => {
     const isCompacting = e.agentId === undefined && e.trigger !== 'precompute'
     if (isCompacting && (await read($, species)) === 'clawd') {
       const now = await $.clock.now()
-      await update($, emote, (): Emote => ({ name: 'squish', line: '*squish* making room.', until: now + EMOTE_MS }))
-      await react($, 'idle', '*squish* making room.')
+      const line = say('squish')
+      await update($, emote, (): Emote => ({ name: 'squish', line, until: now + EMOTE_MS }))
+      await react($, 'idle', line)
     }
 
     return next(e)

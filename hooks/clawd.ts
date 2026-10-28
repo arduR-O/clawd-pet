@@ -1181,7 +1181,48 @@ const SPINNER_SPECIALS: Readonly<Record<string, readonly Act[]>> = {
 }
 
 // Plain nods for words without a view.
-const SPINNER_NODS = ['{word}… sure.', 'ah yes, {word}.', 'very {word} of you.', '{word}! classic.']
+const SPINNER_NODS = [
+  '{word}… sure.',
+  'ah yes, {word}.',
+  'very {word} of you.',
+  '{word}! classic.',
+  'mm, {word}.',
+  'deep {word} mode.',
+  '{word} intensifies.',
+  'the {word} arc.',
+  'such {word}. wow.',
+  '{word} speedrun.',
+  'certified {word}.',
+  'peak {word}.',
+  'ah, the old {word}.',
+  '*nods at the {word}*',
+  '{word}, you say.',
+  'quality {word}, that.',
+  'keep {word}. I believe in you.',
+  '{word}: the sequel.',
+]
+
+// Lines Clawd says again and again, each with a few more to rotate through so it doesn't repeat
+// itself; the first is what it says first.
+export const SAYINGS = {
+  broke: ['pfft. that broke.', 'oof. red.', 'that did not go to plan.', 'welp.', 'it said no.', 'error, but make it fashion.'],
+  again: ['…again.', 'twice now.', 'déjà vu, crab edition.', 'same wall, same face.'],
+  dizzy: ['everything is spinning.', 'so many errors… so many stars.', 'which way is up?', 'I need a minute.'],
+  done: ['done. not bad.', 'done! nice one.', 'and… done.', 'wrapped up.', 'that worked out.', 'nice. what next?'],
+  passed: ['tests passed. suspicious.', 'green? on the first try?', 'all green. I am shocked.', 'passing. for now.'],
+  failed: ['tests failed. called it.', 'the tests have spoken.', 'red, as foretold.', 'a test says no.'],
+  committed: ['committed! party!', 'into the history books!', 'commit! woo!', 'saved for posterity.'],
+  pushed: ['shipped it! ✦', 'off it goes!', 'pushed. out into the world!', 'shipped! ✦ ✦'],
+  thanks: ['thanks!', 'appreciated!', 'you are the best.', 'go go go!'],
+  refused: ['fine, not that then.', 'probably for the best.', 'noted. backing off.', 'ok ok, no touching.'],
+  crew: ['the crew is back.', 'the gang is all here.', 'welcome back, tiny cousins.'],
+  squish: ['*squish* making room.', 'compressing… compressing…', 'packing memories tight.', 'squeezing it all in.'],
+} as const
+
+export type Saying = keyof typeof SAYINGS
+
+// The `n`th time Clawd says one of its sayings, counting from 0.
+export const sayingOf = (saying: Saying, n: number): string => SAYINGS[saying][n % SAYINGS[saying].length]!
 
 // Clawd's pose and line for the spinner's word. `seed` in [0, 1) is drawn when the word
 // appears and picks where to start; each `step` (a stretch of time the word stays up) moves on to

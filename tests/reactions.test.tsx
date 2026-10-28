@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { spinnerTake } from '../hooks/clawd'
+import { spinnerTake, SAYINGS, sayingOf, type Saying } from '../hooks/clawd'
 import {
   BAND,
   auraShown,
@@ -24,6 +24,7 @@ import {
   SNACK_LINES,
   RAISED,
   LOWERED,
+  saying,
 } from './helpers'
 
 test('Clawd does an emote now and then while Claude works', { options: OPTIONS }, async ($, on) => {
@@ -241,7 +242,7 @@ test('a failure after a success is not facepalmed', { options: OPTIONS }, async 
 
   await $.tool.call({ tool: 'Bash', command: 'make' })
 
-  expect(await ui.find({ type: 'Text', text: /^pfft\. that broke\.$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: saying('broke') })).toBeTruthy()
   await ui.unmount()
 })
 
@@ -255,7 +256,7 @@ test('a new prompt starts the failure streak over', { options: OPTIONS }, async 
 
   await $.tool.call({ tool: 'Bash', command: 'make' })
 
-  expect(await ui.find({ type: 'Text', text: /^pfft\. that broke\.$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: saying('broke') })).toBeTruthy()
   await ui.unmount()
 })
 
@@ -455,4 +456,12 @@ test('a prompt that names Clawd makes it perk up, and a kind word makes it glow'
   await $.prompt.submit({ ...SUBMITTED, text: 'thanks Clawd, good job' })
   expect(await ui.find({ type: 'Text', text: /^aw, thanks!$/ })).toBeTruthy()
   await ui.unmount()
+})
+
+test('Clawd rotates through its sayings, so it never says the same one twice running', () => {
+  for (const name of Object.keys(SAYINGS) as Saying[]) {
+    const lines = Array.from({ length: SAYINGS[name].length + 1 }, (_, n) => sayingOf(name, n))
+    expect(new Set(lines.slice(0, -1)).size).toBe(SAYINGS[name].length)
+    for (let n = 1; n < lines.length; n++) expect(lines[n]).not.toBe(lines[n - 1])
+  }
 })
