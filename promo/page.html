@@ -144,6 +144,27 @@ function render(t) {
     const index = tricks.indexOf(shot)
     html += `<div class="abs" style="left:110px;top:430px;display:flex;flex-direction:column;gap:22px">${tricks.map((_, i) => `<div style="width:14px;height:14px;border-radius:50%;background:${i === index ? '#ff8800' : '#3a3346'}"></div>`).join('')}</div>`
     flash = (1 - clamp(k / 0.12)) * 0.25
+  } else if (shot.id === 'guests') {
+    // Twelve guests, one popping in every half beat.
+    const guests = [
+      ['sherlock', 'Sherlock', 'git blame'], ['jedi', 'a Jedi', 'git push --force'], ['gandalf', 'Gandalf', 'you say no'],
+      ['terminator', 'the Terminator', 'kill -9'], ['delorean', 'a DeLorean', 'git revert'], ['ninja', 'a ninja', 'git stash'],
+      ['duck', 'a rubber duck', 'a long bug story'], ['neo', 'Neo', 'a skill loads'], ['coffee', 'coffee', 'first prompt, a.m.'],
+      ['astronaut', 'an astronaut', 'an API error'], ['oneup', 'a 1-UP', 'red, then green'], ['whale', 'a whale', 'docker'],
+    ]
+    const head = outCubic(clamp(k / 0.35))
+    html += `<div class="abs center title" style="top:${90 + (1 - head) * 30}px;font-size:80px;opacity:${head}">and sometimes, <span class="orange">guests.</span></div>`
+    guests.forEach(([id, name, when], i) => {
+      const at = shot.start + 0.3 + i * STEP()
+      const pop = outBack(ramp(t, at, 0.35))
+      const x = 150 + (i % 4) * 415
+      const y = 250 + Math.floor(i / 4) * 255
+      html += `<div class="tile" style="left:${x}px;top:${y}px;width:395px;height:235px;transform:scale(${pop});opacity:${clamp(pop * 3)}">
+        <div class="abs" style="left:14px;top:10px">${frameOf('guest-' + id, t, at)}</div>
+        <div class="abs" style="left:24px;bottom:52px;font-weight:800;font-size:30px">${esc(name)}</div>
+        <div class="abs mono" style="left:24px;bottom:20px;font-size:20px;color:#a8a2b8">${esc(when)}</div></div>`
+    })
+    flash = (1 - clamp(k / 0.15)) * 0.4
   } else if (shot.id === 'list') {
     // Four more of its pastimes, one tile per beat.
     const tiles = [

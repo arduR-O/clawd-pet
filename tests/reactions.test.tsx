@@ -494,7 +494,7 @@ const GUESTS: readonly [string, Saying, RegExp][] = [
   ['git stash', 'ninja', /▄▄▄▄▄▄▄/],
   ['git stash pop', 'ninjaBack', /▄▄▄▄▄▄▄/],
   ['kill -9 4242', 'terminator', /●/],
-  ['docker compose up', 'whale', /▗▟███▙/],
+  ['docker compose up', 'whale', /▟██▙/],
 ]
 
 test('some commands bring a guest: a Jedi, Sherlock, a DeLorean, a ninja, the Terminator, a whale', { options: OPTIONS }, async ($, on) => {

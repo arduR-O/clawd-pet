@@ -49,6 +49,12 @@ const scenes: Record<string, string[]> = {
   meditate: run({ kind: 'think', emote: 'meditate', hour: 21 }, 8, SMALL),
   end: run({ kind: 'happy', emote: 'wave', hour: 20 }, 16),
 }
+// Each guest, small, for the grid of them.
+const GUESTS: [EmoteName, Kind?][] = [
+  ['sherlock'], ['jedi'], ['gandalf'], ['terminator'], ['delorean'], ['ninja'],
+  ['duck'], ['neo'], ['coffee'], ['astronaut', 'oops'], ['oneup', 'happy'], ['whale'],
+]
+for (const [emote, kind] of GUESTS) scenes[`guest-${emote}`] = run({ emote, kind, hour: 10 }, 8, SMALL)
 
 await Bun.write(new URL('build/scenes.json', import.meta.url), JSON.stringify({ typed: TYPED, scenes }))
 console.log(Object.entries(scenes).map(([id, frames]) => `${id}: ${frames.length}`).join(', '))
