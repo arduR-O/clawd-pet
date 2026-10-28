@@ -1,6 +1,7 @@
-# Clawd
+# Clawd: a pet crab for Claude Code
 
-A little crab that lives above your prompt in Claude Code and keeps you company while Claude works.
+Clawd is a pet mod for Claude Code: a little pixel crab, the Clawd mascot, that lives above your
+prompt in the terminal, VS Code and the desktop app, and keeps you company while Claude works.
 
 <p align="center"><img src="assets/clawd.svg" alt="Clawd above the Claude Code prompt: waving, meditating, singing and spinning" width="640"></p>
 
