@@ -77,6 +77,8 @@ const WAVE_LEFT = '▗▟█████▛▘'
 const WAVE_RIGHT = '▝▜█████▙▖'
 const LEGS = '  ▘▘ ▝▝ '
 const LEGS_STEP = '  ▝▝ ▘▘ '
+// Tapping a foot: the outer right one lifted, then down again.
+const LEGS_TAP = '  ▘▘ ▝  '
 
 export type Segment = { text: string; color?: string; backgroundColor?: string }
 export type Row = Segment[]
@@ -155,7 +157,7 @@ export const EMOTE_NAMES: readonly EmoteName[] = [
   'hearts', 'hop', 'wiggle', 'blush', 'shy', 'bow', 'golden', 'enough', 'milestone', 'sixseven',
   'seagull', 'molt', 'cousin', 'pearl', 'tide', 'party', 'treat', 'meditate', 'uwu',
   'stretch', 'facepalm', 'squish', 'rain', 'hiccup', 'fish', 'juggle', 'castle',
-  'sing', 'vibe', 'chef', 'hardhat', 'cry', 'spin', 'dizzy',
+  'sing', 'vibe', 'chef', 'hardhat', 'cry', 'spin', 'dizzy', 'tap',
 ]
 
 // Sung until the day's songbook is written, or when it can't be: original parodies.
@@ -616,6 +618,7 @@ const EMOTE_FACES: Partial<Readonly<Record<EmoteName, Face>>> = {
   seagull: 'surprised',
   tide: 'surprised',
   dizzy: 'dizzy',
+  tap: 'up',
   stargaze: 'up',
   wish: 'up',
   juggle: 'up',
@@ -760,6 +763,8 @@ export function clawdScene(input: {
   let claws = CLAWS_DOWN
   if (emote === 'wave' || emote === 'sixseven' || emote === 'cousin') claws = frame % 2 === 0 ? WAVE_LEFT : WAVE_RIGHT
   else if (emote === 'facepalm') claws = WAVE_RIGHT
+  // A claw up, like a hand raised to ask.
+  else if (emote === 'tap') claws = WAVE_LEFT
   // Unimpressed claws hang still; bowing ones fold low.
   else if (emote === 'enough') claws = CLAWS_DOWN
   else if (emote === 'bow') claws = CLAWS_REST
@@ -772,7 +777,7 @@ export function clawdScene(input: {
   else if (kind === 'happy' || kind === 'love' || (emote !== undefined && CLAWS_RAISED.includes(emote))) claws = CLAWS_UP
 
   const isStepping = isBusy || emote === 'dance' || emote === 'party' || emote === 'sidestep' || emote === 'wiggle'
-  const legs = isStepping && frame % 2 === 1 ? LEGS_STEP : LEGS
+  const legs = emote === 'tap' && frame % 2 === 0 ? LEGS_TAP : isStepping && frame % 2 === 1 ? LEGS_STEP : LEGS
 
   // A mark beside the face: snoring, music, surprise.
   let mark: Segment | undefined
@@ -781,6 +786,7 @@ export function clawdScene(input: {
   else if (emote === 'dance') mark = { text: frame % 2 === 0 ? '♪' : '♫', color: HEART }
   else if (emote === 'shy' || emote === 'seagull' || (emote === 'hop' && frame % 2 === 0)) mark = { text: '!', color: GOLD }
   else if (emote === 'peek') mark = { text: '?', color: GOLD }
+  else if (emote === 'tap') mark = frame % 2 === 0 ? { text: '?', color: GOLD } : undefined
   else if (emote === 'enough') mark = { text: '…', color: MOON }
   else if (emote === 'uwu') mark = { text: '♡', color: HEART }
   else if (emote === 'bubbles') mark = { text: frame % 2 === 0 ? 'o' : '°', color: MOON }
