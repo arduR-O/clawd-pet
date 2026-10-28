@@ -20,7 +20,9 @@ const PHONES = '#8a8fbf'
 const TOQUE = '#f4f1de'
 const ROD = '#c9a36b'
 // The reading glasses' frames, either side of each eye.
-const FRAMES = ['(', ')']
+const FRAMES = ['(', ')'] as const
+// The reading glasses' outer rims, past the face's edges: a mid tone that shows on dark and light terminals.
+const GLASSES = '#7a7f9a'
 const CONFETTI: readonly [string, string][] = [
   ['*', HEART],
   ['·', GOLD],
@@ -614,6 +616,8 @@ export function clawdScene(input: {
     { text: '▌', color: body },
   ]
   let eyes: Segment[]
+  // Whatever sits either side of the face, past its edges: the reading glasses' outer rims.
+  let rims: [Segment, Segment] | undefined
   if (isShut || isBlinking) {
     eyes = lidded('─')
   } else if (emote === 'enough') {
@@ -643,9 +647,11 @@ export function clawdScene(input: {
   } else if (isHappy) {
     eyes = [{ text: EYES_HAPPY, color: body }]
   } else if (isReading) {
-    // Big reading glasses: a dark frame round each of its own eyes, joined by a bridge.
+    // Big reading glasses: a frame round each of its own eyes, joined by a bridge. The face keeps
+    // its own edges, so the head is no bigger; the outer rims stick out past them, wider than the face.
     const rim = (text: string): Segment => ({ text, color: SHADES, backgroundColor: body })
-    eyes = [rim(FRAMES[0]), { text: '▛', color: body }, rim(FRAMES[1]), rim('─'), rim(FRAMES[0]), { text: '▜', color: body }, rim(FRAMES[1])]
+    eyes = [{ text: '▐▛', color: body }, rim(FRAMES[1]), rim('─'), rim(FRAMES[0]), { text: '▜▌', color: body }]
+    rims = [{ text: FRAMES[0], color: GLASSES }, { text: FRAMES[1], color: GLASSES }]
   } else if (isShaded) {
     // Sunglasses: two dark lenses joined by a bridge along the top.
     eyes = [
@@ -696,8 +702,12 @@ export function clawdScene(input: {
     const room = SKY - used - [...part.text].length
     return room < 0 ? row : [...row, pad(Math.min(gap, room)), part]
   }
-  let face: Row = [pad(x + 1), ...eyes, ...(mark === undefined ? [] : [pad(1), mark])]
+  let face: Row =
+    rims === undefined
+      ? [pad(x + 1), ...eyes, ...(mark === undefined ? [] : [pad(1), mark])]
+      : [pad(x), rims[0], ...eyes, rims[1], ...(mark === undefined ? [] : [mark])]
   if (hasHeadphones || emote === 'vibe') {
+    // The cups sit where the glasses' outer rims would.
     // The band over Clawd's head in the sky row, a cup at each side of its face.
     for (const [i, text] of [...'╭─────╮'].entries()) put(x + 1 + i, text, PHONES)
     face = [pad(x), { text: '█', color: PHONES }, ...eyes, { text: '█', color: PHONES }, ...(mark === undefined ? [] : [mark])]
@@ -800,7 +810,7 @@ export function clawdScene(input: {
         const cell = cellAt(r, c)
         const last = row[row.length - 1]
         if (cell === undefined) gap += 1
-        else if (gap === 0 && last?.color === cell.color && last.backgroundColor === cell.backgroundColor) last.text += cell.text
+        else if (gap === 0 && last !== undefined && last.color === cell.color && last.backgroundColor === cell.backgroundColor) last.text += cell.text
         else {
           if (gap > 0) row.push(pad(gap))
           row.push(cell)
