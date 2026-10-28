@@ -1,4 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
+import type { Mounted, TestBody } from 'claude-code/testing'
+import type { PromptEditInput, SessionMessage } from 'claude-code'
 
 import { AURA, CALM, CLAWD, breakLine, faceOf, joinRuns, parseMinutes, satAt, STARTER_SONGS, clawdScene, petSuggestions, sceneSvg, songbookLines, spinnerTake, tasteFrom, withStarters } from '../hooks/clawd'
 
@@ -16,7 +18,7 @@ const BAND = {
   },
 } as const
 
-type Args = Parameters<Parameters<typeof test>[1]>
+type Args = Parameters<TestBody>
 
 type Shown = { findAll: (query: { type: string }) => Promise<readonly { props: { backgroundColor?: string } }[]> }
 
@@ -34,6 +36,14 @@ const LASTFM = { options: { ...OPTIONS, lastfm_user: 'listener', lastfm_api_key:
 // 06:30 UTC is noon in India, the offset Clawd's sky follows by default.
 const NOON_IST = Date.UTC(2026, 9, 27, 6, 30)
 const LATE_EVENING_IST = Date.UTC(2026, 9, 27, 17, 0)
+
+// How a command typed at the prompt arrives, beyond its name and arguments.
+const TYPED = { origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } } as const
+// How a prompt typed and sent with Enter arrives, beyond its text.
+const SUBMITTED = { origin: { kind: 'composer' }, wait: false } as const
+
+// What a model call that answered nothing used.
+const NO_USAGE = { input_tokens: 1, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
 
 // The tools the plugin registered in the last test's session.
 const registered: { name: string; isDeferred?: unknown }[] = []
@@ -71,8 +81,8 @@ test('Moss reacts to a Bash call, then settles', { options: OPTIONS }, async ($,
 
 test('/pet counts pets across calls', { options: OPTIONS }, async ($, on) => {
   await start($, on, { species: 'moss' })
-  await $.command.run({ command: 'pet', args: '' })
-  await $.command.run({ command: 'pet', args: '' })
+  await $.command.run({ ...TYPED, command: 'pet', args: '' })
+  await $.command.run({ ...TYPED, command: 'pet', args: '' })
 
   const ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /purr/ }))?.text).toBe('purr (pet #2)')
@@ -105,13 +115,13 @@ test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, asy
 
     return { value: { isAnswered: true, text: 'where do i begiiin\nwe will, we will\nsomebody to looove', usage } }
   })
-  on('http.fetch', () => ({ value: { ok: true, status: 200, text: '{}' } }))
+  on('http.fetch', () => ({ value: { ok: true, status: 200, headers: {}, text: '{}' } }))
   const songbook = { day: '10-27', source: 'lastfm:listener', style: 7, taste: 'x', lines: ['old song ♪'] }
   const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
   await clock.advance(1_500)
   expect(prompts.length).toBe(0)
 
-  const ran = await $.command.run({ command: 'pet', args: 'refresh-songs' })
+  const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
   await clock.advance(1_500)
 
   expect(ran.text).toBeUndefined()
@@ -121,7 +131,7 @@ test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, asy
 test('/pet refresh-songs with no music set says Clawd keeps its built-in songs', { options: { utc_offset: '+05:30' } }, async ($, on) => {
   await start($, on, { species: 'clawd' }, NOON_IST)
 
-  const ran = await $.command.run({ command: 'pet', args: 'refresh-songs' })
+  const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
 
   expect(ran.text).toContain('built-in songs')
 })
@@ -136,11 +146,11 @@ test('/pet off hides the pet, and Clawd turns down pets and Claude', { options: 
   await start($, on, { species: 'clawd' })
   const ui = await $.ui.mount(BAND)
 
-  const off = await $.command.run({ command: 'pet', args: 'off' })
+  const off = await $.command.run({ ...TYPED, command: 'pet', args: 'off' })
   expect(off.text).toBe('Pet hidden until /pet on.')
   expect(await ui.find({ type: 'Text', text: /^Clawd$/ })).toBeFalsy()
   expect(await ui.find({ type: 'Text', text: /^engine$/ })).toBeTruthy()
-  expect((await $.command.run({ command: 'pet', args: '' })).text).toBe('The pet is hidden; /pet on brings it back.')
+  expect((await $.command.run({ ...TYPED, command: 'pet', args: '' })).text).toBe('The pet is hidden; /pet on brings it back.')
   expect((await $.tool.call({ tool: TALK, action: 'act', emote: 'wave', line: 'hi' })).result).toContain('/pet off')
   await ui.unmount()
 })
@@ -154,7 +164,7 @@ test('a pet hidden in an earlier session stays hidden until /pet on', { options:
   await start($, on, { species: 'clawd', off: true })
   const later = await $.ui.mount(BAND)
   expect(await later.find({ type: 'Text', text: /^Clawd$/ })).toBeFalsy()
-  await $.command.run({ command: 'pet', args: 'on' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'on' })
   expect(await later.find({ type: 'Text', text: /^Clawd$/ })).toBeTruthy()
   await later.unmount()
 })
@@ -252,7 +262,7 @@ test('watering grows the garden, and growth is kept', { options: OPTIONS }, asyn
   const ui = await $.ui.mount(BAND)
   expect(await ui.find({ type: 'Text', text: /5\/6 in bloom/ })).toBeTruthy()
 
-  await $.command.run({ command: 'pet', args: '' })
+  await $.command.run({ ...TYPED, command: 'pet', args: '' })
   expect(await ui.find({ type: 'Text', text: /in full bloom/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /watered \(#1\)/ })).toBeTruthy()
   await ui.unmount()
@@ -280,7 +290,7 @@ test('/pet glasses puts the reading glasses on', { options: OPTIONS }, async ($,
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  await $.command.run({ command: 'pet', args: 'glasses' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'glasses' })
   // Runs of one style are joined, so count the rims within the colored runs.
   const runs = (await ui.findAll({ type: 'Text' })).filter(one => one.props.color !== undefined).map(one => one.text).join('')
   expect([...runs].filter(ch => ch === '(')).toHaveLength(2)
@@ -294,7 +304,7 @@ test('under the noon sun Clawd puts sunglasses on only for a while', { options: 
   const ui = await $.ui.mount(BAND)
   expect(await ui.find({ type: 'Text', text: /^██▀██$/ })).toBeFalsy()
 
-  await $.command.run({ command: 'pet', args: 'shades' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'shades' })
   const shades = await ui.find({ type: 'Text', text: /^██▀██$/ })
   expect(shades?.props.backgroundColor).toBe('#ff8800')
   expect(await ui.find({ type: 'Text', text: /^☀$/ })).toBeTruthy()
@@ -327,7 +337,7 @@ test('Clawd keeps still while Claude is idle, for reading', { options: OPTIONS }
 test('Clawd does an emote now and then while Claude works', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
   const clock = await start($, on, { species: 'clawd' }, NOON_IST)
-  await $.prompt.submit({ text: 'go' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'go' })
   const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, isWorking: true } })
 
   // The first emote comes about 22s into the turn and lasts 4s or more.
@@ -343,15 +353,15 @@ test('a pet gets a reaction, and only a long spree gets told off', { options: OP
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  await $.command.run({ command: 'pet', args: '' })
+  await $.command.run({ ...TYPED, command: 'pet', args: '' })
   expect(await ui.find({ type: 'Text', text: /^Clawd ♥$/ })).toBeTruthy()
 
   for (let pet = 2; pet <= 5; pet++) {
-    await $.command.run({ command: 'pet', args: '' })
+    await $.command.run({ ...TYPED, command: 'pet', args: '' })
   }
   expect(await ui.find({ type: 'Text', text: /ok ok, I get it\./ })).toBeFalsy()
 
-  await $.command.run({ command: 'pet', args: '' })
+  await $.command.run({ ...TYPED, command: 'pet', args: '' })
   expect(await ui.find({ type: 'Text', text: /ok ok, I get it\./ })).toBeTruthy()
   // Heavy lids rather than eyes that vanish.
   expect(await ui.find({ type: 'Text', text: /^▀$/ })).toBeTruthy()
@@ -411,7 +421,7 @@ test('/pet treat feeds Clawd, and every 10th treat is noted', { options: OPTIONS
   await start($, on, { species: 'clawd', treats: 9 }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  const fed = await $.command.run({ command: 'pet', args: 'treat' })
+  const fed = await $.command.run({ ...TYPED, command: 'pet', args: 'treat' })
   expect(fed.text).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /treat #10\. spoiled crab\./ })).toBeTruthy()
   await ui.unmount()
@@ -421,13 +431,13 @@ test('/pet trick does a trick, and only Clawd does them', { options: OPTIONS }, 
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  await $.command.run({ command: 'pet', args: 'trick' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'trick' })
   const tricks = /ta-da|six… seven|boing|waves both claws|sideways shuffle|wiggle wiggle|takes a bow|UwU|spins/
   expect(await ui.find({ type: 'Text', text: tricks })).toBeTruthy()
   await ui.unmount()
 
-  await $.command.run({ command: 'pet', args: 'moss' })
-  const refused = await $.command.run({ command: 'pet', args: 'trick' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'moss' })
+  const refused = await $.command.run({ ...TYPED, command: 'pet', args: 'trick' })
   expect(refused.text).toContain('/pet clawd')
 })
 
@@ -445,10 +455,10 @@ test('a commit that goes through gets confetti', { options: OPTIONS }, async ($,
 
 test('/pet moss switches, and an unknown name is refused', { options: OPTIONS }, async ($, on) => {
   await start($, on)
-  const refused = await $.command.run({ command: 'pet', args: 'dragon' })
+  const refused = await $.command.run({ ...TYPED, command: 'pet', args: 'dragon' })
   expect(refused.text).toContain('/pet garden')
 
-  await $.command.run({ command: 'pet', args: 'moss' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'moss' })
   const ui = await $.ui.mount(BAND)
   expect(await ui.find({ type: 'Text', text: /^Moss$/ })).toBeTruthy()
   await ui.unmount()
@@ -459,10 +469,10 @@ test("Clawd greets the session's first prompt, then takes later ones in stride",
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  await $.prompt.submit({ text: 'add a login page' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'add a login page' })
   expect(await ui.find({ type: 'Text', text: /what are we making\?/ })).toBeTruthy()
 
-  await $.prompt.submit({ text: 'now add tests' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'now add tests' })
   expect(await ui.find({ type: 'Text', text: /what are we making\?/ })).toBeFalsy()
   expect(await ui.find({ type: 'Text', text: /go on…|listening\.|mhm, mhm\.|another one!|on it\.|ok, next\./ })).toBeTruthy()
   await ui.unmount()
@@ -474,10 +484,10 @@ test('Clawd has a line for slash commands and skills', { options: OPTIONS }, asy
   const ui = await $.ui.mount(BAND)
   const says = async (text: RegExp) => Boolean(await ui.find({ type: 'Text', text }))
 
-  await $.prompt.submit({ text: '/code-review', command: { name: 'code-review', args: '' } })
+  await $.prompt.submit({ ...SUBMITTED, text: '/code-review', command: { name: 'code-review', args: '' } })
   expect(await says(/red pen time\./)).toBe(true)
 
-  await $.prompt.submit({ text: '/deploy', command: { name: 'deploy', args: '' } })
+  await $.prompt.submit({ ...SUBMITTED, text: '/deploy', command: { name: 'deploy', args: '' } })
   expect(await says(/\/deploy\? sure\./)).toBe(true)
 
   await $.tool.call({ tool: 'Skill', skill: 'some-plugin:simplify' })
@@ -524,7 +534,7 @@ test('a prompt after leave time gets asked if it is the last one', { options: OP
   await start($, on, { species: 'clawd' }, istOn(27, 18, 0))
   const ui = await $.ui.mount(BAND)
 
-  await $.prompt.submit({ text: 'fix the flaky test' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'fix the flaky test' })
 
   expect(await ui.find({ type: 'Text', text: /^past 5:30\? one more, then home\.$/ })).toBeTruthy()
   await ui.unmount()
@@ -543,7 +553,7 @@ test('a turn that finishes after leave time ends with go home', { options: OPTIO
 // Works through `minutes`, a prompt every one of them, so no gap is long enough to be a break.
 async function workFor($: Args[0], clock: Awaited<ReturnType<typeof start>>, minutes: number) {
   for (let at = 0; at < minutes; at++) {
-    await $.prompt.submit({ text: 'next thing' })
+    await $.prompt.submit({ ...SUBMITTED, text: 'next thing' })
     await clock.advance(60_000)
   }
 }
@@ -680,7 +690,7 @@ test('a meditating Clawd tucks its legs away, eyes shut, small claws at its side
   const clock = await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  await $.command.run({ command: 'pet', args: 'meditate' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'meditate' })
   // Small claws at its sides, tips turned up beside the face.
   expect(await ui.find({ type: 'Text', text: /^▗▐$/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /^▝▜$/ })).toBeTruthy()
@@ -727,12 +737,12 @@ test('/pet <emote> shows that emote on demand', { options: OPTIONS }, async ($, 
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  const shown = await $.command.run({ command: 'pet', args: 'uwu' })
+  const shown = await $.command.run({ ...TYPED, command: 'pet', args: 'uwu' })
   expect(shown.text).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /^w$/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /\(uwu\)/ })).toBeTruthy()
 
-  await $.command.run({ command: 'pet', args: 'meditate' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'meditate' })
   expect(await auraShown(ui)).toBe(true)
   await ui.unmount()
 })
@@ -751,7 +761,7 @@ test('back at night after a doze, Clawd stretches awake', { options: OPTIONS }, 
   const ui = await $.ui.mount(BAND)
   await clock.advance(AWAY_MS)
 
-  await $.prompt.submit({ text: 'where were we' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'where were we' })
 
   expect(await ui.find({ type: 'Text', text: /^\*stretch\* oh, you're back!$/ })).toBeTruthy()
   await ui.unmount()
@@ -763,7 +773,7 @@ test('back by day, Clawd looks up from its pastime', { options: OPTIONS }, async
   const ui = await $.ui.mount(BAND)
   await clock.advance(AWAY_MS)
 
-  await $.prompt.submit({ text: 'where were we' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'where were we' })
 
   expect(await ui.find({ type: 'Text', text: /^oh hi! the fish weren't biting\.$/ })).toBeTruthy()
   await ui.unmount()
@@ -776,7 +786,7 @@ test('away more than 25 minutes by day, Clawd has given up its pastime for a nap
   await clock.advance(26 * 60 * 1000)
   const ui = await $.ui.mount(BAND)
 
-  await $.prompt.submit({ text: 'where were we' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'where were we' })
 
   expect(await ui.find({ type: 'Text', text: /^\*stretch\* oh, you're back!$/ })).toBeTruthy()
   await ui.unmount()
@@ -788,7 +798,7 @@ test('a prompt within 5 minutes gets no welcome back', { options: OPTIONS }, asy
   const ui = await $.ui.mount(BAND)
   await clock.advance(4 * 60 * 1000)
 
-  await $.prompt.submit({ text: 'where were we' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'where were we' })
 
   expect(await ui.find({ type: 'Text', text: /^ooh, what are we making\?$/ })).toBeTruthy()
   await ui.unmount()
@@ -982,7 +992,9 @@ test('a question from Claude is announced as one', { options: OPTIONS }, async (
 
 // The person types `text` into an empty prompt, in one go.
 async function typeIn($: Args[0], text: string) {
-  await $.prompt.edit({ origin: { kind: 'composer' }, text: '', cursor: 0, start: 0, end: 0, inputText: text })
+  // The test's $ raises prompt.edit as the composer does, though its types leave the call out.
+  const prompt = $.prompt as unknown as { edit: (e: PromptEditInput) => Promise<unknown> }
+  await prompt.edit({ origin: { kind: 'composer' }, text: '', cursor: 0, start: 0, end: 0, inputText: text })
 }
 
 test('Clawd watches the person type, eyes on the caret, and looks back up once they stop', { options: OPTIONS }, async ($, on) => {
@@ -1033,7 +1045,7 @@ test('a new prompt starts the failure streak over', { options: OPTIONS }, async 
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
   await $.tool.call({ tool: 'Bash', command: 'make' })
-  await $.prompt.submit({ text: 'try again' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'try again' })
 
   await $.tool.call({ tool: 'Bash', command: 'make' })
 
@@ -1041,7 +1053,7 @@ test('a new prompt starts the failure streak over', { options: OPTIONS }, async 
   await ui.unmount()
 })
 
-const SUMMARY = { role: 'user', text: 'summary so far', toolUses: [] } as const
+const SUMMARY: SessionMessage = { role: 'user', text: 'summary so far', toolUses: [] }
 
 test('compacting the conversation squishes Clawd flat', { options: OPTIONS }, async ($, on) => {
   on('session.compact', () => ({ messages: [SUMMARY] }))
@@ -1167,7 +1179,7 @@ test('a turn past two minutes makes Clawd sweat', { options: OPTIONS }, async ($
   on('prompt.submit', (_, e) => ({ text: e.text }))
   const clock = await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, isWorking: true } })
-  await $.prompt.submit({ text: 'refactor everything' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'refactor everything' })
   expect(await ui.find({ type: 'Text', text: /^[’,]$/ })).toBeFalsy()
 
   await clock.advance(121_000)
@@ -1202,7 +1214,7 @@ test('/pet hiccup makes Clawd hic', { options: OPTIONS }, async ($, on) => {
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  await $.command.run({ command: 'pet', args: 'hiccup' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'hiccup' })
 
   expect(await ui.find({ type: 'Text', text: /^hic!$/ })).toBeTruthy()
   await ui.unmount()
@@ -1212,7 +1224,7 @@ test('/pet rain has Clawd hold up an umbrella', { options: OPTIONS }, async ($, 
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  await $.command.run({ command: 'pet', args: 'rain' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'rain' })
 
   expect(await ui.find({ type: 'Text', text: /▗▟█▙▖/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /─╯/ })).toBeTruthy()
@@ -1348,7 +1360,7 @@ test('/pet spin and the spinner word Spinning make Clawd spin', { options: OPTIO
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  await $.command.run({ command: 'pet', args: 'spin' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'spin' })
   expect(await ui.find({ type: 'Text', text: /^\(spin\)$/ })).toBeTruthy()
   await ui.unmount()
 
@@ -1374,7 +1386,7 @@ test('/pet sing sings a line from the songbook, a few letters at a time', { opti
   await clock.advance(1_500)
   const ui = await $.ui.mount(BAND)
 
-  const sung = await $.command.run({ command: 'pet', args: 'sing' })
+  const sung = await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
   expect(sung.text).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /^mama, oooo$/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /^[♪♫]$/ })).toBeTruthy()
@@ -1421,13 +1433,13 @@ test('with no music and no Last.fm set, Clawd sings its built-in songs and calls
   on('model.complete', () => {
     asked += 1
 
-    return { value: { isAnswered: false, text: '' } }
+    return { value: { isAnswered: false, reason: 'empty-reply', usage: NO_USAGE } }
   })
   const clock = await start($, on, { species: 'clawd' }, NOON_IST)
   await clock.advance(1_500)
   const ui = await $.ui.mount(BAND)
 
-  await $.command.run({ command: 'pet', args: 'sing' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
 
   expect(asked).toBe(0)
   expect(await ui.find({ type: 'Text', text: /^(mama|is th|we wi|don't|anoth|under|we met|and we|remem|and so|I can|stones|I beca|I am w|Amie|nothing|I'll f|they wi|those|please|near|every|welcome|you can|there's|in sleep|that voice|sing once)/ })).toBeTruthy()
@@ -1439,7 +1451,7 @@ test("today's songbook is not written again", { options: OPTIONS }, async ($, on
   on('model.complete', () => {
     asked += 1
 
-    return { value: { isAnswered: false, reason: 'empty-reply' } }
+    return { value: { isAnswered: false, reason: 'empty-reply', usage: NO_USAGE } }
   })
   const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 7, lines: ['today ♪'] }
   const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
@@ -1454,7 +1466,7 @@ test('/pet vibe puts on headphones, then Clawd breaks into song with them on', {
   await clock.advance(1_500)
   const ui = await $.ui.mount(BAND)
 
-  await $.command.run({ command: 'pet', args: 'vibe' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'vibe' })
   expect(await ui.find({ type: 'Text', text: /^♪ \*vibing\* ♪$/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /╭/ })).toBeTruthy()
   expect((await ui.find({ type: 'Text', text: /^█$/ }))?.props.color).toBe('#8a8fbf')
@@ -1480,7 +1492,7 @@ test('away by day, Clawd may listen to music with its headphones on', { options:
 })
 
 // Answers Last.fm's two lookups; `played` false answers as a user with no plays this week.
-function lastfmStub(on: Parameters<Parameters<typeof test>[1]>[1], urls: string[], played = true) {
+function lastfmStub(on: Parameters<TestBody>[1], urls: string[], played = true) {
   on('http.fetch', (_, e) => {
     urls.push(e.url)
     const body = e.url.includes('gettopartists')
@@ -1493,7 +1505,7 @@ function lastfmStub(on: Parameters<Parameters<typeof test>[1]>[1], urls: string[
   })
 }
 
-function modelStub(on: Parameters<Parameters<typeof test>[1]>[1], prompts: string[]) {
+function modelStub(on: Parameters<TestBody>[1], prompts: string[]) {
   on('model.complete', (_, e) => {
     prompts.push(e.prompt)
     const usage = { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
@@ -1549,7 +1561,7 @@ const TOQUE = '#f4f1de'
 const WATER = '#8ab6d6'
 
 // Whether some part of the band reads `text` in `color`.
-async function shows(ui: Awaited<ReturnType<Args[0]['ui']['mount']>>, text: RegExp, color: string) {
+async function shows(ui: Mounted<'terminal', 'AbovePrompt'>, text: RegExp, color: string) {
   return (await ui.findAll({ type: 'Text', text })).some(one => one.props.color === color)
 }
 
@@ -1579,16 +1591,16 @@ test('/pet chef, /pet hardhat and /pet cry show those emotes', { options: OPTION
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  await $.command.run({ command: 'pet', args: 'chef' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'chef' })
   expect(await ui.find({ type: 'Text', text: /^\(chef\)$/ })).toBeTruthy()
   expect(await shows(ui, /▀/, TOQUE)).toBe(true)
 
-  await $.command.run({ command: 'pet', args: 'hardhat' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'hardhat' })
   expect(await ui.find({ type: 'Text', text: /^\(hardhat\)$/ })).toBeTruthy()
   expect(await shows(ui, /▗/, GOLD)).toBe(true)
   expect(await shows(ui, /▀/, TOQUE)).toBe(false)
 
-  await $.command.run({ command: 'pet', args: 'cry' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'cry' })
   expect(await ui.find({ type: 'Text', text: /^\(cry\)$/ })).toBeTruthy()
   // Shut eyes and a tear.
   expect(await ui.find({ type: 'Text', text: /^─$/ })).toBeTruthy()
@@ -1621,7 +1633,7 @@ test('/simplify sits Clawd down to meditate', { options: OPTIONS }, async ($, on
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  await $.prompt.submit({ text: '/simplify', command: { name: 'simplify', args: '' } })
+  await $.prompt.submit({ ...SUBMITTED, text: '/simplify', command: { name: 'simplify', args: '' } })
 
   expect(await ui.find({ type: 'Text', text: /^less is more\.$/ })).toBeTruthy()
   expect(await auraShown(ui)).toBe(true)
@@ -1662,7 +1674,7 @@ test('a prompt in the night gets a yawn', { options: OPTIONS }, async ($, on) =>
   await start($, on, { species: 'clawd' }, istOn(27, 2, 0))
   const ui = await $.ui.mount(BAND)
 
-  await $.prompt.submit({ text: 'one more thing' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'one more thing' })
 
   expect(await ui.find({ type: 'Text', text: /^at this hour\?$/ })).toBeTruthy()
   // Eyes shut mid-yawn.
@@ -1676,7 +1688,7 @@ test('back by day from the sandcastle, Clawd shows it off', { options: OPTIONS }
   const ui = await $.ui.mount(BAND)
   await clock.advance(AWAY_MS)
 
-  await $.prompt.submit({ text: 'where were we' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'where were we' })
 
   expect(await ui.find({ type: 'Text', text: /^oh hi! look, a castle\.$/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /^▗▖$/ })).toBeTruthy()
@@ -1791,7 +1803,7 @@ test('Claude may talk to Clawd twice a turn, and a new prompt starts the count o
   const third = await $.tool.call({ tool: TALK, action: 'act', emote: 'wave', line: 'and again' })
   expect(third.result).toContain('still busy')
 
-  await $.prompt.submit({ text: 'next thing' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'next thing' })
   const fresh = await $.tool.call({ tool: TALK, action: 'ask' })
   expect(fresh.result).toContain('watching you work')
 })
@@ -1831,10 +1843,10 @@ test('a prompt that names Clawd makes it perk up, and a kind word makes it glow'
   await start($, on, { species: 'clawd' }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  await $.prompt.submit({ text: 'what does clawd think?' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'what does clawd think?' })
   expect(await ui.find({ type: 'Text', text: /^you called\?$/ })).toBeTruthy()
 
-  await $.prompt.submit({ text: 'thanks Clawd, good job' })
+  await $.prompt.submit({ ...SUBMITTED, text: 'thanks Clawd, good job' })
   expect(await ui.find({ type: 'Text', text: /^aw, thanks!$/ })).toBeTruthy()
   await ui.unmount()
 })
