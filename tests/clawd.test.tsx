@@ -1028,7 +1028,7 @@ test('a subagent sent off in the background is not waited back', { options: OPTI
 })
 
 test('/pet sing sings a line from the songbook, a few letters at a time', { options: OPTIONS }, async ($, on) => {
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 3, lines: ['mama, oooooooo, the build is green ♪'] }
+  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 4, lines: ['mama, oooooooo, the build is green ♪'] }
   const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
   // The songbook loads a moment after the session starts.
   await clock.advance(1_500)
@@ -1069,7 +1069,7 @@ test("a stale songbook is rewritten once by Claude, in the music's vibe", { opti
     {
       day: '10-27',
       source: `music:${MUSIC}`,
-      style: 3,
+      style: 4,
       taste: MUSIC,
       checkedAt: NOON_IST + 1000,
       lines: ['ooh, the tests are green ♪', 'another one bites the bug ♪', 'we will, we will lint you ♪'],
@@ -1102,7 +1102,7 @@ test("today's songbook is not written again", { options: OPTIONS }, async ($, on
 
     return { value: { isAnswered: false, reason: 'empty-reply' } }
   })
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 3, lines: ['today ♪'] }
+  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 4, lines: ['today ♪'] }
   const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
   await clock.advance(1_500)
 
@@ -1110,7 +1110,7 @@ test("today's songbook is not written again", { options: OPTIONS }, async ($, on
 })
 
 test('/pet vibe puts on headphones, then Clawd breaks into song with them on', { options: OPTIONS }, async ($, on) => {
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 3, lines: ['ooh, the tests are green ♪'] }
+  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 4, lines: ['ooh, the tests are green ♪'] }
   const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
   await clock.advance(1_500)
   const ui = await $.ui.mount(BAND)
@@ -1378,13 +1378,13 @@ test('a songbook written by an older prompt is written again', { options: OPTION
   await clock.advance(1_500)
 
   expect(prompts.length).toBe(1)
-  expect(prompts[0]).toContain('first few words')
+  expect(prompts[0]).toContain('actually sings')
 })
 
 const LASTFM_SONGBOOK = {
   day: '10-27',
   source: 'lastfm:listener',
-  style: 3,
+  style: 4,
   taste: 'Laufey, Queen, From the Start by Laufey',
   checkedAt: NOON_IST,
   lines: ['from the start… of the build ♪'],
@@ -1482,7 +1482,7 @@ test('Claude may talk to Clawd twice a turn, and a new prompt starts the count o
 })
 
 test('asking Clawd how it is doing tells Claude its pets, treats, sandcastle and songbook', { options: OPTIONS }, async ($, on) => {
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 3, taste: MUSIC, lines: ['la ♪'] }
+  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 4, taste: MUSIC, lines: ['la ♪'] }
   const castle = { day: '10-27', turns: 4 }
   await start($, on, { species: 'clawd', pets: 12, treats: 1, castle, songbook }, NOON_IST)
 
@@ -1496,7 +1496,7 @@ test('asking Clawd how it is doing tells Claude its pets, treats, sandcastle and
 })
 
 test('Claude can ask Clawd to sing, and hears the line', { options: OPTIONS }, async ($, on) => {
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 3, lines: ['under pressure… to ship it ♪'] }
+  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 4, lines: ['under pressure… to ship it ♪'] }
   const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
   await clock.advance(1_500)
 

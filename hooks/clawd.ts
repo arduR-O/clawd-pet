@@ -184,20 +184,22 @@ export function tasteFrom(artists: unknown, tracks: unknown): string {
 }
 
 // The songbook prompt's version: a songbook written by an older prompt is written again.
-export const SONGBOOK_STYLE = 3
+export const SONGBOOK_STYLE = 4
 
-// What Claude is asked for the songbook: lines that open on a hook you'd know from `music`,
-// about half sung as is and the rest with only the ending twisted.
+// What Claude is asked for the songbook: hooks actually sung in the songs of `music`, most sung as
+// is and about one in four carried on into code.
 export function songbookPrompt(music: string): string {
   return [
     "Write 12 short lines for Clawd, a tiny crab who lives in a programmer's terminal, to sing.",
     `Use songs by these artists, or these songs: ${music}. A different song for each line where you can.`,
-    "Each line opens with a hook the listener knows at once, the song's title or its first few words",
-    '(five at most). About half the lines are only that hook, sung as the song sings it, with no twist,',
-    'e.g. "where do i begiiin". The rest twist only the ending into code (bugs, builds, tests, git,',
-    'deploys) or crab life, e.g. "before you go… run the linter".',
-    "Never make up words and pass them off as the song's: if unsure how a song opens, use its title.",
-    'Never copy more of the real lyrics than that opening; at most 9 words a line; lowercase;',
+    'Each line is a hook the listener knows at once: words the singer actually sings, its opening or',
+    "its chorus (five words at most), never a title the song doesn't sing. Most lines are only that",
+    'hook, sung as the song sings it, e.g. "where do i begiiin" or "and so it iiis". About one line in',
+    'four carries the sung hook on into code (bugs, builds, tests, git, deploys) or crab life, keeping',
+    'its rhythm, e.g. "before you go… run the linter". Never make up words and pass them off as the',
+    "song's: if unsure of its opening or chorus, sing another line of it you know word for word,",
+    'still five words at most.',
+    'Never copy more of the real lyrics than that hook; at most 9 words a line; lowercase;',
     'stretch a vowel in some ("ooooh"). One line each, no numbering, no quotes, no commentary.',
   ].join('\n')
 }
