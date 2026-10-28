@@ -3,12 +3,10 @@ import type { Mounted } from 'claude-code/testing'
 
 import {
   BAND,
-  auraShown,
   MUSIC,
   OPTIONS,
   LASTFM,
   NOON_IST,
-  TYPED,
   SUBMITTED,
   start,
   istOn,
@@ -42,30 +40,6 @@ test('Clawd keeps still while Claude is idle, for reading', { options: OPTIONS }
     await clock.advance(30_000)
     expect(await ui.find({ type: 'Text', text: /too bright\./ })).toBeTruthy()
   }
-  await ui.unmount()
-})
-
-test('a meditating Clawd tucks its legs away, eyes shut, small claws at its sides, and floats down and back', { options: OPTIONS }, async ($, on) => {
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
-  const ui = await $.ui.mount(BAND)
-
-  await $.command.run({ ...TYPED, command: 'pet', args: 'meditate' })
-  // Small claws at its sides, tips turned up beside the face.
-  expect(await ui.find({ type: 'Text', text: /^▗▐$/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /^▝▜$/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /^▛▘$/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /^█████$/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /^─$/ })).toBeTruthy()
-  // An aura glows round it.
-  expect(await auraShown(ui)).toBe(true)
-  // Humming.
-  expect(await ui.find({ type: 'Text', text: /^ᵒᵐ$/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /▘▘ ▝▝|▝▝ ▘▘/ })).toBeFalsy()
-
-  // A frame later it is half a row down, its shut eyes along the top of a row.
-  await clock.advance(800)
-  expect(await ui.find({ type: 'Text', text: /^▝▀▀▀▀▀▘$/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /^▔$/ })).toBeTruthy()
   await ui.unmount()
 })
 

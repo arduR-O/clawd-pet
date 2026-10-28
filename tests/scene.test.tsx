@@ -3,6 +3,7 @@ import { expect, test } from 'claude-code/testing'
 import { CLAWD, faceOf, joinRuns, clawdScene, sceneSvg } from '../hooks/clawd'
 import {
   BAND,
+  auraShown,
   OPTIONS,
   NOON_IST,
   LATE_EVENING_IST,
@@ -254,4 +255,37 @@ test('a bowing Clawd dips every other frame with its claws folded low', () => {
   expect(text(up[3]!)).toContain('▘▘ ▝▝')
   expect(text(down[1]!).trim()).toBe('')
   expect(text(down[3]!)).toContain('▗▄█████▄▖')
+})
+
+test('a meditating Clawd sits with its claws raised beside its face, eyes shut, humming, and floats down and back', () => {
+  const local = { hour: 12, weekday: 2, month: 10, day: 27 }
+  const text = (row: { text: string }[]) => row.map(part => part.text).join('')
+  const frames = [0, 1, 2].map(poseFrame => clawdScene({ kind: 'think', emote: 'meditate', frame: poseFrame, poseFrame, nowMs: NOON_IST, local }).map(text))
+  // The row its shut eyes are on, and the mote's.
+  const eyesAt = (rows: string[]) => rows.findIndex(row => /[─▔]███[─▔]/.test(row))
+  const moteAt = (rows: string[]) => rows.findIndex((row, r) => r > 0 && /[·˚✧]/.test(row.slice(0, 2)))
+
+  const [first, second, third] = frames as [string[], string[], string[]]
+  // Claw tips up either side of its face, eyes shut, and no legs under it.
+  expect(first[1]).toMatch(/▟.*▐─███─▌.*▙/)
+  expect(first.join('\n')).not.toMatch(/▘▘ ▝▝|▝▝ ▘▘/)
+  expect(first[1]).toContain('ᵒᵐ')
+  // Half a row down a frame: its eyes along the top of the next row, then the middle of it.
+  expect(eyesAt(first)).toBe(1)
+  expect(second[eyesAt(second)]).toContain('▔███▔')
+  expect(eyesAt(second)).toBe(2)
+  expect(eyesAt(third)).toBe(2)
+  // A mote of light drifts up its left side, a row a frame.
+  expect([moteAt(first), moteAt(second), moteAt(third)]).toEqual([3, 2, 1])
+})
+
+test('/pet meditate glows and hums in the band', { options: OPTIONS }, async ($, on) => {
+  await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.command.run({ ...TYPED, command: 'pet', args: 'meditate' })
+
+  expect(await auraShown(ui)).toBe(true)
+  expect(await ui.find({ type: 'Text', text: /^ᵒᵐ$/ })).toBeTruthy()
+  await ui.unmount()
 })
