@@ -69,8 +69,10 @@ export type Mood = {
   lastActiveAt: number
 }
 
+import type { Shaped } from 'claude-code'
+
 declare module 'claude-code' {
   interface PluginState {
-    clawd: { mood: Mood; tick: number; species: Species; growth: number; emote: Emote; isOff: boolean }
+    clawd: { mood: Shaped<Mood>; tick: number; species: Species; growth: number; emote: Shaped<Emote>; isOff: boolean }
   }
 }
