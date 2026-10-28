@@ -26,7 +26,7 @@
     "lastfm_user": {
       "type": "string",
       "title": "Last.fm user",
-      "description": "Optional: your Last.fm username, so the songbook follows this week's plays. Needs the API key too; adds a Last.fm check every 3 hours and a Haiku call when your plays change",
+      "description": "Optional: your Last.fm username, so the songbook follows what you play lately. Needs the API key too; adds a Last.fm lookup and one small Haiku call a day",
       "default": ""
     },
     "lastfm_api_key": {

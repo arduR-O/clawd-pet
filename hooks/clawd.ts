@@ -167,24 +167,53 @@ export const STARTER_SONGS = [
   'soft piano, softer cooode… ♪',
 ]
 
-// What you've been playing, from Last.fm's user.gettopartists and user.gettoptracks replies
-// (parsed JSON), as a list for the songbook prompt; '' when they hold nothing.
-export function tasteFrom(artists: unknown, tracks: unknown): string {
+// What you've been playing, from Last.fm's replies (parsed JSON), as a grouped list for the songbook
+// prompt: the latest plays first, then this week's repeats, artists, a few all-time favourites; ''
+// when they hold nothing.
+export function tasteFrom(artists: unknown, weekTracks: unknown, recentPlays: unknown = undefined, allTimeTracks: unknown = undefined): string {
   const list = (value: unknown): Record<string, unknown>[] =>
     Array.isArray(value) ? value.filter((one): one is Record<string, unknown> => typeof one === 'object' && one !== null) : []
   const text = (value: unknown) => (typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined)
-  const singers = list((artists as { topartists?: { artist?: unknown } } | undefined)?.topartists?.artist).map(one => text(one.name))
-  const songs = list((tracks as { toptracks?: { track?: unknown } } | undefined)?.toptracks?.track).map(one => {
-    const title = text(one.name)
-    const by = text((one.artist as { name?: unknown } | undefined)?.name)
-    return title !== undefined && by !== undefined ? `${title} by ${by}` : title
-  })
+  const song = (title: unknown, by: unknown) => {
+    const name = text(title)
+    const singer = text(by)
+    return name !== undefined && singer !== undefined ? `${name} by ${singer}` : name
+  }
+  const singers = list((artists as { topartists?: { artist?: unknown } } | undefined)?.topartists?.artist)
+    .map(one => text(one.name))
+    .slice(0, 5)
+  const topSongs = (tracks: unknown) =>
+    list((tracks as { toptracks?: { track?: unknown } } | undefined)?.toptracks?.track).map(one => song(one.name, (one.artist as { name?: unknown } | undefined)?.name))
+  // The latest plays, what was played more than once first, then the newest of the rest.
+  const plays = list((recentPlays as { recenttracks?: { track?: unknown } } | undefined)?.recenttracks?.track).map(one =>
+    song(one.name, (one.artist as { '#text'?: unknown; name?: unknown } | undefined)?.['#text'] ?? (one.artist as { name?: unknown } | undefined)?.name),
+  )
+  const counts = new Map<string, number>()
+  for (const one of plays) if (one !== undefined) counts.set(one, (counts.get(one) ?? 0) + 1)
+  const newest = [...counts.keys()].sort((a, b) => counts.get(b)! - counts.get(a)! || plays.indexOf(a) - plays.indexOf(b)).slice(0, 6)
+  const seen = new Set<string>(newest)
+  const fresh = (songs: (string | undefined)[], most: number) => {
+    const kept = songs.filter((one): one is string => one !== undefined && !seen.has(one)).slice(0, most)
+    for (const one of kept) seen.add(one)
+    return kept
+  }
+  const week = fresh(topSongs(weekTracks), 6)
+  const allTime = fresh(topSongs(allTimeTracks), 3)
+  const groups = [
+    ['newest plays, most repeated first', newest],
+    ["this week's repeats", week],
+    ['artists lately', singers.filter((one): one is string => one !== undefined)],
+    ['all-time favourites', allTime],
+  ] as const
 
-  return [...singers, ...songs].filter((one): one is string => one !== undefined).slice(0, 14).join(', ')
+  return groups
+    .filter(([, items]) => items.length > 0)
+    .map(([label, items]) => `${label}: ${items.join(', ')}`)
+    .join('. ')
 }
 
 // The songbook prompt's version: a songbook written by an older prompt is written again.
-export const SONGBOOK_STYLE = 4
+export const SONGBOOK_STYLE = 5
 
 // What Claude is asked for the songbook: hooks actually sung in the songs of `music`, most sung as
 // is and about one in four carried on into code.
@@ -199,6 +228,8 @@ export function songbookPrompt(music: string): string {
     'its rhythm, e.g. "before you go… run the linter". Never make up words and pass them off as the',
     "song's: if unsure of its opening or chorus, sing another line of it you know word for word,",
     'still five words at most.',
+    'If the list is grouped, lean on the newest plays and this week\'s repeats, and use an all-time',
+    'favourite now and then.',
     'Never copy more of the real lyrics than that hook; at most 9 words a line; lowercase;',
     'stretch a vowel in some ("ooooh"). One line each, no numbering, no quotes, no commentary.',
   ].join('\n')

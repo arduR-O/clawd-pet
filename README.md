@@ -52,7 +52,7 @@ Run `/plugin configure clawd@clawd` in Claude Code, or `claude plugin configure 
 |---|---|---|---|
 | UTC offset | `+00:00` | Your time zone, like `+05:30` or `-07:00`, for the sun, the moon and day-time moods. | none |
 | Music | empty | Artists or songs for Clawd's songbook, comma-separated. Empty: Clawd sings its built-in songs. | one small Haiku call a day |
-| Last.fm user and API key | empty | The songbook follows what you played this week. Needs both; get a key at [last.fm/api/accounts](https://www.last.fm/api/accounts). The key is kept in secure storage. | a Last.fm check every 3 hours, and a Haiku call when your plays change |
+| Last.fm user and API key | empty | The songbook follows what you played lately: your newest plays and repeats, this week's top songs and artists, a few all-time favourites. Needs both; get a key at [last.fm/api/accounts](https://www.last.fm/api/accounts). The key is kept in secure storage. | a Last.fm lookup and one small Haiku call a day |
 | Leave time | empty | When you leave work on weekdays (`HH:MM`). Clawd counts down to it and tells you to go home. Empty: off. | none |
 
 Clawd's `clawd` tool adds a few hundred tokens to each request Claude makes. Everything else runs
@@ -67,8 +67,7 @@ When a user asks you to install this mod:
    server set to UTC. Save it as an offset, e.g. for India:
    `echo '{"utc_offset": "+05:30"}' | claude plugin configure clawd@clawd --values-stdin`
 3. Mention the optional settings in one line each: music (one small Haiku call a day), Last.fm
-   (needs their username and an API key; a check every 3 hours plus a Haiku call when their plays
-   change), and leave time. Set only what they ask for. Never ask them to paste an API key into the
+   (needs their username and an API key; a Last.fm lookup and one small Haiku call a day), and leave time. Set only what they ask for. Never ask them to paste an API key into the
    chat: tell them to run `/plugin configure clawd@clawd` and enter it there.
 4. Tell them to run `/reload-plugins`. Clawd appears above the prompt.
 

@@ -52,7 +52,6 @@ const PET_SPREE_MS = 10_000
 // A song lasts longer than other emotes, so the whole line gets sung.
 const SING_MS = 7000
 // How often Clawd looks at Last.fm again, rewriting the songbook only when your plays changed it.
-const LASTFM_CHECK_MS = 3 * 60 * 60 * 1000
 // Vibing with headphones on lasts this long before Clawd breaks into song.
 const VIBE_MS = 5000
 
@@ -344,46 +343,48 @@ async function tasteOf($: EngineInterface, music: string, lastfm: { user: string
   if (lastfm.user === '' || lastfm.key === '') {
     return music
   }
-  const ask = (method: string) =>
+  const ask = (method: string, extra: string) =>
     $.http
       .fetch(
         `https://ws.audioscrobbler.com/2.0/?method=${method}&user=${encodeURIComponent(lastfm.user)}` +
-          `&period=7day&limit=8&api_key=${encodeURIComponent(lastfm.key)}&format=json`,
+          `&${extra}&api_key=${encodeURIComponent(lastfm.key)}&format=json`,
       )
       .then(reply => (reply.ok ? (JSON.parse(reply.text) as unknown) : undefined))
       .catch(() => undefined)
-  const [artists, tracks] = await Promise.all([ask('user.gettopartists'), ask('user.gettoptracks')])
+  // This week's top artists and songs, the last 30 plays (the newest, and what is on repeat), and
+  // a few all-time favourites.
+  const [artists, week, recent, allTime] = await Promise.all([
+    ask('user.gettopartists', 'period=7day&limit=5'),
+    ask('user.gettoptracks', 'period=7day&limit=8'),
+    ask('user.getrecenttracks', 'limit=30'),
+    ask('user.gettoptracks', 'period=overall&limit=5'),
+  ])
 
-  return tasteFrom(artists, tracks) || music
+  return tasteFrom(artists, week, recent, allTime) || music
 }
 
 // Loads the songbook, or has Claude write one in the vibe of what you've been playing (tasteOf):
-// once a day, again when the source or the prompt's style changes, and, with Last.fm, whenever a
-// look every LASTFM_CHECK_MS finds your plays have moved on. Until it is written, and whenever
-// writing fails, the last songbook or the starter songs are sung.
+// once a day, and again when the source or the prompt's style changes (or `/pet refresh-songs`
+// forgets it). Until it is written, and whenever writing fails, the last songbook or the starter
+// songs are sung.
 async function refreshSongbook($: EngineInterface, music: string, lastfm: { user: string; key: string }, today: string) {
-  const now = await $.clock.now()
   const hasLastfm = lastfm.user !== '' && lastfm.key !== ''
   // With no music and no Last.fm, Clawd sings its built-in songs and calls no model.
   if (music === '' && !hasLastfm) {
     return
   }
   const source = hasLastfm ? `lastfm:${lastfm.user}` : `music:${music}`
-  type Songbook = { day?: string; source?: string; style?: number; taste?: string; checkedAt?: number; lines?: string[] }
+  type Songbook = { day?: string; source?: string; style?: number; taste?: string; lines?: string[] }
   const kept = (await $.store.get('songbook')) as Songbook | undefined
   if (kept?.lines !== undefined && kept.lines.length > 0) {
     life.songs = kept.lines
   }
   const isCurrent = kept?.day === today && kept.source === source && kept.style === SONGBOOK_STYLE
-  if (isCurrent && (!hasLastfm || now - (kept.checkedAt ?? 0) < LASTFM_CHECK_MS)) {
+  if (isCurrent) {
     return
   }
   const taste = await tasteOf($, music, lastfm)
   if (taste === '') {
-    return
-  }
-  if (isCurrent && taste === kept.taste) {
-    await $.store.set('songbook', { ...kept, checkedAt: now })
     return
   }
   // A call the engine refuses to send (a blocked model) rejects; Clawd keeps the songs it has.
@@ -393,7 +394,7 @@ async function refreshSongbook($: EngineInterface, music: string, lastfm: { user
   const lines = reply?.isAnswered === true ? songbookLines(reply.text) : []
   if (lines.length >= 3) {
     life.songs = lines
-    await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, checkedAt: now, lines })
+    await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines })
   }
 }
 
@@ -529,11 +530,6 @@ export const register: Register = (on, options) => {
     $.clock.after(1000, () => {
       void refresh()
     })
-    if (lastfm.user !== '' && lastfm.key !== '') {
-      $.clock.every(LASTFM_CHECK_MS, () => {
-        void refresh()
-      })
-    }
     $.clock.every(TICK_MS, () => {
       void update($, tick, n => n + 1)
       void maybeEmote($, offsetMinutes)

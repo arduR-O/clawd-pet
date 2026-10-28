@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { AURA, CALM, clawdScene, petSuggestions, sceneSvg, songbookLines, spinnerTake } from '../hooks/clawd'
+import { AURA, CALM, clawdScene, petSuggestions, sceneSvg, songbookLines, spinnerTake, tasteFrom } from '../hooks/clawd'
 
 const BAND = {
   plugin: 'clawd',
@@ -106,7 +106,7 @@ test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, asy
     return { value: { isAnswered: true, text: 'where do i begiiin\nwe will, we will\nsomebody to looove', usage } }
   })
   on('http.fetch', () => ({ value: { ok: true, status: 200, text: '{}' } }))
-  const songbook = { day: '10-27', source: 'lastfm:listener', style: 4, taste: 'x', checkedAt: NOON_IST, lines: ['old song ♪'] }
+  const songbook = { day: '10-27', source: 'lastfm:listener', style: 5, taste: 'x', lines: ['old song ♪'] }
   const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
   await clock.advance(1_500)
   expect(prompts.length).toBe(0)
@@ -189,6 +189,24 @@ test('the picture draws block characters as pixel rectangles and the rest as tex
   expect(svg).toContain('<rect x="8" y="16" width="8" height="16" fill="#ff8800"/>')
   expect(svg).toContain('<rect x="8" y="23" width="8" height="2" fill="#1a1a1a"/>')
   expect(svg).toContain('>&lt;</text>')
+})
+
+test("the taste puts the newest plays and the repeats first, then the week, and a few all-time favourites", () => {
+  const play = (name: string, by: string) => ({ name, artist: { '#text': by } })
+  const taste = tasteFrom(
+    { topartists: { artist: [{ name: 'Laufey' }] } },
+    { toptracks: { track: [{ name: 'Wildfire', artist: { name: 'Wasia Project' } }, { name: 'Valentine', artist: { name: 'Laufey' } }] } },
+    // Newest first: Valentine, Wildfire twice, Cannonball, Before You Go.
+    { recenttracks: { track: [play('Valentine', 'Laufey'), play('Wildfire', 'Wasia Project'), play('Cannonball', 'Damien Rice'), play('Wildfire', 'Wasia Project'), play('Before You Go', 'Lewis Capaldi')] } },
+    { toptracks: { track: [{ name: 'Bohemian Rhapsody', artist: { name: 'Queen' } }, { name: 'Wildfire', artist: { name: 'Wasia Project' } }] } },
+  )
+
+  expect(taste).toBe(
+    'newest plays, most repeated first: Wildfire by Wasia Project, Valentine by Laufey, Cannonball by Damien Rice, Before You Go by Lewis Capaldi' +
+      '. artists lately: Laufey' +
+      '. all-time favourites: Bohemian Rhapsody by Queen',
+  )
+  expect(tasteFrom(undefined, undefined)).toBe('')
 })
 
 test('typing /pet offers the commands, and a few letters in, the emotes', () => {
@@ -1074,7 +1092,7 @@ test('a subagent sent off in the background is not waited back', { options: OPTI
 })
 
 test('/pet sing sings a line from the songbook, a few letters at a time', { options: OPTIONS }, async ($, on) => {
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 4, lines: ['mama, oooooooo, the build is green ♪'] }
+  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 5, lines: ['mama, oooooooo, the build is green ♪'] }
   const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
   // The songbook loads a moment after the session starts.
   await clock.advance(1_500)
@@ -1115,9 +1133,8 @@ test("a stale songbook is rewritten once by Claude, in the music's vibe", { opti
     {
       day: '10-27',
       source: `music:${MUSIC}`,
-      style: 4,
+      style: 5,
       taste: MUSIC,
-      checkedAt: NOON_IST + 1000,
       lines: ['ooh, the tests are green ♪', 'another one bites the bug ♪', 'we will, we will lint you ♪'],
     },
   ])
@@ -1148,7 +1165,7 @@ test("today's songbook is not written again", { options: OPTIONS }, async ($, on
 
     return { value: { isAnswered: false, reason: 'empty-reply' } }
   })
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 4, lines: ['today ♪'] }
+  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 5, lines: ['today ♪'] }
   const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
   await clock.advance(1_500)
 
@@ -1156,7 +1173,7 @@ test("today's songbook is not written again", { options: OPTIONS }, async ($, on
 })
 
 test('/pet vibe puts on headphones, then Clawd breaks into song with them on', { options: OPTIONS }, async ($, on) => {
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 4, lines: ['ooh, the tests are green ♪'] }
+  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 5, lines: ['ooh, the tests are green ♪'] }
   const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
   await clock.advance(1_500)
   const ui = await $.ui.mount(BAND)
@@ -1192,7 +1209,9 @@ function lastfmStub(on: Parameters<Parameters<typeof test>[1]>[1], urls: string[
     urls.push(e.url)
     const body = e.url.includes('gettopartists')
       ? { topartists: { artist: played ? [{ name: 'Laufey' }, { name: 'Queen' }] : [] } }
-      : { toptracks: { track: played ? [{ name: 'From the Start', artist: { name: 'Laufey' } }] : [] } }
+      : e.url.includes('getrecenttracks')
+        ? { recenttracks: { track: [] } }
+        : { toptracks: { track: played ? [{ name: 'From the Start', artist: { name: 'Laufey' } }] : [] } }
 
     return { value: { status: 200, ok: true, headers: {}, text: JSON.stringify(body) } }
   })
@@ -1217,9 +1236,13 @@ test("with a Last.fm key, the songbook follows this week's plays", LASTFM, async
   const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
   await clock.advance(1_500)
 
-  expect(urls.length).toBe(2)
-  expect(urls.every(url => url.includes('user=listener') && url.includes('period=7day'))).toBe(true)
-  expect(prompts[0]).toContain('Laufey, Queen, From the Start by Laufey')
+  // This week's artists and songs, the last plays, and the all-time songs.
+  expect(urls.length).toBe(4)
+  expect(urls.every(url => url.includes('user=listener'))).toBe(true)
+  expect(urls.some(url => url.includes('getrecenttracks') && url.includes('limit=30'))).toBe(true)
+  expect(urls.some(url => url.includes('gettoptracks') && url.includes('period=overall'))).toBe(true)
+  expect(prompts[0]).toContain("this week's repeats: From the Start by Laufey")
+  expect(prompts[0]).toContain('artists lately: Laufey, Queen')
 })
 
 test('with no plays this week, the songbook falls back to the music setting', LASTFM, async ($, on) => {
@@ -1430,13 +1453,12 @@ test('a songbook written by an older prompt is written again', { options: OPTION
 const LASTFM_SONGBOOK = {
   day: '10-27',
   source: 'lastfm:listener',
-  style: 4,
-  taste: 'Laufey, Queen, From the Start by Laufey',
-  checkedAt: NOON_IST,
+  style: 5,
+  taste: "this week's repeats: From the Start by Laufey. artists lately: Laufey, Queen",
   lines: ['from the start… of the build ♪'],
 }
 
-test('Last.fm looked at moments ago is not asked again', LASTFM, async ($, on) => {
+test("today's Last.fm songbook is not asked for again", LASTFM, async ($, on) => {
   const urls: string[] = []
   const prompts: string[] = []
   lastfmStub(on, urls)
@@ -1446,35 +1468,6 @@ test('Last.fm looked at moments ago is not asked again', LASTFM, async ($, on) =
 
   expect(urls).toEqual([])
   expect(prompts).toEqual([])
-})
-
-// Last looked at over 3 hours ago, so the next look is due.
-const LOOKED_LONG_AGO = NOON_IST - 3 * 60 * 60 * 1000 - 1
-
-test('after 3 hours Last.fm is looked at again, and an unchanged week rewrites nothing', LASTFM, async ($, on) => {
-  const urls: string[] = []
-  const prompts: string[] = []
-  lastfmStub(on, urls)
-  modelStub(on, prompts)
-  const songbook = { ...LASTFM_SONGBOOK, checkedAt: LOOKED_LONG_AGO }
-  const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
-  await clock.advance(1_500)
-
-  expect(urls.length).toBe(2)
-  expect(prompts).toEqual([])
-})
-
-test('when your plays move on, the songbook is rewritten at the next look', LASTFM, async ($, on) => {
-  const urls: string[] = []
-  const prompts: string[] = []
-  lastfmStub(on, urls)
-  modelStub(on, prompts)
-  const songbook = { ...LASTFM_SONGBOOK, taste: 'Andy Williams, Lewis Capaldi', checkedAt: LOOKED_LONG_AGO }
-  const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
-  await clock.advance(1_500)
-
-  expect(prompts.length).toBe(1)
-  expect(prompts[0]).toContain('Laufey')
 })
 
 const TALK = 'mcp__clawd__clawd'
@@ -1528,7 +1521,7 @@ test('Claude may talk to Clawd twice a turn, and a new prompt starts the count o
 })
 
 test('asking Clawd how it is doing tells Claude its pets, treats, sandcastle and songbook', { options: OPTIONS }, async ($, on) => {
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 4, taste: MUSIC, lines: ['la ♪'] }
+  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 5, taste: MUSIC, lines: ['la ♪'] }
   const castle = { day: '10-27', turns: 4 }
   await start($, on, { species: 'clawd', pets: 12, treats: 1, castle, songbook }, NOON_IST)
 
@@ -1542,7 +1535,7 @@ test('asking Clawd how it is doing tells Claude its pets, treats, sandcastle and
 })
 
 test('Claude can ask Clawd to sing, and hears the line', { options: OPTIONS }, async ($, on) => {
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 4, lines: ['under pressure… to ship it ♪'] }
+  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 5, lines: ['under pressure… to ship it ♪'] }
   const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
   await clock.advance(1_500)
 
