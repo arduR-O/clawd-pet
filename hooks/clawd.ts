@@ -69,7 +69,6 @@ const QUADRANTS = ' ▗▖▄▝▐▞▟▘▚▌▙▀▜▛█'
 
 const EYES = '▐▛███▜▌'
 const EYES_UP = '▐▙███▟▌'
-const EYES_HAPPY = '▐▀███▀▌'
 const CLAWS_DOWN = '▝▜█████▛▘'
 const CLAWS_UP = '▗▟█████▙▖'
 const CLAWS_REST = '▗▄█████▄▖'
@@ -558,7 +557,8 @@ const FACES: Readonly<Record<Face, (body: string) => Look>> = {
   left: body => ({ eyes: [{ text: '▐▜███▜▌', color: body }] }),
   right: body => ({ eyes: [{ text: '▐▛███▛▌', color: body }] }),
   up: body => ({ eyes: [{ text: EYES_UP, color: body }] }),
-  happy: body => ({ eyes: [{ text: EYES_HAPPY, color: body }] }),
+  // Smiling eyes: ^ ^.
+  happy: body => marks(body, '^', '^'),
   shut: body => marks(body, '─', '─'),
   // Unimpressed: heavy lids.
   heavy: body => marks(body, '▀', '▀'),
@@ -943,6 +943,13 @@ export function clawdScene(input: {
   if (emote === 'hiccup' && frame % 3 === 0) {
     // Each hic jumps Clawd up a row.
     return [face, arms, feet, [pad(0)]]
+  }
+  // Landing from a hop or a hic kicks up a puff of dust either side.
+  const isLanding = (emote === 'hop' && frame % 2 === 1) || (emote === 'hiccup' && frame % 3 === 1)
+  if (isLanding) {
+    const puff: Segment = { text: '∘', color: MOON }
+    if (isDucking) arms = [pad(x - 1), puff, { text: claws, color: body }, puff, ...held]
+    else feet = [pad(x + 1), puff, { text: legs.trim(), color: body }, puff]
   }
 
   return isDucking ? [sky, [pad(0)], face, arms] : [sky, face, arms, feet]
