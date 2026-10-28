@@ -22,6 +22,8 @@ a desktop Clawd with cartoon physics.
 - **Long turns.** A turn of two minutes or more ends in confetti, and its "done! that took N min."
   stays up a minute. A turn you stopped, or one that died on an error, is no longer cheered.
 - **Landings.** A hop and a hiccup kick up a puff of dust.
+- **Click to pet.** A click on Clawd, or on its name, pets it, as `/pet` does; the garden's and
+  Moss's names take a click too.
 
 ### Fixed
 
