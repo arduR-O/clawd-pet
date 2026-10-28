@@ -1,0 +1,21 @@
+{
+  "bpm": 120,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "duration": 34,
+  "shots": [
+    { "id": "cold", "start": 0, "end": 4 },
+    { "id": "meet", "start": 4, "end": 8 },
+    { "id": "glasses", "start": 8, "end": 10, "caption": "puts on glasses to read", "said": "reading app.py…", "transcript": ["⏺ Read(src/app.py)", "  ⎿  Read 212 lines"] },
+    { "id": "commit", "start": 10, "end": 12, "caption": "throws confetti for a commit", "said": "committed! party!", "transcript": ["⏺ Bash(git commit -m \"fix login\")", "  ⎿  [main 4f2a91c] fix login"] },
+    { "id": "dizzy", "start": 12, "end": 14, "caption": "goes dizzy when things break", "said": "everything is spinning.", "transcript": ["⏺ Bash(npm test)", "  ⎿  3 failed, 41 passed"] },
+    { "id": "typing", "start": 14, "end": 16, "caption": "watches you type", "said": "", "transcript": [] },
+    { "id": "love", "start": 16, "end": 18, "caption": "blushes at a kind word", "said": "aw, thanks!", "transcript": ["> thanks clawd, good job"] },
+    { "id": "long", "start": 18, "end": 20, "caption": "cheers the long ones", "said": "done! that took 4 min.", "transcript": ["✻ Worked for 4m 12s"] },
+    { "id": "stretch", "start": 20, "end": 22, "caption": "nags you to stretch", "said": "52 min in. stretch break?", "transcript": ["✻ Worked for 38s"] },
+    { "id": "night", "start": 22, "end": 24, "caption": "and keeps you company at night", "said": "one with the code…", "transcript": ["> one more thing before bed"] },
+    { "id": "list", "start": 24, "end": 28 },
+    { "id": "end", "start": 28, "end": 34 }
+  ]
+}
