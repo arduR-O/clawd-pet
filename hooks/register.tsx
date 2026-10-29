@@ -46,7 +46,7 @@ const REACTION_MS = 3000
 const SLEEP_AFTER_MS = 5 * 60 * 1000
 // While a spinner word stays up, Clawd moves on to its next act for it this often.
 const SPINNER_CYCLE_MS = 12_000
-// A turn longer than this makes Clawd sweat.
+// A turn longer than this ends in confetti.
 const LONG_TURN_MS = 120_000
 // After a long turn the person has likely looked away: its "done" stays up this long to greet them.
 const LONG_DONE_MS = 60_000
@@ -96,7 +96,6 @@ const life = {
   // When the spinner's word last changed, and when its thinking began (0 while not thinking).
   spinnerSince: 0,
   thinkingSince: 0,
-  turnStartedAt: 0,
   // Failed tools in a row.
   failStreak: 0,
   // Subagents out on a task.
@@ -528,7 +527,6 @@ export const register: Register = (on, options) => {
     const now = await $.clock.now()
     const local = localTime(now, offsetMinutes)
     const isLate = phaseOf(local.hour) === 'night'
-    life.turnStartedAt = now
     life.nextEmoteAt = now + EMOTE_GAP_MS / 2
     const m = await read($, mood)
     const wasAway = now - m.lastActiveAt > SLEEP_AFTER_MS && now >= m.until
@@ -700,7 +698,6 @@ export const register: Register = (on, options) => {
     await stopWaiting($)
     life.isBusy = false
     life.spinnerWord = ''
-    life.turnStartedAt = 0
     life.thinkingSince = 0
     // Each finished turn adds to today's sandcastle; a new day starts a new one.
     // Read fresh, so sessions open side by side add to one castle.
@@ -958,7 +955,6 @@ export const register: Register = (on, options) => {
       nowMs: now,
       local,
       crew: life.agentsOut,
-      isSweating: e.props.isWorking && life.turnStartedAt > 0 && now - life.turnStartedAt > LONG_TURN_MS,
       bubble: thinking < 0 ? 0 : Math.min(3, Math.floor(thinking / BUBBLE_STEP_MS) + 1),
       castle,
       hasHeadphones: isListening,

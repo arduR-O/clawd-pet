@@ -723,8 +723,6 @@ export function clawdScene(input: {
   local: Local
   // Subagents out on a task: tiny cousins march by for them.
   crew?: number
-  // A long turn: Clawd sweats.
-  isSweating?: boolean
   // Wearing headphones, as while vibing and singing along after.
   hasHeadphones?: boolean
   // How far a thought bubble has grown during long thinking, 0 to 3.
@@ -736,7 +734,7 @@ export function clawdScene(input: {
   // While the person types: the caret's column down in the prompt, and whether they are typing /pet.
   typing?: { caret: number; isPet: boolean }
 }): Row[] {
-  const { kind, emote, frame, nowMs, local, crew = 0, isSweating = false, bubble = 0, castle = 0, hasHeadphones = false } = input
+  const { kind, emote, frame, nowMs, local, crew = 0, bubble = 0, castle = 0, hasHeadphones = false } = input
   const poseFrame = input.poseFrame ?? frame
   const phase = phaseOf(local.hour)
   const isBusy = BUSY.includes(kind)
@@ -856,7 +854,6 @@ export function clawdScene(input: {
   } else if (emote === 'oneup') {
     for (const [i, text] of [...'1UP'].entries()) put(x + 10 + i, text, frame % 2 === 0 ? GOLD : PEARL)
   }
-  if (isSweating) put(x + 8, frame % 3 === 2 ? ',' : '’', WATER)
   for (const [i, text] of ['·', '∘', '○'].slice(0, bubble).entries()) put(x + 9 + i, text, MOON)
 
   const isShut =

@@ -55,8 +55,8 @@ If Clawd does not appear, see [Troubleshooting](#troubleshooting).
 - When Claude commits your work, Clawd throws confetti.
 - When a tool fails, Clawd winces. After two failures in a row, it facepalms. After three, it
   gets dizzy.
-- When Claude works on one prompt for more than two minutes, Clawd sweats. When Claude
-  finishes, Clawd celebrates.
+- When Claude finishes a prompt, Clawd celebrates. After more than two minutes of work, it
+  throws confetti.
 - While Claude thinks, Clawd reacts to the word on the spinner. For example, it meditates for
   "Pondering…".
 
