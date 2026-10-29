@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.3
+
+### Fixed
+
+- In VS Code on a remote host, Clawd could turn into its alt text ("Clawd: dance") after the window
+  sat in the background. The apps were sent a new picture every 0.8 s, and a swap could fail to load.
+  Now they get one picture that plays 12 frames by itself, and a new one only when those run out or
+  Clawd does something new: about 12 times fewer swaps.
+
 ## 0.2.2
 
 ### Fixed

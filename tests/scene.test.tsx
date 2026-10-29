@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { CLAWD, faceOf, joinRuns, clawdScene, sceneSvg, EMOTE_NAMES } from '../hooks/clawd'
+import { CLAWD, faceOf, joinRuns, clawdScene, sceneFilm, sceneSvg, EMOTE_NAMES } from '../hooks/clawd'
 import {
   BAND,
   auraShown,
@@ -42,6 +42,34 @@ test("outside the terminal Clawd's line is never cut to the terminal's columns, 
   expect(await terminal.find({ type: 'Text', text: /^treat #10…$/ })).toBeTruthy()
   await app.unmount()
   await terminal.unmount()
+})
+
+test('the apps get a picture that plays a dozen frames, and a new one only when Clawd changes', { options: OPTIONS }, async ($, on) => {
+  const clock = await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount({ ...BAND, surface: 'vscode' })
+  const picture = async () => (await ui.find({ type: 'Svg' }))?.props
+
+  const first = await picture()
+  expect(first?.isInteractive).toBe(true)
+  expect(String(first?.source).match(/<animate /g)).toHaveLength(12)
+  // A few ticks on, nothing has changed: the same picture plays on.
+  await clock.advance(4 * 800)
+  expect((await picture())?.source).toBe(first?.source)
+
+  // A pet changes what Clawd does: a new picture.
+  await $.command.run({ ...TYPED, command: 'pet', args: '' })
+  expect((await picture())?.source).not.toBe(first?.source)
+  await ui.unmount()
+})
+
+test('a film shows its first frame without SMIL, and the heaviest pose stays within what the engine takes', () => {
+  const at = (frame: number) => clawdScene({ kind: 'think', emote: 'meditate', frame, poseFrame: frame, nowMs: NOON_IST, local: { hour: 3, weekday: 2, month: 10, day: 27 }, bubble: 3, crew: 3, castle: 9 })
+  const film = sceneFilm(Array.from({ length: 12 }, (_, i) => at(i)), 800)
+
+  expect(film).toContain('<g><animate attributeName="opacity" calcMode="discrete" values="1;0;0;0;0;0;0;0;0;0;0;0"')
+  expect(film.match(/<g opacity="0">/g)).toHaveLength(11)
+  expect(film).toContain('dur="9600ms" repeatCount="indefinite"')
+  expect(film.length).toBeLessThan(131072)
 })
 
 test('the picture draws block characters as pixel rectangles and the rest as text', () => {

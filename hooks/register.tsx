@@ -14,7 +14,7 @@ import {
   joinRuns,
   withStarters,
   petSuggestions,
-  sceneSvg,
+  sceneFilm,
   pastimeLine,
   isVibeSinging,
   STARTER_SONGS,
@@ -60,6 +60,8 @@ const PROMPT_INDENT = 2
 const BUBBLE_AFTER_MS = 6_000
 const BUBBLE_STEP_MS = 3_000
 const TICK_MS = 800
+// The frames one picture plays for the apps, a tick each, before the next picture takes over.
+const FILM_FRAMES = 12
 const EMOTE_MS = 4000
 // Clawd's idle emotes come one to two of these apart.
 const EMOTE_GAP_MS = 45_000
@@ -88,6 +90,8 @@ const emote = atom(
 
 // What the module keeps between events; a reload starts it over.
 const life = {
+  // The picture the apps were last sent, and the frame it starts on.
+  film: { from: 0, source: '' },
   isBusy: false,
   nextEmoteAt: 0,
   spinnerWord: '',
@@ -946,24 +950,26 @@ export const register: Register = (on, options) => {
       life.poseSince = now
     }
     const thinking = e.props.isWorking && life.thinkingSince > 0 ? now - life.thinkingSince - BUBBLE_AFTER_MS : -1
-    const rows = clawdScene({
-      kind: mode,
-      emote: pose,
-      frame,
-      poseFrame: Math.floor((now - life.poseSince) / TICK_MS),
-      nowMs: now,
-      local,
-      crew: life.agentsOut,
-      bubble: thinking < 0 ? 0 : Math.min(3, Math.floor(thinking / BUBBLE_STEP_MS) + 1),
-      castle,
-      hasHeadphones: isListening,
-      ...(now - life.typed.at < TYPING_MS && {
-        typing: {
-          caret: (PROMPT_INDENT + life.typed.caret) % Math.max(1, e.props.bodyColumns),
-          isPet: /^\/pet\b/.test(life.typed.draft),
-        },
-      }),
-    })
+    const poseFrame = Math.floor((now - life.poseSince) / TICK_MS)
+    const sceneAt = (at: number) =>
+      clawdScene({
+        kind: mode,
+        emote: pose,
+        frame: at,
+        poseFrame: Math.max(0, poseFrame + at - frame),
+        nowMs: now,
+        local,
+        crew: life.agentsOut,
+        bubble: thinking < 0 ? 0 : Math.min(3, Math.floor(thinking / BUBBLE_STEP_MS) + 1),
+        castle,
+        hasHeadphones: isListening,
+        ...(now - life.typed.at < TYPING_MS && {
+          typing: {
+            caret: (PROMPT_INDENT + life.typed.caret) % Math.max(1, e.props.bodyColumns),
+            isPet: /^\/pet\b/.test(life.typed.draft),
+          },
+        }),
+      })
 
     // A terminal draws the rows as characters; the apps that draw pictures get them as a drawing,
     // since their fonts and line spacing pull block characters apart.
@@ -971,7 +977,7 @@ export const register: Register = (on, options) => {
     if (e.surface === 'terminal') {
       // One plain button round the whole drawing, its rows joined by line breaks, so a click
       // anywhere on Clawd lands on it and the pointer lights all of it up at once.
-      const lines = joinRuns(rows)
+      const lines = joinRuns(sceneAt(frame))
       drawing = (
         <Button key="clawd" label="pet Clawd" plain onPress={pet}>
           {lines.flatMap((row, i) => [
@@ -985,8 +991,20 @@ export const register: Register = (on, options) => {
         </Button>
       )
     } else {
+      // The apps get FILM_FRAMES frames at once, as one picture that plays them, and a new one only
+      // when those run out or what Clawd does changes: a picture swapped every tick can fail to
+      // load in a window left in the background (VS Code on a remote host), leaving its alt text.
+      const filmFrom = (from: number) =>
+        sceneFilm(
+          Array.from({ length: FILM_FRAMES }, (_, i) => sceneAt(from + i)),
+          TICK_MS,
+        )
+      const { from, source } = life.film
+      if (frame < from || frame >= from + FILM_FRAMES || filmFrom(from) !== source) {
+        life.film = { from: frame, source: filmFrom(frame) }
+      }
       const { Svg } = $.ui.resolve(e)
-      drawing = <Svg source={sceneSvg(rows)} alt={pose === undefined ? 'Clawd' : `Clawd: ${pose}`} />
+      drawing = <Svg source={life.film.source} alt={pose === undefined ? 'Clawd' : `Clawd: ${pose}`} isInteractive />
     }
 
     const name = (

@@ -1155,6 +1155,37 @@ export function joinRuns(rows: readonly Row[]): Row[] {
 // of characters: block glyphs as pixel rectangles, merged along each half row, and other glyphs as
 // text, each placed in its own cell so no font can push them out of line.
 export function sceneSvg(rows: readonly Row[], cell = { width: 8, height: 16 }): string {
+  const { body, width, height } = sceneBody(rows, cell)
+
+  return svgOf(body, width, height, cell)
+}
+
+// Frames of the scene as one SVG that plays them in turn, `frameMs` each, round and round: a
+// surface swaps the picture only when what Clawd does changes, not every frame. A surface that
+// does not play SMIL shows the first frame.
+export function sceneFilm(frames: readonly (readonly Row[])[], frameMs: number, cell = { width: 8, height: 16 }): string {
+  const drawn = frames.map(rows => sceneBody(rows, cell))
+  const keyTimes = frames.map((_, i) => (i / frames.length).toFixed(4)).join(';')
+  const body = drawn
+    .map(({ body }, i) => {
+      const values = frames.map((_, at) => (at === i ? 1 : 0)).join(';')
+      const play = `<animate attributeName="opacity" calcMode="discrete" values="${values}" keyTimes="${keyTimes}" dur="${frames.length * frameMs}ms" repeatCount="indefinite"/>`
+
+      return `<g${i === 0 ? '' : ' opacity="0"'}>${play}${body}</g>`
+    })
+    .join('')
+
+  return svgOf(body, Math.max(...drawn.map(one => one.width)), Math.max(...drawn.map(one => one.height)), cell)
+}
+
+function svgOf(body: string, width: number, height: number, cell: { width: number; height: number }): string {
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" ` +
+    `font-family="ui-monospace, Menlo, Consolas, monospace" font-size="${cell.height * 0.8}">${body}</svg>`
+  )
+}
+
+function sceneBody(rows: readonly Row[], cell: { width: number; height: number }): { body: string; width: number; height: number } {
   const { width: w, height: h } = cell
   const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   const rect = (x: number, y: number, width: number, height: number, fill: string) =>
@@ -1193,12 +1224,8 @@ export function sceneSvg(rows: readonly Row[], cell = { width: 8, height: 16 }):
       else parts.push(`<text x="${x + w / 2}" y="${y + h * 0.75}" text-anchor="middle" fill="${one.color}">${escape(one.ch)}</text>`)
     })
   })
-  const [width, height] = [columns * w, rows.length * h]
 
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" ` +
-    `font-family="ui-monospace, Menlo, Consolas, monospace" font-size="${h * 0.8}">${parts.join('')}</svg>`
-  )
+  return { body: parts.join(''), width: columns * w, height: rows.length * h }
 }
 
 // Clawd's take on the spinner's word while Claude works, per family of words: what it may do,
