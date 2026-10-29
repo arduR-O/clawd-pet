@@ -44,6 +44,16 @@
       "description": "Optional. A read-only Last.fm API key from last.fm/api/accounts. Claude Code keeps it in secure storage",
       "sensitive": true,
       "default": ""
+    },
+    "talk": {
+      "type": "string",
+      "title": "Claude can talk to Clawd",
+      "description": "On lets Claude use the clawd tool to make Clawd act, sing or say how it is. It adds about 400 tokens to each request. Off by default",
+      "default": "off",
+      "options": [
+        "off",
+        "on"
+      ]
     }
   }
 }

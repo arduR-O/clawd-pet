@@ -597,6 +597,8 @@ export const register: Register = (on, options) => {
   const offsetMinutes = parseOffset(String(options.utc_offset ?? '+05:30'))
   const leaveAt = parseClock(String(options.leave_at ?? ''))
   const breakEvery = parseMinutes(String(options.break_every ?? '50'))
+  // The clawd tool goes into every request Claude makes, so it is there only when asked for.
+  const canTalk = String(options.talk ?? 'off') === 'on'
   const music = String(options.music ?? '').trim()
   const lastfm = { user: String(options.lastfm_user ?? '').trim(), key: String(options.lastfm_api_key ?? '').trim() }
 
@@ -609,7 +611,9 @@ export const register: Register = (on, options) => {
       argumentHint: '[treat|trick|guest|off|on|<emote>…]',
       immediate: true,
     })
-    await $.tool.register(TALK_SPEC)
+    if (canTalk) {
+      await $.tool.register(TALK_SPEC)
+    }
     const now = await $.clock.now()
     await update($, mood, m => ({ ...m, lastActiveAt: now }))
     life.nextEmoteAt = now + EMOTE_GAP_MS / 2

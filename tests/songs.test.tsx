@@ -234,12 +234,18 @@ test("today's Last.fm songbook is not asked for again", LASTFM, async ($, on) =>
   expect(prompts).toEqual([])
 })
 
-test('Claude gets a clawd tool, listed from the start and allowed without asking', { options: OPTIONS }, async ($, on) => {
+test('with talk on, Claude gets a clawd tool, listed from the start and allowed without asking', { options: { ...OPTIONS, talk: 'on' } }, async ($, on) => {
   await start($, on, { species: 'clawd' }, NOON_IST)
 
   expect(registered.map(one => [one.name, one.isDeferred])).toEqual([['clawd', false]])
   const verdict = await $.tool.check({ tool: TALK, input: { action: 'ask' } })
   expect(verdict.decision).toBe('allow')
+})
+
+test('by default Claude gets no clawd tool, so no request carries it', { options: OPTIONS }, async ($, on) => {
+  await start($, on, { species: 'clawd' }, NOON_IST)
+
+  expect(registered).toEqual([])
 })
 
 test('Claude can have Clawd act something out, and Clawd says its line', { options: OPTIONS }, async ($, on) => {

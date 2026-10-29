@@ -36,6 +36,10 @@ a desktop Clawd with cartoon physics.
 - **Better poses.** Meditation sits wide with its claws raised and a mote of light drifting up; a
   stretch reaches up over its head; crying shows tears (`╥ ╥`); a yawn opens wide.
 
+- **Talking is opt-in.** The `clawd` tool, which lets Claude make Clawd act and sing, adds about
+  400 tokens to every request. It is now off by default; the new **Claude can talk to Clawd**
+  setting turns it on.
+
 ### Fixed
 
 - Reading glasses no longer make Clawd's head bigger: the face keeps its own edges and the outer

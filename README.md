@@ -76,8 +76,9 @@ If Clawd does not appear, see [Troubleshooting](#troubleshooting).
   music. After 25 minutes, or at night, it takes a nap.
 - While you read Claude's answer, Clawd keeps still.
 
-**Claude can talk to it.** With the `clawd` tool, Claude can make Clawd act, sing or say how it
-is. Claude uses the tool only at good moments, two times per prompt at most.
+**Claude can talk to it, if you want.** Turn on the **Claude can talk to Clawd** setting. Then
+Claude can make Clawd act, sing or say how it is, two times per prompt at most. This setting is
+off by default because it adds tokens to each request. See [Costs and privacy](#costs-and-privacy).
 
 <p align="center"><img src="assets/tricks.svg" alt="Clawd watches you type, thanks you when you allow a permission request, has a face for every mood, wears reading glasses, suggests stretch breaks and celebrates long work" width="640"></p>
 
@@ -141,6 +142,7 @@ To change a setting, run `/plugin configure clawd@clawd` in Claude Code.
 |---|---|---|
 | UTC offset | `+00:00` | Sets your time zone, for example `+05:30`. Clawd uses it for the sun, the moon and the time of day. Change it when daylight saving time starts or ends. |
 | Leave time | Empty | Sets when you leave work on weekdays, as `HH:MM`. Clawd counts down to it and tells you to go home. Empty turns it off. |
+| Claude can talk to Clawd | `off` | Set it to `on` to give Claude the `clawd` tool. Claude can then make Clawd act, sing or say how it is. It adds about 400 tokens to each request. |
 | Break every | `50` | Sets the minutes of work before Clawd suggests a break. Work means that you send prompts or type, with no gap of 10 minutes or more. `0` or empty turns it off. |
 | Songbook: music | Empty | Sets artists or songs for Clawd to sing. See [The songbook](#the-songbook). |
 | Songbook: Last.fm user | Empty | Sets your Last.fm user name. See [The songbook](#the-songbook). |
@@ -163,9 +165,9 @@ To write a new songbook now, run `/pet refresh-songs`.
 
 ## Costs and privacy
 
-**Tokens.** The `clawd` tool adds about 400 tokens to each request that Claude makes. Claude Code
-caches them with the rest of the prompt, so they usually cost little. `/pet off` hides Clawd but
-does not remove the tool. To remove the cost, disable or uninstall Clawd.
+**Tokens.** By default, Clawd adds no tokens to your requests. If you turn on **Claude can talk
+to Clawd**, the `clawd` tool adds about 400 tokens to each request that Claude makes. To remove
+them again, set it to `off`.
 
 **The songbook.** If you set music or Last.fm, Clawd makes one call to Claude Haiku per day. The
 call uses your Claude Code account, as Claude itself does. It sends only your music setting, or
@@ -178,7 +180,8 @@ once per day. Without music or Last.fm, the songbook costs nothing.
 - the tools that Claude uses, with their arguments, such as commands and file paths;
 - the word on the spinner.
 
-When Claude uses the `clawd` tool, Clawd tells Claude its pets, treats and your local time. Clawd
+If you turn on **Claude can talk to Clawd**, Clawd can tell Claude its pets, treats and your local
+time. Clawd
 sends nothing else anywhere, except the songbook calls above. It has no telemetry.
 
 ## Updates
@@ -238,7 +241,8 @@ When a user asks you to install this plugin:
 5. Tell the user about the optional settings, in one line each:
    - the songbook: music or Last.fm, one small Haiku call per day;
    - the leave time;
-   - break reminders: on by default, every 50 minutes.
+   - break reminders: on by default, every 50 minutes;
+   - Claude can talk to Clawd: off by default, about 400 tokens per request when on.
 6. Set only the settings that the user asks for.
 7. Never ask the user to paste an API key into the chat. Tell them to run
    `/plugin configure clawd@clawd` and to enter the key there.
