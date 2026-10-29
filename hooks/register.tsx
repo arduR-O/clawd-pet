@@ -909,7 +909,7 @@ export const register: Register = (on, options) => {
     }
 
     const { Box, Button, Text } = $.ui.resolve(e)
-    // A click on Clawd, or on its name, pets it.
+    // In the terminal, a click on Clawd, or on its name, pets it.
     const pet = () => void petOnce($)
     const m = await read($, mood)
     const frame = await read($, tick)
@@ -994,15 +994,24 @@ export const register: Register = (on, options) => {
       drawing = <Svg source={sceneSvg(rows)} alt={pose === undefined ? 'Clawd' : `Clawd: ${pose}`} />
     }
 
+    const name = (
+      <Text color={CLAWD} bold>
+        Clawd{mode === 'love' ? ' ♥' : ''}
+      </Text>
+    )
+
     return (
       <Box flexDirection="row">
         {drawing}
         <Box flexDirection="column" marginLeft={2}>
-          <Button key="name" plain onPress={pet}>
-            <Text color={CLAWD} bold>
-              Clawd{mode === 'love' ? ' ♥' : ''}
-            </Text>
-          </Button>
+          {/* The apps draw every Button as a native one, a filled box, so there the name is text. */}
+          {e.surface === 'terminal' ? (
+            <Button key="name" plain onPress={pet}>
+              {name}
+            </Button>
+          ) : (
+            name
+          )}
           {said !== '' && <Text dimColor>{short(said, room)}</Text>}
         </Box>
       </Box>

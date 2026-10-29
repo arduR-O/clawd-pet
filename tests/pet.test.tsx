@@ -131,14 +131,25 @@ test('a click on Clawd pets it, and a spree of clicks gets told off', { options:
   await ui.unmount()
 })
 
-test('where Clawd is drawn as a picture, a click on its name pets it', { options: OPTIONS }, async ($, on) => {
+test('a click on its name pets Clawd in the terminal too', { options: OPTIONS }, async ($, on) => {
   await start($, on, {}, NOON_IST)
-  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const ui = await $.ui.mount(BAND)
 
   await ui.press({ key: 'name' })
 
   expect(await ui.find({ type: 'Text', text: /^Clawd ♥$/ })).toBeTruthy()
   await ui.unmount()
+})
+
+test('where Clawd is drawn as a picture, nothing is a button, which the apps would draw filled in', { options: OPTIONS }, async ($, on) => {
+  await start($, on, {}, NOON_IST)
+
+  for (const surface of ['vscode', 'desktop'] as const) {
+    const ui = await $.ui.mount({ ...BAND, surface })
+    expect(await ui.find({ type: 'Text', text: /^Clawd$/ })).toBeTruthy()
+    expect(await ui.find({ type: 'Button' })).toBeFalsy()
+    await ui.unmount()
+  }
 })
 
 test('/pet treat feeds Clawd, and every 10th treat is noted', { options: OPTIONS }, async ($, on) => {
