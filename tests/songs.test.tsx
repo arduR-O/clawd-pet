@@ -3,7 +3,6 @@ import { expect, test } from 'claude-code/testing'
 import { STARTER_SONGS, songbookLines, tasteFrom, withStarters } from '../hooks/clawd'
 import {
   BAND,
-  MUSIC,
   OPTIONS,
   LASTFM,
   NOON_IST,
@@ -28,8 +27,8 @@ test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, asy
 
     return { value: { isAnswered: true, text: 'where do i begiiin\nwe will, we will\nsomebody to looove', usage } }
   })
-  on('http.fetch', () => ({ value: { ok: true, status: 200, headers: {}, text: '{}' } }))
-  const songbook = { day: '10-27', source: 'lastfm:listener', style: 7, taste: 'x', lines: ['old song ♪'] }
+  lastfmStub(on, [])
+  const songbook = { ...LASTFM_SONGBOOK, lines: ['old song ♪'] }
   const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
   expect(prompts.length).toBe(0)
@@ -41,7 +40,7 @@ test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, asy
   expect(prompts.length).toBe(1)
 })
 
-test('/pet refresh-songs with no music set says Clawd keeps its built-in songs', { options: { utc_offset: '+05:30' } }, async ($, on) => {
+test('/pet refresh-songs without Last.fm says Clawd keeps its built-in songs', { options: { utc_offset: '+05:30' } }, async ($, on) => {
   await start($, on, {}, NOON_IST)
 
   const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
@@ -79,8 +78,8 @@ test('the starter songs turn up one in ten among a songbook, and not at all in a
   expect(withStarters(['one ♪', 'two ♪', 'three ♪'])).toEqual(['one ♪', 'two ♪', 'three ♪'])
 })
 
-test('/pet sing sings a line from the songbook, a few letters at a time', { options: OPTIONS }, async ($, on) => {
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 7, lines: ['mama, oooooooo, the build is green ♪'] }
+test('/pet sing sings a line from the songbook, a few letters at a time', LASTFM, async ($, on) => {
+  const songbook = { ...LASTFM_SONGBOOK, lines: ['mama, oooooooo, the build is green ♪'] }
   const clock = await start($, on, { songbook }, NOON_IST)
   // The songbook loads a moment after the session starts.
   await clock.advance(1_500)
@@ -96,7 +95,7 @@ test('/pet sing sings a line from the songbook, a few letters at a time', { opti
   await ui.unmount()
 })
 
-test("a stale songbook is rewritten once by Claude, in the music's vibe", { options: OPTIONS }, async ($, on) => {
+test("a stale songbook is rewritten once by Claude, in the vibe of this week's plays", LASTFM, async ($, on) => {
   const prompts: string[] = []
   on('model.complete', (_, e) => {
     prompts.push(e.prompt)
@@ -111,24 +110,25 @@ test("a stale songbook is rewritten once by Claude, in the music's vibe", { opti
 
     return next(e)
   })
-  const songbook = { day: '10-26', source: `music:${MUSIC}`, lines: ['yesterday ♪'] }
+  lastfmStub(on, [])
+  const songbook = { ...LASTFM_SONGBOOK, day: '10-26', lines: ['yesterday ♪'] }
   const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
 
   expect(prompts.length).toBe(1)
-  expect(prompts[0]).toContain('Wasia Project')
+  expect(prompts[0]).toContain('From the Start by Laufey')
   expect(writes).toEqual([
     {
       day: '10-27',
-      source: `music:${MUSIC}`,
+      source: 'lastfm:listener',
       style: 7,
-      taste: MUSIC,
+      taste: LASTFM_SONGBOOK.taste,
       lines: ['ooh, the tests are green ♪', 'another one bites the bug ♪', 'we will, we will lint you ♪'],
     },
   ])
 })
 
-test('with no music and no Last.fm set, Clawd sings its built-in songs and calls no model', async ($, on) => {
+test('without Last.fm, Clawd sings its built-in songs and calls no model', async ($, on) => {
   let asked = 0
   on('model.complete', () => {
     asked += 1
@@ -146,27 +146,13 @@ test('with no music and no Last.fm set, Clawd sings its built-in songs and calls
   await ui.unmount()
 })
 
-test("today's songbook is not written again", { options: OPTIONS }, async ($, on) => {
-  let asked = 0
-  on('model.complete', () => {
-    asked += 1
-
-    return { value: { isAnswered: false, reason: 'empty-reply', usage: NO_USAGE } }
-  })
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 7, lines: ['today ♪'] }
-  const clock = await start($, on, { songbook }, NOON_IST)
-  await clock.advance(1_500)
-
-  expect(asked).toBe(0)
-})
-
 test("with a Last.fm key, the songbook follows this week's plays", LASTFM, async ($, on) => {
   const urls: string[] = []
   const prompts: string[] = []
   lastfmStub(on, urls)
   modelStub(on, prompts)
-  // Today's book came from the music setting; Last.fm being set up writes a new one now.
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, lines: ['old ♪'] }
+  // Today's book came from another Last.fm user; the new one writes a new book now.
+  const songbook = { ...LASTFM_SONGBOOK, source: 'lastfm:someone-else', lines: ['old ♪'] }
   const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
 
@@ -179,7 +165,7 @@ test("with a Last.fm key, the songbook follows this week's plays", LASTFM, async
   expect(prompts[0]).toContain('artists lately: Laufey, Queen')
 })
 
-test('without a Last.fm key, Last.fm is never asked', { options: OPTIONS }, async ($, on) => {
+test('without a Last.fm key, Last.fm and Claude are never asked', { options: { ...OPTIONS, lastfm_user: 'listener' } }, async ($, on) => {
   const urls: string[] = []
   const prompts: string[] = []
   lastfmStub(on, urls)
@@ -188,7 +174,7 @@ test('without a Last.fm key, Last.fm is never asked', { options: OPTIONS }, asyn
   await clock.advance(1_500)
 
   expect(urls).toEqual([])
-  expect(prompts[0]).toContain(MUSIC)
+  expect(prompts).toEqual([])
 })
 
 test('passing tests get a suspicious squint, not a cheer', { options: OPTIONS }, async ($, on) => {
@@ -211,10 +197,11 @@ test('a songbook drops repeated lines', () => {
   ])
 })
 
-test('a songbook written by an older prompt is written again', { options: OPTIONS }, async ($, on) => {
+test('a songbook written by an older prompt is written again', LASTFM, async ($, on) => {
   const prompts: string[] = []
+  lastfmStub(on, [])
   modelStub(on, prompts)
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, lines: ['old style ♪'] }
+  const songbook = { ...LASTFM_SONGBOOK, style: 6, lines: ['old style ♪'] }
   const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
 
@@ -288,8 +275,8 @@ test('Claude may talk to Clawd twice a turn, and a new prompt starts the count o
   expect(fresh.result).toContain('watching you work')
 })
 
-test('Claude can ask Clawd to sing, and hears the line', { options: OPTIONS }, async ($, on) => {
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 7, lines: ['under pressure… to ship it ♪'] }
+test('Claude can ask Clawd to sing, and hears the line', LASTFM, async ($, on) => {
+  const songbook = { ...LASTFM_SONGBOOK, lines: ['under pressure… to ship it ♪'] }
   const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
 

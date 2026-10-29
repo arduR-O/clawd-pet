@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.1
+
+### Removed
+
+- **The music setting.** The built-in songs cover the songbook without it, and Last.fm sings what
+  you actually play. A Last.fm week with no plays now keeps the songs Clawd has.
+
+### Docs
+
+- The README says plainly that what Clawd reads stays on your computer: it saves and sends none of
+  your prompts, commands or files.
+
 ## 0.2.0
 
 Some of these ideas came from [physics-clawd-pet](https://github.com/Ramirez0291/physics-clawd-pet),

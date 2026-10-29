@@ -1,6 +1,6 @@
 {
   "name": "clawd",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Clawd, a little crab above your prompt that reacts to what Claude is doing",
   "author": {
     "name": "arduR-O"
@@ -25,12 +25,6 @@
       "title": "Break every",
       "description": "Minutes of work before Clawd suggests a break, for example 50. Empty or 0 turns it off",
       "default": "50"
-    },
-    "music": {
-      "type": "string",
-      "title": "Songbook: music",
-      "description": "Optional. Artists or songs for Clawd to sing, separated by commas. Clawd uses this when Last.fm is not set or has no plays this week. Costs one small Haiku call per day",
-      "default": ""
     },
     "lastfm_user": {
       "type": "string",

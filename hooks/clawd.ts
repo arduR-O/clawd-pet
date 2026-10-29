@@ -276,12 +276,12 @@ export function tasteFrom(artists: unknown, weekTracks: unknown, recentPlays: un
 // The songbook prompt's version: a songbook written by an older prompt is written again.
 export const SONGBOOK_STYLE = 7
 
-// What Claude is asked for the songbook: lines actually sung in the songs of `music`, each from
+// What Claude is asked for the songbook: lines actually sung in the songs of `taste`, each from
 // the line's start, most sung as is and about one in four carried on into code.
-export function songbookPrompt(music: string): string {
+export function songbookPrompt(taste: string): string {
   return [
     "Write 12 short lines for Clawd, a tiny crab who lives in a programmer's terminal, to sing.",
-    `Use songs by these artists, or these songs: ${music}. A different song for each line where you can.`,
+    `Use songs by these artists, or these songs: ${taste}. A different song for each line where you can.`,
     'Each line is a line of a song, taken from its start, never from the middle: the whole line, never',
     "cut off where it loses its sense, only words the singer actually sings and never a title the song",
     "doesn't sing. Most lines are only that, sung as the song sings it, e.g. \"where do i",

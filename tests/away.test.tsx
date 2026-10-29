@@ -3,9 +3,9 @@ import type { Mounted } from 'claude-code/testing'
 
 import {
   BAND,
-  MUSIC,
   OPTIONS,
   LASTFM,
+  LASTFM_SONGBOOK,
   NOON_IST,
   SUBMITTED,
   start,
@@ -217,7 +217,7 @@ test('away by day, Clawd may listen to music with its headphones on', { options:
   await ui.unmount()
 })
 
-test('with no plays this week, the songbook falls back to the music setting', LASTFM, async ($, on) => {
+test('with no plays this week, Clawd keeps the songs it has and calls no model', LASTFM, async ($, on) => {
   const urls: string[] = []
   const prompts: string[] = []
   lastfmStub(on, urls, false)
@@ -225,7 +225,8 @@ test('with no plays this week, the songbook falls back to the music setting', LA
   const clock = await start($, on, {}, NOON_IST)
   await clock.advance(1_500)
 
-  expect(prompts[0]).toContain(MUSIC)
+  expect(urls.length).toBe(4)
+  expect(prompts).toEqual([])
 })
 
 test('back by day from the sandcastle, Clawd shows it off', { options: OPTIONS }, async ($, on) => {
@@ -242,7 +243,7 @@ test('back by day from the sandcastle, Clawd shows it off', { options: OPTIONS }
 })
 
 test('asking Clawd how it is doing tells Claude its pets, treats, sandcastle and songbook', { options: OPTIONS }, async ($, on) => {
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 7, taste: MUSIC, lines: ['la ♪'] }
+  const songbook = { ...LASTFM_SONGBOOK, lines: ['la ♪'] }
   const castle = { day: '10-27', turns: 4 }
   await start($, on, { pets: 12, treats: 1, castle, songbook }, NOON_IST)
 
@@ -251,6 +252,6 @@ test('asking Clawd how it is doing tells Claude its pets, treats, sandcastle and
     "Clawd is happily watching you work. It's 12:00 (midday) where the user is." +
       ' It has been petted 12 times and fed 1 treat so far.' +
       " Today's sandcastle is 4 turns tall." +
-      ` Its songbook follows: ${MUSIC}.`,
+      ` Its songbook follows: ${LASTFM_SONGBOOK.taste}.`,
   )
 })

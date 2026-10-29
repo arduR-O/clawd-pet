@@ -3,8 +3,9 @@ import { expect, test } from 'claude-code/testing'
 import { breakLine, parseMinutes, satAt } from '../hooks/clawd'
 import {
   BAND,
-  MUSIC,
   OPTIONS,
+  LASTFM,
+  LASTFM_SONGBOOK,
   NOON_IST,
   TYPED,
   SUBMITTED,
@@ -170,8 +171,8 @@ test('a turn past two minutes makes Clawd sweat', { options: OPTIONS }, async ($
   await ui.unmount()
 })
 
-test('/pet vibe puts on headphones, then Clawd breaks into song with them on', { options: OPTIONS }, async ($, on) => {
-  const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 7, lines: ['ooh, the tests are green ♪'] }
+test('/pet vibe puts on headphones, then Clawd breaks into song with them on', LASTFM, async ($, on) => {
+  const songbook = { ...LASTFM_SONGBOOK, lines: ['ooh, the tests are green ♪'] }
   const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
   const ui = await $.ui.mount(BAND)
