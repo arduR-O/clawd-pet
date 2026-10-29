@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { petSuggestions, spinnerTake } from '../hooks/clawd'
+import { petSuggestions, spinnerTake, GUESTS, SAYINGS, pickGuest } from '../hooks/clawd'
 import {
   BAND,
   auraShown,
@@ -84,7 +84,8 @@ test('a pet hidden in an earlier session stays hidden until /pet on', { options:
 test('typing /pet offers the commands, and a few letters in, the emotes', () => {
   const names = (draft: string) => petSuggestions(draft).map(one => one.text)
 
-  expect(names('/pet ')).toEqual(['treat', 'trick', 'refresh-songs', 'off', 'on', 'garden', 'clawd', 'moss'])
+  expect(names('/pet ')).toEqual(['treat', 'trick', 'guest', 'refresh-songs', 'off', 'on', 'garden', 'clawd', 'moss'])
+  expect(names('/pet gu')).toEqual(['guest'])
   expect(names('/pet tr')).toEqual(['treat', 'trick'])
   expect(names('/pet me')).toEqual(['meditate'])
   expect(names('/pet re')).toEqual(['refresh-songs'])
@@ -302,5 +303,32 @@ test('/pet chef, /pet hardhat and /pet cry show those emotes', { options: OPTION
   // Eyes shut, tears streaming from under the lids, and one dropping beside it.
   expect(await ui.findAll({ type: 'Text', text: /^╥$/ })).toHaveLength(2)
   expect(await shows(ui, /^[‚¸]$/, WATER)).toBe(true)
+  await ui.unmount()
+})
+
+test('a random guest is never the one that came last, and every guest can come', () => {
+  const seen = new Set<string>()
+  let last: (typeof GUESTS)[number][0] | undefined
+  for (let i = 0; i < 200; i++) {
+    const [guest] = pickGuest((i * 0.618) % 1, last)
+    expect(guest).not.toBe(last)
+    seen.add(guest)
+    last = guest
+  }
+  expect(seen.size).toBe(GUESTS.length)
+})
+
+test('/pet guest brings a random guest with something to say, and only Clawd has guests', { options: OPTIONS }, async ($, on) => {
+  await start($, on, { species: 'clawd' }, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+  const anyGuest = new RegExp(`^(${GUESTS.flatMap(([, name]) => SAYINGS[name]).map(line => line.replace('{skill}', 'kung fu').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`)
+
+  for (let i = 0; i < 3; i++) {
+    await $.command.run({ ...TYPED, command: 'pet', args: 'guest' })
+    expect(await ui.find({ type: 'Text', text: anyGuest })).toBeTruthy()
+  }
+
+  await $.command.run({ ...TYPED, command: 'pet', args: 'moss' })
+  expect(await $.command.run({ ...TYPED, command: 'pet', args: 'guest' })).toEqual({ text: 'Only Clawd has guests: /pet clawd' })
   await ui.unmount()
 })
