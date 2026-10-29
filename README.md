@@ -123,7 +123,7 @@ All commands start with `/pet`. When you type `/pet `, Claude Code shows what ca
 | `/pet trick` | Makes Clawd do a trick. |
 | `/pet guest` | Brings a random guest. The same guest does not come two times in a row. |
 | `/pet <emote>` | Shows an emote now, for example `/pet meditate`. See [All emotes](#all-emotes). |
-| `/pet refresh-songs` | Writes a new songbook now. See [The songbook](#the-songbook). |
+| `/pet refresh-songs` | Writes a new songbook now, and tells you if it cannot. See [The songbook](#the-songbook). |
 | `/pet off` | Hides Clawd in all sessions. `/pet on` shows it again. |
 
 ### All emotes
@@ -159,7 +159,8 @@ when the song stops. If you pet Clawd or run a `/pet` command, it stops the song
   [last.fm/api/accounts](https://www.last.fm/api/accounts). Claude Code keeps the key in secure
   storage. If Last.fm has no plays this week, Clawd keeps the songs that it has.
 
-To write a new songbook now, run `/pet refresh-songs`.
+To write a new songbook now, run `/pet refresh-songs`. If Clawd cannot write one, the command tells you
+why, for example an empty or incorrect API key.
 
 ## Costs and privacy
 
@@ -225,6 +226,18 @@ If Clawd does not appear above the prompt:
 4. In Claude Code, run `/reload-plugins`, or start a new session.
 
 If your organization blocks plugins from other marketplaces, ask your administrator.
+
+If you set Last.fm but Clawd sings only its built-in songs, run `/pet refresh-songs`. It tells you
+what went wrong:
+
+- **The Last.fm API key is empty.** Claude Code keeps the key in secure storage. On a remote host,
+  or another computer without a keychain, it may not keep the key. Set it again with
+  `/plugin configure clawd@clawd`.
+- **Last.fm said: Invalid API key.** Copy the key again from
+  [last.fm/api/accounts](https://www.last.fm/api/accounts).
+- **Last.fm has no plays for this user yet.** Make sure that the user name is correct and that
+  Last.fm records what you play.
+- **Claude Haiku wrote no songbook.** Your account or organization may not allow Haiku.
 
 ## Turn off or uninstall
 

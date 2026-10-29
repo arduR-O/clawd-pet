@@ -384,16 +384,34 @@ async function vibe($: EngineInterface) {
   })
 }
 
-// What to sing like: your last week on Last.fm, or '' when Last.fm has no plays or can't be reached.
-async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }): Promise<string> {
+// What to sing like: your last week on Last.fm; '' with why not, when Last.fm has no plays or
+// can't be reached.
+async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }): Promise<{ taste: string; problem?: string }> {
+  let problem: string | undefined
   const ask = (method: string, extra: string) =>
     $.http
       .fetch(
         `https://ws.audioscrobbler.com/2.0/?method=${method}&user=${encodeURIComponent(lastfm.user)}` +
           `&${extra}&api_key=${encodeURIComponent(lastfm.key)}&format=json`,
       )
-      .then(reply => (reply.ok ? (JSON.parse(reply.text) as unknown) : undefined))
-      .catch(() => undefined)
+      .then(reply => {
+        const body = (() => {
+          try {
+            return JSON.parse(reply.text) as unknown
+          } catch {
+            return undefined
+          }
+        })()
+        if (reply.ok) return body
+        // Last.fm says what went wrong: an invalid key, a user it doesn't know.
+        const said = (body as { message?: unknown } | undefined)?.message
+        problem = `Last.fm said: ${typeof said === 'string' ? said : `HTTP ${reply.status}`}`
+        return undefined
+      })
+      .catch((error: unknown) => {
+        problem = `Last.fm could not be reached (${error instanceof Error ? error.message : String(error)})`
+        return undefined
+      })
   // This week's top artists and songs, the last 30 plays (the newest, and what is on repeat), and
   // a few all-time favourites.
   const [artists, week, recent, allTime] = await Promise.all([
@@ -403,17 +421,19 @@ async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }
     ask('user.gettoptracks', 'period=overall&limit=5'),
   ])
 
-  return tasteFrom(artists, week, recent, allTime)
+  const taste = tasteFrom(artists, week, recent, allTime)
+
+  return taste === '' ? { taste, problem: problem ?? `Last.fm has no plays for ${lastfm.user} yet` } : { taste }
 }
 
 // Loads the songbook, or has Claude write one in the vibe of what you've been playing (tasteOf):
 // once a day, and again when the source or the prompt's style changes (or `/pet refresh-songs`
 // forgets it). Until it is written, and whenever writing fails, the last songbook or the starter
-// songs are sung.
-async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: string }, today: string) {
+// songs are sung. Answers what happened, for `/pet refresh-songs` to tell the person.
+async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: string }, today: string): Promise<string> {
   // Without Last.fm, Clawd sings its built-in songs and calls no model.
   if (lastfm.user === '' || lastfm.key === '') {
-    return
+    return lastfmUnset(lastfm)
   }
   const source = `lastfm:${lastfm.user}`
   type Songbook = { day?: string; source?: string; style?: number; taste?: string; lines?: string[] }
@@ -423,21 +443,37 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
   }
   const isCurrent = kept?.day === today && kept.source === source && kept.style === SONGBOOK_STYLE
   if (isCurrent) {
-    return
+    return `Today's songbook is already written: ${kept.lines?.length ?? 0} lines from ${lastfm.user}'s Last.fm.`
   }
-  const taste = await tasteOf($, lastfm)
+  const { taste, problem } = await tasteOf($, lastfm)
   if (taste === '') {
-    return
+    return `${problem}. Clawd keeps the songs it has.`
   }
   // A call the engine refuses to send (a blocked model) rejects; Clawd keeps the songs it has.
-  const reply = await $.model
-    .complete({ model: 'haiku', maxTokens: 400, prompt: songbookPrompt(taste) })
-    .catch(() => undefined)
+  let refused = ''
+  const reply = await $.model.complete({ model: 'haiku', maxTokens: 400, prompt: songbookPrompt(taste) }).catch((error: unknown) => {
+    refused = error instanceof Error ? error.message : String(error)
+    return undefined
+  })
   const lines = reply?.isAnswered === true ? songbookLines(reply.text) : []
-  if (lines.length >= 3) {
-    life.songs = withStarters(lines)
-    await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines })
+  if (lines.length < 3) {
+    const why = reply === undefined ? `the call was refused: ${refused}` : reply.isAnswered ? 'its answer held too few song lines' : `it did not answer (${reply.reason})`
+    return `Last.fm worked, but Claude Haiku wrote no songbook: ${why}. Clawd keeps the songs it has.`
   }
+  life.songs = withStarters(lines)
+  await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines })
+
+  return `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm.`
+}
+
+// What to tell the person when Last.fm is not set up, naming the part that's missing.
+function lastfmUnset(lastfm: { user: string; key: string }): string {
+  if (lastfm.user === '' && lastfm.key === '') {
+    return 'Last.fm is not set, so Clawd only sings its built-in songs. Set it with /plugin configure.'
+  }
+  const missing = lastfm.user === '' ? 'user' : 'API key'
+
+  return `The Last.fm ${missing} is empty, so Clawd only sings its built-in songs. Set it again with /plugin configure.`
 }
 
 // Now and then while Claude works, Clawd does a little something: then the person is waiting,
@@ -778,16 +814,15 @@ export const register: Register = (on, options) => {
       return { text: 'The pet is hidden; /pet on brings it back.' }
     }
     if (asked === 'refresh-songs') {
-      // Forget the songbook and write a new one now, from Last.fm.
+      // Forget the songbook and write a new one now, from Last.fm, and say how that went.
       if (lastfm.user === '' || lastfm.key === '') {
-        return { text: 'Last.fm is not set, so Clawd only sings its built-in songs. Set it with /plugin configure.' }
+        return { text: lastfmUnset(lastfm) }
       }
       await $.store.set('songbook', null)
       life.songs = STARTER_SONGS
-      void refreshSongbook($, lastfm, dayOf(localTime(await $.clock.now(), offsetMinutes)))
       await react($, 'happy', 'new songs coming…')
 
-      return {}
+      return { text: await refreshSongbook($, lastfm, dayOf(localTime(await $.clock.now(), offsetMinutes))) }
     }
     if (asked === 'guest') {
       // Someone drops by, not whoever came last, with something to say.

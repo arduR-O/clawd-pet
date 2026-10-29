@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.5
+
+### Fixed
+
+- **`/pet refresh-songs` says why the songbook did not change.** Before, every failure was silent and
+  Clawd went on with its built-in songs. Now the command answers with what happened: an empty Last.fm
+  user or API key, what Last.fm said (such as an invalid key), no plays yet, or Claude Haiku not
+  answering. The README's troubleshooting section lists what to do for each.
+
 ## 0.2.4
 
 ### Changed

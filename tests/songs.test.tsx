@@ -35,10 +35,44 @@ test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, asy
   expect(prompts.length).toBe(0)
 
   const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
-  await clock.advance(1_500)
 
-  expect(ran.text).toBeUndefined()
+  expect(ran.text).toBe("New songbook: 3 lines from listener's Last.fm.")
   expect(prompts.length).toBe(1)
+})
+
+test('/pet refresh-songs says what Last.fm said when it refuses, such as a bad key', LASTFM, async ($, on) => {
+  on('http.fetch', () => ({ value: { ok: false, status: 403, headers: {}, text: '{"error":10,"message":"Invalid API key - You must be granted a valid key by last.fm"}' } }))
+  await start($, on, {}, NOON_IST)
+
+  const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+
+  expect(ran.text).toBe('Last.fm said: Invalid API key - You must be granted a valid key by last.fm. Clawd keeps the songs it has.')
+})
+
+test('/pet refresh-songs names the Last.fm setting that is empty', { options: { ...OPTIONS, lastfm_user: 'listener' } }, async ($, on) => {
+  await start($, on, {}, NOON_IST)
+
+  const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+
+  expect(ran.text).toBe('The Last.fm API key is empty, so Clawd only sings its built-in songs. Set it again with /plugin configure.')
+})
+
+test('/pet refresh-songs says when Last.fm has no plays, or Claude writes no songbook', LASTFM, async ($, on) => {
+  let played = false
+  on('http.fetch', (_, e) => {
+    const body = played ? { toptracks: { track: [{ name: 'From the Start', artist: { name: 'Laufey' } }] } } : {}
+
+    return { value: { ok: true, status: 200, headers: {}, text: JSON.stringify(e.url.includes('gettoptracks') ? body : {}) } }
+  })
+  on('model.complete', () => ({ value: { isAnswered: false, reason: 'empty-reply', usage: NO_USAGE } }))
+  await start($, on, {}, NOON_IST)
+
+  const none = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+  expect(none.text).toBe('Last.fm has no plays for listener yet. Clawd keeps the songs it has.')
+
+  played = true
+  const silent = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+  expect(silent.text).toBe('Last.fm worked, but Claude Haiku wrote no songbook: it did not answer (empty-reply). Clawd keeps the songs it has.')
 })
 
 test('/pet refresh-songs without Last.fm says Clawd keeps its built-in songs', { options: { utc_offset: '+05:30' } }, async ($, on) => {
