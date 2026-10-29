@@ -197,7 +197,7 @@ export const LOWERED = /^▝▜█████▛▘$/
 export const LASTFM_SONGBOOK = {
   day: '10-27',
   source: 'lastfm:listener',
-  style: 7,
+  style: 8,
   taste: "this week's repeats: From the Start by Laufey. artists lately: Laufey, Queen",
   lines: ['from the start… of the build ♪'],
 }

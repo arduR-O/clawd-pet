@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.8
+
+### Fixed
+
+- **The songbook sings the songs you played, not the artists' greatest hits.** The prompt asked for
+  "songs by these artists, or these songs", so Haiku often reached for each artist's best-known hit
+  (Bohemian Rhapsody, Piano Man, Stairway to Heaven) over what you actually played. Now it sings only
+  the songs your Last.fm names; the artists set the mood. Tried live: in three runs on a mixed Hindi
+  and rock history, every line came from a named song. Songbooks written by the old prompt are
+  written again.
+- `/pet refresh-songs` quotes a line of the new songbook, so you can see what it holds.
+
 ## 0.2.7
 
 ### New

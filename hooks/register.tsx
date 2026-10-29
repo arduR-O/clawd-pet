@@ -464,7 +464,7 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
   life.songs = withStarters(lines)
   await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines })
 
-  return `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm.`
+  return `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, such as "${lines[0]}"`
 }
 
 // How hard Haiku thinks about the songbook, and the reply's cap for each: the cap counts its thinking

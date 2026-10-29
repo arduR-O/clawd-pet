@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { STARTER_SONGS, songbookLines, tasteFrom, withStarters } from '../hooks/clawd'
+import { STARTER_SONGS, songbookLines, songbookPrompt, tasteFrom, withStarters } from '../hooks/clawd'
 import {
   BAND,
   OPTIONS,
@@ -38,7 +38,7 @@ test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, asy
 
   const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
 
-  expect(ran.text).toBe("New songbook: 3 lines from listener's Last.fm.")
+  expect(ran.text).toBe("New songbook: 3 lines from listener's Last.fm, such as \"where do i begiiin ♪\"")
   // Medium effort by default, with room for Haiku to think and still write the lines.
   expect(asked).toEqual([{ maxTokens: 8192, effort: 'medium' }])
   expect(prompts.length).toBe(1)
@@ -210,7 +210,7 @@ test("a stale songbook is rewritten once by Claude, in the vibe of this week's p
     {
       day: '10-27',
       source: 'lastfm:listener',
-      style: 7,
+      style: 8,
       taste: LASTFM_SONGBOOK.taste,
       lines: ['ooh, the tests are green ♪', 'another one bites the bug ♪', 'we will, we will lint you ♪'],
     },
@@ -279,6 +279,14 @@ test('passing tests get a suspicious squint, not a cheer', { options: OPTIONS },
   await ui.unmount()
 })
 
+test("the songbook prompt sings only the songs named, never an artist's best-known hit in their place", () => {
+  const prompt = songbookPrompt('newest plays: Kesariya by Arijit Singh. artists lately: Queen')
+
+  expect(prompt).toContain('Here is what they have been playing: newest plays: Kesariya by Arijit Singh. artists lately: Queen.')
+  expect(prompt).toContain('Sing lines only from the songs named there')
+  expect(prompt).toContain("not even an artist's")
+})
+
 test('a songbook drops repeated lines', () => {
   expect(songbookLines('ooh, the build ♪\nooh, the build ♪\n- under pressure… to ship')).toEqual([
     'ooh, the build ♪',
@@ -290,7 +298,7 @@ test('a songbook written by an older prompt is written again', LASTFM, async ($,
   const prompts: string[] = []
   lastfmStub(on, [])
   modelStub(on, prompts)
-  const songbook = { ...LASTFM_SONGBOOK, style: 6, lines: ['old style ♪'] }
+  const songbook = { ...LASTFM_SONGBOOK, style: 7, lines: ['old style ♪'] }
   const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
 
