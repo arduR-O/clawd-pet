@@ -158,19 +158,6 @@ test('on a weekend Clawd says nothing about leave time', { options: OPTIONS }, a
   await ui.unmount()
 })
 
-test('a turn past two minutes makes Clawd sweat', { options: OPTIONS }, async ($, on) => {
-  on('prompt.submit', (_, e) => ({ text: e.text }))
-  const clock = await start($, on, {}, NOON_IST)
-  const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, isWorking: true } })
-  await $.prompt.submit({ ...SUBMITTED, text: 'refactor everything' })
-  expect(await ui.find({ type: 'Text', text: /^[’,]$/ })).toBeFalsy()
-
-  await clock.advance(121_000)
-
-  expect((await ui.find({ type: 'Text', text: /^[’,]$/ }))?.props.color).toBe('#8ab6d6')
-  await ui.unmount()
-})
-
 test('/pet vibe puts on headphones, then Clawd breaks into song with them on', LASTFM, async ($, on) => {
   const songbook = { ...LASTFM_SONGBOOK, lines: ['ooh, the tests are green ♪'] }
   const clock = await start($, on, { songbook }, NOON_IST)

@@ -8,6 +8,11 @@
   every button as a native one, so there the name is plain text, and `/pet` pets Clawd. In the
   terminal a click still pets it.
 
+### Removed
+
+- **Sweat.** The drop beside Clawd's head during a turn past two minutes looked like a stray comma,
+  most of all next to a hat. A long turn still ends in confetti.
+
 ## 0.2.1
 
 ### Removed
