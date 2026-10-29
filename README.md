@@ -43,7 +43,7 @@ how it's doing, now and then when a moment earns it.
 
 <p align="center"><img src="assets/guests.svg" alt="Clawd's guests: Sherlock, a Jedi, Gandalf, the Terminator, a DeLorean, a ninja, a rubber duck, Neo, coffee, an astronaut, a 1-UP mushroom and a whale" width="640"></p>
 
-`/pet <name>` shows any of them on demand, `/pet sherlock` say.
+`/pet <name>` shows any of them on demand, `/pet sherlock` say, and `/pet guest` brings a random one.
 
 In a terminal Clawd is drawn in block characters; in VS Code and the desktop app it is drawn as a
 picture, since their fonts pull block characters apart.
@@ -78,6 +78,7 @@ names take a click too).
 | `/pet` | Pet Clawd. It has opinions about too many pets in a row. |
 | `/pet treat` | Feed it a treat. |
 | `/pet trick` | It does a trick. |
+| `/pet guest` | A random guest drops by, never the same one twice running. |
 | `/pet <emote>` | Shows an emote now, e.g. `/pet meditate`, `/pet sing`, `/pet spin`, `/pet uwu`. |
 | `/pet refresh-songs` | Forgets the songbook and writes a new one now. One small Haiku call; with no music or Last.fm set it does nothing. |
 | `/pet off`, `/pet on` | Hides the band above the prompt until `/pet on`, in every chat. |

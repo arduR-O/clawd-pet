@@ -35,6 +35,7 @@ import {
   pickIdle,
   pickPetted,
   pickTrick,
+  pickGuest,
   spinnerTake,
   welcomeOf,
   treatLine,
@@ -120,6 +121,8 @@ const life = {
   typed: { at: -Infinity, draft: '', caret: 0 },
   // The tool whose permission prompt is waiting on the person, while one is.
   waitingOn: undefined as string | undefined,
+  // The guest `/pet guest` last brought, so the next is someone else.
+  lastGuest: undefined as EmoteName | undefined,
   // How many times Clawd has said each of its sayings, to rotate through them.
   said: {} as Partial<Record<Saying, number>>,
   // The person's current stretch of work, for break nudges.
@@ -603,7 +606,7 @@ export const register: Register = (on, options) => {
       name: 'pet',
       description: 'Pet the critter above the prompt; /pet garden, /pet clawd or /pet moss to switch; /pet off to hide it; /pet refresh-songs for a new songbook',
       // A pet only touches the critter's own state, so it need not wait for Claude's turn.
-      argumentHint: '[treat|trick|off|on|<emote>…]',
+      argumentHint: '[treat|trick|guest|off|on|<emote>…]',
       immediate: true,
     })
     await $.tool.register(TALK_SPEC)
@@ -908,6 +911,20 @@ export const register: Register = (on, options) => {
       life.songs = STARTER_SONGS
       void refreshSongbook($, music, lastfm, dayOf(localTime(await $.clock.now(), offsetMinutes)))
       await react($, 'happy', 'new songs coming…')
+
+      return {}
+    }
+    if (asked === 'guest') {
+      if ((await read($, species)) !== 'clawd') {
+        return { text: 'Only Clawd has guests: /pet clawd' }
+      }
+      // Someone drops by, not whoever came last, with something to say.
+      const [name, saying] = pickGuest(Math.random(), life.lastGuest)
+      life.lastGuest = name
+      const line = say(saying).replace('{skill}', 'kung fu')
+      const now = await $.clock.now()
+      await update($, emote, (): Emote => ({ name, line, until: now + EMOTE_MS }))
+      await react($, 'happy', line)
 
       return {}
     }

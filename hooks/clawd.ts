@@ -440,6 +440,29 @@ export function pickTrick(rand: number): [EmoteName, string] {
   return TRICKS[Math.floor(rand * TRICKS.length)] ?? TRICKS[0]!
 }
 
+// The guests who drop by, each with the saying it brings.
+export const GUESTS: readonly [EmoteName, Saying][] = [
+  ['sherlock', 'sherlock'],
+  ['jedi', 'jedi'],
+  ['gandalf', 'gandalf'],
+  ['terminator', 'terminator'],
+  ['delorean', 'delorean'],
+  ['ninja', 'ninja'],
+  ['duck', 'duck'],
+  ['neo', 'neo'],
+  ['coffee', 'coffee'],
+  ['astronaut', 'houston'],
+  ['oneup', 'oneup'],
+  ['whale', 'whale'],
+]
+
+// A guest for `/pet guest`, picked by `rand` in [0, 1), never the one that came `last`.
+export function pickGuest(rand: number, last?: EmoteName): readonly [EmoteName, Saying] {
+  const others = GUESTS.filter(([guest]) => guest !== last)
+
+  return others[Math.floor(rand * others.length)] ?? others[0]!
+}
+
 // What Clawd says to its `treats`th treat.
 export function treatLine(treats: number, rand: number): string {
   if (treats % 10 === 0) return `treat #${treats}. spoiled crab.`
@@ -1095,6 +1118,7 @@ export const CALM = [
 const PET_COMMANDS: readonly [string, string][] = [
   ['treat', 'feed Clawd a treat'],
   ['trick', 'Clawd does a trick'],
+  ['guest', 'a random guest drops by'],
   ['refresh-songs', 'forget the songbook and write a new one'],
   ['off', 'hide the pet until /pet on'],
   ['on', 'bring the pet back'],

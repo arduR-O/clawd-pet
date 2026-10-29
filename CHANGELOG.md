@@ -30,6 +30,7 @@ a desktop Clawd with cartoon physics.
   (`kill`), a DeLorean (`git revert`, the reflog), a ninja (`git stash`), a rubber duck (a long
   debugging prompt), Neo (Claude loading a skill), coffee (the morning's first prompt), an
   astronaut (an API error), a 1-UP mushroom (tests green after red) and a whale (`docker`).
+  `/pet guest` brings a random one, never the same twice running.
 - **More to say.** The spinner-word nods go from 4 to 18, and the lines Clawd said every time
   (a failure, a facepalm, a finished turn, tests, commits, permission answers) rotate through a few.
 - **Better poses.** Meditation sits wide with its claws raised and a mote of light drifting up; a
