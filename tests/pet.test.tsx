@@ -244,22 +244,25 @@ test('/pet spin and the spinner word Spinning make Clawd spin', { options: OPTIO
   }
 })
 
-test('from one pose straight into another, Clawd crouches for a tick in between; from standing, it goes straight in', { options: OPTIONS }, async ($, on) => {
+test('from one pose straight into another, Clawd takes a frame in between, a different one each time', { options: OPTIONS }, async ($, on) => {
   const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
-  const feet = /▘▘ ▝▝|▝▝ ▘▘/
+  const drawn = async () => (await ui.findAll({ type: 'Text' })).map(one => one.text).join('|')
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'chef' })
   expect(await shows(ui, /▀/, TOQUE)).toBe(true)
-
-  await $.command.run({ ...TYPED, command: 'pet', args: 'hardhat' })
-  // Crouched: no feet, no hat yet.
-  expect(await ui.find({ type: 'Text', text: feet })).toBeFalsy()
-  expect(await shows(ui, /▗/, GOLD)).toBe(false)
-
-  await clock.advance(800)
-  expect(await ui.find({ type: 'Text', text: feet })).toBeTruthy()
-  expect(await shows(ui, /▗/, GOLD)).toBe(true)
+  const between: string[] = []
+  for (const next of ['hardhat', 'chef', 'hardhat', 'chef']) {
+    await $.command.run({ ...TYPED, command: 'pet', args: next })
+    // Between poses: neither hat yet.
+    expect(await shows(ui, /▀/, TOQUE)).toBe(false)
+    expect(await shows(ui, /▗/, GOLD)).toBe(false)
+    between.push((await drawn()).replace(/\|Clawd\|.*$/, ''))
+    await clock.advance(800)
+    expect(await shows(ui, next === 'chef' ? /▀/ : /▗/, next === 'chef' ? TOQUE : GOLD)).toBe(true)
+  }
+  // Crouch, rise, blink and lean, in some order: four different frames.
+  expect(new Set(between).size).toBe(4)
   await ui.unmount()
 })
 

@@ -720,6 +720,12 @@ export function faceOf(kind: Kind, emote: EmoteName | undefined, frame: number, 
   return gaze ?? 'open'
 }
 
+// What Clawd does for a frame going straight from one pose to another, so it reads as Clawd moving
+// rather than another Clawd popping up in its place: crouch, rise a row, blink, or lean aside. Taken
+// in turn, so no one of them gets old.
+export type Turn = 'crouch' | 'rise' | 'blink' | 'lean'
+export const TURNS: readonly Turn[] = ['crouch', 'rise', 'blink', 'lean']
+
 // The sky over Clawd and Clawd under it: four rows of colored segments.
 export function clawdScene(input: {
   kind: Kind
@@ -739,8 +745,8 @@ export function clawdScene(input: {
   poseFrame?: number
   // While the person types: the caret's column down in the prompt, and whether they are typing /pet.
   typing?: { caret: number; isPet: boolean }
-  // Crouched for a frame, between one pose and the next.
-  isCrouching?: boolean
+  // The in-between frame from one pose to the next (TURNS).
+  turn?: Turn
 }): Row[] {
   const { kind, emote, frame, nowMs, local, crew = 0, bubble = 0, castle = 0, hasHeadphones = false } = input
   const poseFrame = input.poseFrame ?? frame
@@ -750,7 +756,8 @@ export function clawdScene(input: {
   const body = isAsleep ? SLEEPY_CLAWD : CLAWD
 
   let dx = 0
-  if (emote === 'sidestep') dx = SIDESTEP[frame % SIDESTEP.length] ?? 0
+  if (input.turn === 'lean') dx = -1
+  else if (emote === 'sidestep') dx = SIDESTEP[frame % SIDESTEP.length] ?? 0
   else if (emote === 'wiggle') dx = WIGGLE[frame % WIGGLE.length] ?? 0
   else if (emote === 'dance' || emote === 'party' || emote === 'dizzy' || kind === 'oops') dx = frame % 2
   // Nodding along, a beat every two frames.
@@ -865,7 +872,7 @@ export function clawdScene(input: {
   for (const [i, text] of ['·', '∘', '○'].slice(0, bubble).entries()) put(x + 9 + i, text, MOON)
 
   const isShut =
-    isAsleep || emote === 'meditate' || emote === 'vibe' || ((emote === 'yawn' || emote === 'stretch') && frame % 4 < 2)
+    isAsleep || input.turn === 'blink' || emote === 'meditate' || emote === 'vibe' || ((emote === 'yawn' || emote === 'stretch') && frame % 4 < 2)
   // Watching the caret: straight down while it is under the face, to one side past it; perked up for a /pet.
   const { typing } = input
   const gaze: Face | undefined =
@@ -1035,7 +1042,7 @@ export function clawdScene(input: {
   }
 
   // Clawd ducks from shy moments and seagulls: only its face and claws show; a hopping or bowing one crouches every other frame.
-  const isDucking = input.isCrouching === true || emote === 'shy' || emote === 'seagull' || ((emote === 'hop' || emote === 'bow') && frame % 2 === 1)
+  const isDucking = input.turn === 'crouch' || emote === 'shy' || emote === 'seagull' || ((emote === 'hop' || emote === 'bow') && frame % 2 === 1)
 
   if (emote === 'meditate') {
     // Floating down half a row a frame and back, from where Clawd's face and body stand.
@@ -1096,7 +1103,7 @@ export function clawdScene(input: {
     // Flattened: face pressed down into a pancake.
     return [sky, [pad(0)], [pad(x), { text: '▟▛▀███▀▜▙', color: body }], [pad(x - 1), { text: '▀'.repeat(11), color: body }]]
   }
-  if (emote === 'hiccup' && frame % 3 === 0) {
+  if (input.turn === 'rise' || (emote === 'hiccup' && frame % 3 === 0)) {
     // Each hic jumps Clawd up a row.
     return [face, arms, feet, [pad(0)]]
   }
@@ -1192,7 +1199,9 @@ export function sceneFilm(frames: readonly (readonly Row[])[], frameMs: number, 
 
 function svgOf(body: string, width: number, height: number, cell: { width: number; height: number }): string {
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" ` +
+    // Crisp edges: scaled to a size that is no whole multiple of its pixels, smoothed edges would let
+    // a faint line of the background show between neighbouring rectangles.
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" shape-rendering="crispEdges" ` +
     `font-family="ui-monospace, Menlo, Consolas, monospace" font-size="${cell.height * 0.8}">${body}</svg>`
   )
 }

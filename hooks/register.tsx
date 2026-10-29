@@ -18,6 +18,7 @@ import {
   pastimeLine,
   isVibeSinging,
   STARTER_SONGS,
+  TURNS,
   songbookLines,
   songbookPrompt,
   SONGBOOK_STYLE,
@@ -123,6 +124,8 @@ const life = {
   poseSince: 0,
   isTurning: false,
   poseTick: 0,
+  // Turns taken so far, for the next to be the next of TURNS.
+  turns: 0,
   // What the person last typed in the prompt and when, for Clawd to watch.
   typed: { at: -Infinity, draft: '', caret: 0 },
   // The tool whose permission prompt is waiting on the person, while one is.
@@ -1010,6 +1013,7 @@ export const register: Register = (on, options) => {
     }
     if (pose !== life.pose) {
       life.isTurning = life.pose !== undefined && pose !== undefined
+      if (life.isTurning) life.turns += 1
       life.pose = pose
       life.poseSince = now
       life.poseTick = frame
@@ -1017,14 +1021,13 @@ export const register: Register = (on, options) => {
     const thinking = e.props.isWorking && life.thinkingSince > 0 ? now - life.thinkingSince - BUBBLE_AFTER_MS : -1
     const poseFrame = Math.floor((now - life.poseSince) / TICK_MS)
     const sceneAt = (at: number) => {
-      // Going straight from one pose to another, Clawd crouches for a frame in between, so it reads
-      // as Clawd moving, not as another Clawd popping up in its place.
+      // Going straight from one pose to another, Clawd takes a frame of TURNS in between.
       const isTurning = life.isTurning && at <= life.poseTick
 
       return clawdScene({
         kind: mode,
         emote: isTurning ? undefined : pose,
-        isCrouching: isTurning,
+        ...(isTurning && { turn: TURNS[(life.turns - 1) % TURNS.length] }),
         frame: at,
         poseFrame: Math.max(0, poseFrame + at - frame),
         nowMs: now,

@@ -21,6 +21,8 @@ test('outside the terminal Clawd is drawn as a picture, its name and line as tex
     const drawing = await ui.find({ type: 'Svg' })
     expect(String(drawing?.props.source)).toMatch(/^<svg [^>]*width="136" height="64"/)
     expect(String(drawing?.props.source)).toContain('fill="#ff8800"')
+    // Crisp edges, so no line of the background shows between rectangles when the app scales it.
+    expect(String(drawing?.props.source)).toContain('shape-rendering="crispEdges"')
     expect(drawing?.props.alt).toBe('Clawd')
     expect(await ui.find({ type: 'Text', text: /^Clawd$/ })).toBeTruthy()
     // No block characters left to drift apart.

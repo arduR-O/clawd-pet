@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.9
+
+### Fixed
+
+- **No more faint lines across Clawd in VS Code and the desktop app.** The picture is made of
+  rectangles side by side; scaled to a size that is no whole multiple of its pixels, their smoothed
+  edges let a thin line of the background show between them. The picture now draws crisp edges.
+
+### Changed
+
+- **Four ways between poses.** Going straight from one pose to another, Clawd crouches, rises a row,
+  blinks or leans aside, taking them in turn, instead of crouching every time.
+
 ## 0.2.8
 
 ### Fixed
