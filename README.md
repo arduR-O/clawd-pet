@@ -111,8 +111,8 @@ run `/pet guest`.
 
 ## Commands
 
-To pet Clawd, click it or its name. In VS Code and the desktop app, click its name. Clicks need a
-terminal that sends mouse clicks. If yours does not, run `/pet`.
+To pet Clawd in the terminal, click it or its name. Clicks need a terminal that sends mouse clicks.
+In VS Code and the desktop app, or if your terminal does not send clicks, run `/pet`.
 
 All commands start with `/pet`. When you type `/pet `, Claude Code shows what can come next.
 
