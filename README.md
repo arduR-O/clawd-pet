@@ -7,7 +7,8 @@ when Claude commits your work.
 <p align="center"><img src="assets/clawd.svg" alt="Clawd above the Claude Code prompt: waving, reading, dizzy, watching you type, a Jedi, singing, petted, meditating and celebrating" width="640"></p>
 
 Clawd is a plugin for Claude Code. It works in the terminal, in VS Code and in the Claude desktop
-app. Clawd is an unofficial fan project. Anthropic did not make or endorse it.
+app. **By default, Clawd uses no tokens.** It runs on your computer and adds nothing to your
+requests to Claude. Clawd is an unofficial fan project. Anthropic did not make or endorse it.
 
 ## Install
 
@@ -124,7 +125,6 @@ All commands start with `/pet`. When you type `/pet `, Claude Code shows what ca
 | `/pet <emote>` | Shows an emote now, for example `/pet meditate`. See [All emotes](#all-emotes). |
 | `/pet refresh-songs` | Writes a new songbook now. See [The songbook](#the-songbook). |
 | `/pet off` | Hides Clawd in all sessions. `/pet on` shows it again. |
-| `/pet garden`, `/pet moss`, `/pet clawd` | Changes the pet. The garden is six flowers that grow as Claude works. Moss is a small face made of letters. |
 
 ### All emotes
 
@@ -165,9 +165,16 @@ To write a new songbook now, run `/pet refresh-songs`.
 
 ## Costs and privacy
 
-**Tokens.** By default, Clawd adds no tokens to your requests. If you turn on **Claude can talk
-to Clawd**, the `clawd` tool adds about 400 tokens to each request that Claude makes. To remove
-them again, set it to `off`.
+**By default, Clawd costs no tokens.** Everything that Clawd does runs on your computer. It adds
+nothing to your requests to Claude. Only two optional settings cost tokens:
+
+| Optional setting | Cost |
+|---|---|
+| Claude can talk to Clawd | About 400 tokens added to each request that Claude makes. Off by default. |
+| Songbook: music or Last.fm | One small call to Claude Haiku per day. Empty by default. |
+
+**Claude can talk to Clawd.** When you set it to `on`, Claude gets the `clawd` tool, and each
+request carries the tool's description. To remove the cost again, set it to `off`.
 
 **The songbook.** If you set music or Last.fm, Clawd makes one call to Claude Haiku per day. The
 call uses your Claude Code account, as Claude itself does. It sends only your music setting, or

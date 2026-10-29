@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Emote, EmoteName, Kind, Mood, Species } from '../types'
+import type { Emote, EmoteName, Kind, Mood } from '../types'
 
 import {
   CLAWD,
@@ -78,8 +78,6 @@ const mood = atom(
   { shape: 'mood-1' },
 )
 const tick = atom({ plugin: 'clawd', key: 'tick' } as const, 0)
-const species = atom({ plugin: 'clawd', key: 'species' } as const, 'clawd')
-const growth = atom({ plugin: 'clawd', key: 'growth' } as const, 0)
 // Hidden with /pet off until /pet on; kept in the store so it holds across chats.
 const isOff = atom({ plugin: 'clawd', key: 'isOff' } as const, false)
 const emote = atom(
@@ -128,45 +126,6 @@ const life = {
   // The person's current stretch of work, for break nudges.
   sitting: { since: 0, lastSeen: -Infinity, nudgedAt: 0 },
 }
-
-const SPECIES: readonly Species[] = ['garden', 'clawd', 'moss']
-
-// Eyes and mouth per mood; the second eyes are the alternate frame.
-const FACES: Record<Kind, { eyes: [string, string]; mouth: string }> = {
-  idle: { eyes: ['o o', '- -'], mouth: ' ‿ ' },
-  think: { eyes: ['° °', ' °°'], mouth: ' ~ ' },
-  read: { eyes: ['◉ ◉', '◉ ◉'], mouth: ' o ' },
-  run: { eyes: ['> <', '> <'], mouth: ' = ' },
-  write: { eyes: ['^ ^', '^ ^'], mouth: ' ▿ ' },
-  oops: { eyes: ['x x', 'x x'], mouth: ' △ ' },
-  happy: { eyes: ['^ ^', '^ ^'], mouth: ' ◡ ' },
-  love: { eyes: ['♥ ♥', '♥ ♥'], mouth: ' ◡ ' },
-  sleep: { eyes: ['- -', '- -'], mouth: ' . ' },
-}
-
-const COLORS: Partial<Record<Kind, string>> = {
-  oops: 'error',
-  happy: 'success',
-  love: '#ff8800',
-}
-
-// The garden: six plants, one stage each per round of growth.
-const PLANTS = 6
-const WIDTH = PLANTS * 2 - 1
-const FULL_BLOOM = PLANTS * 3
-const PETALS = ['✿', '❀', '✾', '✿', '❀', '✾']
-const PETAL_COLORS = ['#e8a0bf', '#f4d06f', '#b4a7e6', '#9fd3c7', '#f6b38e', '#e8a0bf']
-const STEM = '#7fb77e'
-const SOIL = '#a08060'
-const SUN = '#f4d06f'
-const CLOUD = '#9aa0a6'
-const WATER = '#8ab6d6'
-const MOON = '#c9c9e0'
-const WINGS = '#d8a7e6'
-// Where the butterfly sits on each frame: across and back.
-const FLIGHT = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-
-const WORKING: readonly Kind[] = ['think', 'read', 'run', 'write']
 
 // A git commit or push, with which one in group 1.
 const SHIPS = /\bgit\s+(commit|push)\b/
@@ -253,33 +212,26 @@ type Seen = {
 
 const fresh = (): Seen => ({ reads: new Set(), edits: new Map(), searches: 0, tools: 0, testsFailed: false })
 
-type Cell = { ch: string; color?: string }
-
 const short = (text: string, max = 40) =>
   text.length > max ? `${text.slice(0, max - 1)}…` : text
 
 const basename = (path: string) => path.split('/').pop() ?? path
-
-const blank = (): Cell[] => Array.from({ length: WIDTH }, () => ({ ch: ' ' }))
-
-// Plant `i`'s stage, 0 (seed) to 3 (bloom): growth goes round the plants in turn.
-const stage = (i: number, g: number) => Math.min(3, Math.floor((g - i + PLANTS - 1) / PLANTS))
 
 type ToolUse = { tool: string } & Record<string, unknown>
 
 // A string argument of a tool call, or '' when it has none.
 const field = (e: ToolUse, key: string) => (typeof e[key] === 'string' ? (e[key] as string) : '')
 
-// What the critter says while a permission prompt for `tool` waits on the person.
-function askLine(tool: string, isClawd: boolean): string {
-  if (tool === 'AskUserQuestion') return isClawd ? 'Claude has a question for you.' : 'a question for you'
-  if (tool === 'ExitPlanMode') return isClawd ? 'a plan for you to look at.' : 'a plan to look at'
+// What Clawd says while a permission prompt for `tool` waits on the person.
+function askLine(tool: string): string {
+  if (tool === 'AskUserQuestion') return 'Claude has a question for you.'
+  if (tool === 'ExitPlanMode') return 'a plan for you to look at.'
   const name = tool.startsWith('mcp__') ? (tool.split('__').pop() ?? tool) : tool
 
-  return isClawd ? `psst. ${short(name, 24)} needs your ok.` : `waiting on you: ${short(name, 24)}`
+  return `psst. ${short(name, 24)} needs your ok.`
 }
 
-// What the critter does and says when Claude reaches for a tool.
+// What Clawd does and says when Claude reaches for a tool and has no opinion of its own on it.
 function reaction(e: ToolUse): [Kind, string] {
   const text = (key: string) => field(e, key)
 
@@ -363,7 +315,7 @@ function say(saying: Saying): string {
   return sayingOf(saying, n)
 }
 
-// Shows a reaction for a few seconds, then the critter settles back.
+// Shows a reaction for a few seconds, then Clawd settles back.
 async function react($: EngineInterface, kind: Kind, line: string, ms = REACTION_MS) {
   const now = await $.clock.now()
   await update($, mood, (): Mood => ({
@@ -383,31 +335,16 @@ async function stopWaiting($: EngineInterface) {
   }
 }
 
-// One pet, from /pet or a click on the critter: the garden is watered, Clawd and Moss enjoy it.
+// One pet, from /pet or a click on Clawd. Too many in a row and it has had enough.
 async function petOnce($: EngineInterface) {
   const now = await $.clock.now()
   life.sitting = satAt(life.sitting, now)
   const pets = Number((await $.store.get('pets')) ?? 0) + 1
   await $.store.set('pets', pets)
-  const critter = await read($, species)
-  if (critter === 'garden') {
-    await grow($)
-    await react($, 'love', `watered (#${pets})`)
-  } else if (critter === 'clawd') {
-    life.petTimes = [...life.petTimes.filter(at => now - at < PET_SPREE_MS), now]
-    const [name, line] = pickPetted(pets, life.petTimes.length, Math.random())
-    await update($, emote, (): Emote => ({ name, line, until: now + EMOTE_MS }))
-    await react($, 'love', line)
-  } else {
-    await react($, 'love', pets === 1 ? 'first pet ever!' : `purr (pet #${pets})`)
-  }
-}
-
-// Adds one round of growth to the garden, kept across sessions.
-async function grow($: EngineInterface) {
-  const g = Number((await $.store.get('growth')) ?? 0) + 1
-  await $.store.set('growth', g)
-  await update($, growth, () => g)
+  life.petTimes = [...life.petTimes.filter(at => now - at < PET_SPREE_MS), now]
+  const [name, line] = pickPetted(pets, life.petTimes.length, Math.random())
+  await update($, emote, (): Emote => ({ name, line, until: now + EMOTE_MS }))
+  await react($, 'love', line)
 }
 
 // A local date as month-day, the sandcastle's day.
@@ -501,7 +438,7 @@ async function maybeEmote($: EngineInterface, offsetMinutes: number) {
     return
   }
   const now = await $.clock.now()
-  if (now < life.nextEmoteAt || (await read($, species)) !== 'clawd') {
+  if (now < life.nextEmoteAt) {
     return
   }
   const m = await read($, mood)
@@ -534,65 +471,6 @@ function current(m: Mood, now: number, isWorking: boolean): [Kind, string] {
   return ['idle', '']
 }
 
-// The sky row and the row under it for a mood.
-function weather(kind: Kind, frame: number, isBloomed: boolean): [Cell[], Cell[]] {
-  const sky = blank()
-  const air = blank()
-  const sun = { ch: '☀', color: SUN }
-
-  if (kind === 'sleep') {
-    sky[WIDTH - 2] = { ch: '☾', color: MOON }
-    for (const at of [1, 4, 7]) {
-      sky[at] = { ch: '·', color: MOON }
-    }
-  } else if (kind === 'oops') {
-    for (const at of [1, 4, 7]) {
-      sky[at] = { ch: '☁', color: CLOUD }
-    }
-    for (let at = frame % 2; at < WIDTH; at += 2) {
-      air[at] = { ch: "'", color: WATER }
-    }
-  } else if (kind === 'love') {
-    sky[WIDTH - 2] = sun
-    for (let at = frame % 2; at < WIDTH - 3; at += 2) {
-      air[at] = { ch: '·', color: WATER }
-    }
-  } else if (WORKING.includes(kind)) {
-    sky[WIDTH - 2] = sun
-    sky[frame % WIDTH] = { ch: '☁', color: CLOUD }
-  } else {
-    sky[WIDTH - 2] = sun
-    if (kind === 'idle' && isBloomed) {
-      const at = FLIGHT[frame % FLIGHT.length] ?? 0
-      air[at] = { ch: 'ʚ', color: WINGS }
-      air[at + 1] = { ch: 'ɞ', color: WINGS }
-    }
-  }
-
-  return [sky, air]
-}
-
-// The flower row and the stem row for this much growth.
-function plants(g: number): [Cell[], Cell[]] {
-  const tops = blank()
-  const stems = blank()
-  for (let i = 0; i < PLANTS; i++) {
-    const at = i * 2
-    const s = stage(i, g)
-    if (s === 0) {
-      stems[at] = { ch: '.', color: SOIL }
-    } else if (s === 1) {
-      stems[at] = { ch: ',', color: STEM }
-    } else {
-      tops[at] =
-        s === 2 ? { ch: 'o', color: STEM } : { ch: PETALS[i] ?? '✿', color: PETAL_COLORS[i] }
-      stems[at] = { ch: '|', color: STEM }
-    }
-  }
-
-  return [tops, stems]
-}
-
 export const register: Register = (on, options) => {
   const offsetMinutes = parseOffset(String(options.utc_offset ?? '+05:30'))
   const leaveAt = parseClock(String(options.leave_at ?? ''))
@@ -606,8 +484,8 @@ export const register: Register = (on, options) => {
     life.prompts = 0
     await $.command.register({
       name: 'pet',
-      description: 'Pet the critter above the prompt; /pet garden, /pet clawd or /pet moss to switch; /pet off to hide it; /pet refresh-songs for a new songbook',
-      // A pet only touches the critter's own state, so it need not wait for Claude's turn.
+      description: 'Pet Clawd, the crab above the prompt; /pet guest for a guest; /pet off to hide it; /pet refresh-songs for a new songbook',
+      // A pet only touches Clawd's own state, so it need not wait for Claude's turn.
       argumentHint: '[treat|trick|guest|off|on|<emote>…]',
       immediate: true,
     })
@@ -617,15 +495,8 @@ export const register: Register = (on, options) => {
     const now = await $.clock.now()
     await update($, mood, m => ({ ...m, lastActiveAt: now }))
     life.nextEmoteAt = now + EMOTE_GAP_MS / 2
-    const stored = await $.store.get('species')
-    const kept = SPECIES.find(one => one === stored)
-    if (kept !== undefined) {
-      await update($, species, () => kept)
-    }
     const wasOff = (await $.store.get('off')) === true
     await update($, isOff, () => wasOff)
-    const g = Number((await $.store.get('growth')) ?? 0)
-    await update($, growth, () => g)
     const castle = (await $.store.get('castle')) as { day?: string; turns?: number } | undefined
     life.castleDay = castle?.day ?? ''
     life.castleTurns = Number(castle?.turns ?? 0)
@@ -660,7 +531,6 @@ export const register: Register = (on, options) => {
     life.failStreak = 0
     life.talks = 0
     life.prompts += 1
-    const isClawd = (await read($, species)) === 'clawd'
     const now = await $.clock.now()
     const local = localTime(now, offsetMinutes)
     const isLate = phaseOf(local.hour) === 'night'
@@ -668,14 +538,14 @@ export const register: Register = (on, options) => {
     life.nextEmoteAt = now + EMOTE_GAP_MS / 2
     const m = await read($, mood)
     const wasAway = now - m.lastActiveAt > SLEEP_AFTER_MS && now >= m.until
-    let line = 'ooh, a new task'
-    if (isClawd && e.command !== undefined) {
+    let line: string
+    if (e.command !== undefined) {
       line = onSkill(e.command.name, `/${short(e.command.name, 30)}? sure.`)
       const pose = skillPose(e.command.name)
       if (pose !== undefined) {
         await update($, emote, (): Emote => ({ name: pose, line, until: now + EMOTE_MS }))
       }
-    } else if (isClawd) {
+    } else {
       line = isLate
         ? 'at this hour?'
         : (leaveLine(local, leaveAt, 'prompt') ??
@@ -698,19 +568,19 @@ export const register: Register = (on, options) => {
         await update($, emote, (): Emote => ({ name: 'duck', line, until: now + EMOTE_MS }))
       }
     }
-    if (isClawd && e.command === undefined && NAMES_CLAWD.test(e.text)) {
+    if (e.command === undefined && NAMES_CLAWD.test(e.text)) {
       // Named in the prompt: Clawd perks up, or glows at a kind word.
       const [name, said]: [EmoteName, string] = PRAISES.test(e.text) ? ['hearts', 'aw, thanks!'] : ['peek', 'you called?']
       line = said
       await update($, emote, (): Emote => ({ name, line, until: now + EMOTE_MS }))
     }
-    if (isClawd && wasAway) {
+    if (wasAway) {
       // Back from a while away: Clawd wakes with a stretch, or looks up from its pastime.
       const [name, welcome] = welcomeOf(pastimeOf(m.lastActiveAt, now, local))
       await update($, emote, (): Emote => ({ name, line: welcome, until: now + EMOTE_MS }))
       line = welcome
     }
-    await react($, isClawd && wasAway ? 'happy' : 'think', line)
+    await react($, wasAway ? 'happy' : 'think', line)
 
     return next(e)
   }).catch(($, e, next) => next(e))
@@ -731,9 +601,7 @@ export const register: Register = (on, options) => {
     if (e.tool === TALK_TOOL) {
       return next(e)
     }
-    const isClawd = (await read($, species)) === 'clawd'
-    const said = isClawd ? opinion(e, seen) : undefined
-    const [kind, line, pose] = said ?? reaction(e)
+    const [kind, line, pose] = opinion(e, seen) ?? reaction(e)
     if (pose !== undefined) {
       const now = await $.clock.now()
       await update($, emote, (): Emote => ({ name: pose, line, until: now + EMOTE_MS }))
@@ -760,8 +628,8 @@ export const register: Register = (on, options) => {
       // brings out the wizard.
       life.waitingOn = undefined
       const now = await $.clock.now()
-      const isWizard = isDenied && isClawd && e.tool === 'Bash' && DESTRUCTIVE.test(field(e, 'command'))
-      const line = isWizard ? say('gandalf') : isDenied ? (isClawd ? say('refused') : 'denied') : isClawd ? say('thanks') : 'allowed'
+      const isWizard = isDenied && e.tool === 'Bash' && DESTRUCTIVE.test(field(e, 'command'))
+      const line = isWizard ? say('gandalf') : isDenied ? say('refused') : say('thanks')
       const pose: EmoteName = isWizard ? 'gandalf' : isDenied ? 'enough' : 'hop'
       await update($, emote, (): Emote => ({ name: pose, line, until: now + (isWizard ? EMOTE_MS : REACTION_MS) }))
       await react($, isDenied ? 'idle' : 'happy', line)
@@ -771,9 +639,9 @@ export const register: Register = (on, options) => {
       life.failStreak = isFailed ? life.failStreak + 1 : 0
     }
     const command = e.tool === 'Bash' ? field(e, 'command') : ''
-    const isTests = isClawd && !isDenied && TESTS.test(command)
+    const isTests = !isDenied && TESTS.test(command)
     // A force push keeps its Jedi rather than getting confetti.
-    const shipped = isClawd && !isDenied && !isFailed && !FORCE_PUSH.test(command) ? SHIPS.exec(command)?.[1] : undefined
+    const shipped = !isDenied && !isFailed && !FORCE_PUSH.test(command) ? SHIPS.exec(command)?.[1] : undefined
     if (shipped !== undefined) {
       // A commit or push that went through gets confetti.
       const line = say(shipped === 'push' ? 'pushed' : 'committed')
@@ -796,19 +664,19 @@ export const register: Register = (on, options) => {
         await update($, emote, (): Emote => ({ name: 'enough', line, until: now + EMOTE_MS }))
       }
       await react($, isFailed ? 'oops' : 'happy', line)
-    } else if (isFailed && isClawd && life.failStreak >= 3) {
+    } else if (isFailed && life.failStreak >= 3) {
       const now = await $.clock.now()
       const line = say('dizzy')
       await update($, emote, (): Emote => ({ name: 'dizzy', line, until: now + EMOTE_MS }))
       await react($, 'oops', line)
-    } else if (isFailed && isClawd && life.failStreak >= 2) {
+    } else if (isFailed && life.failStreak >= 2) {
       const now = await $.clock.now()
       const line = say('again')
       await update($, emote, (): Emote => ({ name: 'facepalm', line, until: now + EMOTE_MS }))
       await react($, 'oops', line)
     } else if (isFailed) {
-      await react($, 'oops', isClawd ? say('broke') : 'ouch, that one failed')
-    } else if (isAgent && !isDenied && isClawd && life.agentsOut === 0) {
+      await react($, 'oops', say('broke'))
+    } else if (isAgent && !isDenied && life.agentsOut === 0) {
       const now = await $.clock.now()
       const line = say('crew')
       await update($, emote, (): Emote => ({ name: 'cousin', line, until: now + EMOTE_MS }))
@@ -821,13 +689,10 @@ export const register: Register = (on, options) => {
   // A permission prompt is about to wait on the person: Clawd taps its foot until they answer,
   // which the tool's own call hears when it goes on or is refused.
   on('classic.PermissionRequest', async ($, e, next) => {
-    const isClawd = (await read($, species)) === 'clawd'
     const now = await $.clock.now()
-    const line = askLine(e.tool_name, isClawd)
+    const line = askLine(e.tool_name)
     life.waitingOn = e.tool_name
-    if (isClawd) {
-      await update($, emote, (): Emote => ({ name: 'tap', line, until: now + WAIT_MS }))
-    }
+    await update($, emote, (): Emote => ({ name: 'tap', line, until: now + WAIT_MS }))
     await react($, 'think', line, WAIT_MS)
 
     return next(e)
@@ -843,7 +708,6 @@ export const register: Register = (on, options) => {
     life.spinnerWord = ''
     life.turnStartedAt = 0
     life.thinkingSince = 0
-    await grow($)
     // Each finished turn adds to today's sandcastle; a new day starts a new one.
     // Read fresh, so sessions open side by side add to one castle.
     const today = dayOf(localTime(await $.clock.now(), offsetMinutes))
@@ -851,11 +715,10 @@ export const register: Register = (on, options) => {
     life.castleTurns = kept?.day === today ? Number(kept.turns ?? 0) + 1 : 1
     life.castleDay = today
     await $.store.set('castle', { day: today, turns: life.castleTurns })
-    const isClawd = (await read($, species)) === 'clawd'
     const now = await $.clock.now()
     const local = localTime(now, offsetMinutes)
-    const leaving = isClawd ? leaveLine(local, leaveAt, 'done') : undefined
-    const stretch = isClawd && leaving === undefined ? breakLine(life.sitting, now, breakEvery) : undefined
+    const leaving = leaveLine(local, leaveAt, 'done')
+    const stretch = leaving === undefined ? breakLine(life.sitting, now, breakEvery) : undefined
     if (stretch !== undefined) {
       // A long stretch of work: Clawd stretches, and suggests the person does too.
       life.sitting = { ...life.sitting, nudgedAt: now }
@@ -863,8 +726,8 @@ export const register: Register = (on, options) => {
     }
     if (e.reason === 'aborted' || e.reason === 'error' || e.reason === 'refusal') {
       // Stopped short: nothing to cheer. Lost to an API error, Clawd radios Houston.
-      const isLost = e.reason === 'error' && isClawd
-      const said = e.reason === 'aborted' ? (isClawd ? 'ok, stopping.' : 'stopped.') : isLost ? say('houston') : isClawd ? 'that ended badly.' : 'it broke off.'
+      const isLost = e.reason === 'error'
+      const said = e.reason === 'aborted' ? 'ok, stopping.' : isLost ? say('houston') : 'that ended badly.'
       if (isLost) {
         await update($, emote, (): Emote => ({ name: 'astronaut', line: said, until: now + EMOTE_MS }))
       }
@@ -874,18 +737,17 @@ export const register: Register = (on, options) => {
     }
     const minutes = Math.round(e.durationMs / 60_000)
     const isLong = e.durationMs >= LONG_TURN_MS
-    const line = !isClawd
-      ? 'done!'
-      : (leaving ??
-        stretch ??
-        (isLong
-          ? `done! that took ${minutes} min.`
-          : seen.tools >= 15
-            ? `finally. ${seen.tools} tools, that was a lot.`
-            : seen.tools === 0
-              ? 'just talking? fine.'
-              : say('done')))
-    if (isClawd && isLong && stretch === undefined) {
+    const line =
+      leaving ??
+      stretch ??
+      (isLong
+        ? `done! that took ${minutes} min.`
+        : seen.tools >= 15
+          ? `finally. ${seen.tools} tools, that was a lot.`
+          : seen.tools === 0
+            ? 'just talking? fine.'
+            : say('done'))
+    if (isLong && stretch === undefined) {
       // A long turn's end: a burst of confetti, and the line stays up a while so the person sees it when they look back.
       await update($, emote, (): Emote => ({ name: 'party', line, until: now + EMOTE_MS }))
     }
@@ -919,9 +781,6 @@ export const register: Register = (on, options) => {
       return {}
     }
     if (asked === 'guest') {
-      if ((await read($, species)) !== 'clawd') {
-        return { text: 'Only Clawd has guests: /pet clawd' }
-      }
       // Someone drops by, not whoever came last, with something to say.
       const [name, saying] = pickGuest(Math.random(), life.lastGuest)
       life.lastGuest = name
@@ -933,9 +792,6 @@ export const register: Register = (on, options) => {
       return {}
     }
     if (asked === 'treat' || asked === 'trick') {
-      if ((await read($, species)) !== 'clawd') {
-        return { text: 'Only Clawd does treats and tricks: /pet clawd' }
-      }
       const now = await $.clock.now()
       let act: [EmoteName, string]
       if (asked === 'treat') {
@@ -952,12 +808,12 @@ export const register: Register = (on, options) => {
       return {}
     }
     const shown = EMOTE_NAMES.find(one => one === asked)
-    if ((shown === 'sing' || shown === 'vibe') && (await read($, species)) === 'clawd') {
+    if (shown === 'sing' || shown === 'vibe') {
       await (shown === 'sing' ? sing($) : vibe($))
 
       return {}
     }
-    if (shown !== undefined && (await read($, species)) === 'clawd') {
+    if (shown !== undefined) {
       // After treat and trick, which are commands first: a preview, the emote as it plays, with its name for a line.
       const now = await $.clock.now()
       await update($, emote, (): Emote => ({ name: shown, line: `(${shown})`, until: now + EMOTE_MS }))
@@ -965,15 +821,7 @@ export const register: Register = (on, options) => {
       return {}
     }
     if (asked !== '') {
-      const picked = SPECIES.find(one => one === asked)
-      if (picked === undefined) {
-        return { text: `Try /pet, /pet treat or /pet trick, or switch with /pet ${SPECIES.join(', /pet ')}.` }
-      }
-      await $.store.set('species', picked)
-      await update($, species, () => picked)
-      await react($, 'happy', 'hello!')
-
-      return { text: `Switched to ${picked}.` }
+      return { text: 'Try /pet, /pet treat, /pet trick, /pet guest, or /pet and an emote, such as /pet meditate.' }
     }
 
     await petOnce($)
@@ -1000,10 +848,6 @@ export const register: Register = (on, options) => {
     }
     if (await read($, isOff)) {
       return { result: 'The user has hidden Clawd with /pet off; it is away until they type /pet on.' }
-    }
-    const kind = await read($, species)
-    if (kind !== 'clawd') {
-      return { result: `The pet above the prompt right now is ${kind === 'garden' ? 'the garden' : 'Moss'}; Clawd is off duty.` }
     }
     if (life.talks >= TALKS_PER_TURN) {
       return { result: 'Clawd is still busy with the last one; leave it be for this turn.' }
@@ -1038,7 +882,7 @@ export const register: Register = (on, options) => {
   // Compacting the conversation squishes Clawd flat for a moment.
   on('session.compact', async ($, e, next) => {
     const isCompacting = e.agentId === undefined && e.trigger !== 'precompute'
-    if (isCompacting && (await read($, species)) === 'clawd') {
+    if (isCompacting) {
       const now = await $.clock.now()
       const line = say('squish')
       await update($, emote, (): Emote => ({ name: 'squish', line, until: now + EMOTE_MS }))
@@ -1071,158 +915,101 @@ export const register: Register = (on, options) => {
     }
 
     const { Box, Button, Text } = $.ui.resolve(e)
-    // A click on the critter's name pets it, and on Clawd, a click anywhere on it.
+    // A click on Clawd, or on its name, pets it.
     const pet = () => void petOnce($)
     const m = await read($, mood)
     const frame = await read($, tick)
     const now = await $.clock.now()
     const [kind, line] = current(m, now, e.props.isWorking)
     const room = Math.max(10, e.props.bodyColumns - 16)
-    const critter = await read($, species)
-
-    if (critter === 'garden') {
-      const g = await read($, growth)
-      const bloomed = Array.from({ length: PLANTS }, (_, i) => stage(i, g)).filter(s => s === 3).length
-      const isNight = kind === 'sleep'
-      const rows = [...weather(kind, frame, g >= FULL_BLOOM), ...plants(g)]
-
-      return (
-        <Box flexDirection="row">
-          <Box flexDirection="column">
-            {rows.map(row => (
-              <Text dimColor={isNight}>
-                {row.map(cell => (
-                  <Text color={cell.color}>{cell.ch}</Text>
-                ))}
-              </Text>
-            ))}
-          </Box>
-          <Box flexDirection="column" marginLeft={3}>
-            <Button key="name" plain onPress={pet}>
-              <Text color={STEM} dimColor={isNight}>
-                garden
-              </Text>
-            </Button>
-            <Text dimColor>{bloomed === PLANTS ? 'in full bloom' : `${bloomed}/${PLANTS} in bloom`}</Text>
-            {line !== '' && <Text dimColor>{short(line, room)}</Text>}
-          </Box>
-        </Box>
-      )
+    const local = localTime(now, offsetMinutes)
+    const act = await read($, emote)
+    let pose = act.name !== null && now < act.until ? act.name : undefined
+    let said = pose !== undefined && now >= m.until ? act.line : line
+    if (e.props.isWorking && now >= m.until && pose === undefined) {
+      const step = Math.floor((now - life.spinnerSince) / SPINNER_CYCLE_MS)
+      const take = spinnerTake(life.spinnerWord, life.spinnerSeed, step)
+      pose = take.pose
+      said = take.line
     }
-
-    if (critter === 'clawd') {
-      const local = localTime(now, offsetMinutes)
-      const act = await read($, emote)
-      let pose = act.name !== null && now < act.until ? act.name : undefined
-      let said = pose !== undefined && now >= m.until ? act.line : line
-      if (e.props.isWorking && now >= m.until && pose === undefined) {
-        const step = Math.floor((now - life.spinnerSince) / SPINNER_CYCLE_MS)
-        const take = spinnerTake(life.spinnerWord, life.spinnerSeed, step)
-        pose = take.pose
-        said = take.line
+    const castle = life.castleDay === dayOf(local) ? life.castleTurns : 0
+    let mode = kind
+    let isListening = now < life.headphonesUntil
+    if (kind === 'sleep') {
+      // Away a while: by day Clawd may take up a pastime instead of sleeping.
+      const pastime = pastimeOf(m.lastActiveAt, now, local)
+      if (pastime !== 'sleep') {
+        mode = 'idle'
+        pose = pastime === 'vibe' && isVibeSinging(frame) ? 'sing' : pastime
+        said = pastimeLine(pastime, frame, castle, life.songs)
+        isListening = pastime === 'vibe'
       }
-      const castle = life.castleDay === dayOf(local) ? life.castleTurns : 0
-      let mode = kind
-      let isListening = now < life.headphonesUntil
-      if (kind === 'sleep') {
-        // Away a while: by day Clawd may take up a pastime instead of sleeping.
-        const pastime = pastimeOf(m.lastActiveAt, now, local)
-        if (pastime !== 'sleep') {
-          mode = 'idle'
-          pose = pastime === 'vibe' && isVibeSinging(frame) ? 'sing' : pastime
-          said = pastimeLine(pastime, frame, castle, life.songs)
-          isListening = pastime === 'vibe'
-        }
-      }
-      if (pose === 'sing' && said === act.line) {
-        said = sungSoFar(act.line, now - (act.until - SING_MS), TICK_MS)
-      }
-      if (said === '') {
-        said = ambient(local, now, leaveAt)
-      }
-      if (pose !== life.pose) {
-        life.pose = pose
-        life.poseSince = now
-      }
-      const thinking = e.props.isWorking && life.thinkingSince > 0 ? now - life.thinkingSince - BUBBLE_AFTER_MS : -1
-      const rows = clawdScene({
-        kind: mode,
-        emote: pose,
-        frame,
-        poseFrame: Math.floor((now - life.poseSince) / TICK_MS),
-        nowMs: now,
-        local,
-        crew: life.agentsOut,
-        isSweating: e.props.isWorking && life.turnStartedAt > 0 && now - life.turnStartedAt > LONG_TURN_MS,
-        bubble: thinking < 0 ? 0 : Math.min(3, Math.floor(thinking / BUBBLE_STEP_MS) + 1),
-        castle,
-        hasHeadphones: isListening,
-        ...(now - life.typed.at < TYPING_MS && {
-          typing: {
-            caret: (PROMPT_INDENT + life.typed.caret) % Math.max(1, e.props.bodyColumns),
-            isPet: /^\/pet\b/.test(life.typed.draft),
-          },
-        }),
-      })
-
-      // A terminal draws the rows as characters; the apps that draw pictures get them as a drawing,
-      // since their fonts and line spacing pull block characters apart.
-      let drawing
-      if (e.surface === 'terminal') {
-        // One plain button round the whole drawing, its rows joined by line breaks, so a click
-        // anywhere on Clawd lands on it and the pointer lights all of it up at once.
-        const lines = joinRuns(rows)
-        drawing = (
-          <Button key="clawd" label="pet Clawd" plain onPress={pet}>
-            {lines.flatMap((row, i) => [
-              ...row.map(part => (
-                <Text color={part.color} backgroundColor={part.backgroundColor}>
-                  {part.text}
-                </Text>
-              )),
-              ...(i < lines.length - 1 ? ['\n'] : []),
-            ])}
-          </Button>
-        )
-      } else {
-        const { Svg } = $.ui.resolve(e)
-        drawing = <Svg source={sceneSvg(rows)} alt={pose === undefined ? 'Clawd' : `Clawd: ${pose}`} />
-      }
-
-      return (
-        <Box flexDirection="row">
-          {drawing}
-          <Box flexDirection="column" marginLeft={2}>
-            <Button key="name" plain onPress={pet}>
-              <Text color={CLAWD} bold>
-                Clawd{mode === 'love' ? ' ♥' : ''}
-              </Text>
-            </Button>
-            {said !== '' && <Text dimColor>{short(said, room)}</Text>}
-          </Box>
-        </Box>
-      )
     }
+    if (pose === 'sing' && said === act.line) {
+      said = sungSoFar(act.line, now - (act.until - SING_MS), TICK_MS)
+    }
+    if (said === '') {
+      said = ambient(local, now, leaveAt)
+    }
+    if (pose !== life.pose) {
+      life.pose = pose
+      life.poseSince = now
+    }
+    const thinking = e.props.isWorking && life.thinkingSince > 0 ? now - life.thinkingSince - BUBBLE_AFTER_MS : -1
+    const rows = clawdScene({
+      kind: mode,
+      emote: pose,
+      frame,
+      poseFrame: Math.floor((now - life.poseSince) / TICK_MS),
+      nowMs: now,
+      local,
+      crew: life.agentsOut,
+      isSweating: e.props.isWorking && life.turnStartedAt > 0 && now - life.turnStartedAt > LONG_TURN_MS,
+      bubble: thinking < 0 ? 0 : Math.min(3, Math.floor(thinking / BUBBLE_STEP_MS) + 1),
+      castle,
+      hasHeadphones: isListening,
+      ...(now - life.typed.at < TYPING_MS && {
+        typing: {
+          caret: (PROMPT_INDENT + life.typed.caret) % Math.max(1, e.props.bodyColumns),
+          isPet: /^\/pet\b/.test(life.typed.draft),
+        },
+      }),
+    })
 
-    const face = FACES[kind]
-    // Idle Moss blinks now and then; busy Moss bobs.
-    const isAlt = kind === 'idle' ? frame % 6 === 0 : frame % 2 === 0
-    const eyes = face.eyes[isAlt ? 1 : 0]
-    const pad = kind !== 'idle' && kind !== 'sleep' && isAlt ? ' ' : ''
-    const color = COLORS[kind]
+    // A terminal draws the rows as characters; the apps that draw pictures get them as a drawing,
+    // since their fonts and line spacing pull block characters apart.
+    let drawing
+    if (e.surface === 'terminal') {
+      // One plain button round the whole drawing, its rows joined by line breaks, so a click
+      // anywhere on Clawd lands on it and the pointer lights all of it up at once.
+      const lines = joinRuns(rows)
+      drawing = (
+        <Button key="clawd" label="pet Clawd" plain onPress={pet}>
+          {lines.flatMap((row, i) => [
+            ...row.map(part => (
+              <Text color={part.color} backgroundColor={part.backgroundColor}>
+                {part.text}
+              </Text>
+            )),
+            ...(i < lines.length - 1 ? ['\n'] : []),
+          ])}
+        </Button>
+      )
+    } else {
+      const { Svg } = $.ui.resolve(e)
+      drawing = <Svg source={sceneSvg(rows)} alt={pose === undefined ? 'Clawd' : `Clawd: ${pose}`} />
+    }
 
     return (
       <Box flexDirection="row">
-        <Box flexDirection="column">
-          <Text color={color}>{pad} .~~~.</Text>
-          <Text color={color}>{pad}( {eyes} )</Text>
-          <Text color={color}>{pad} `{face.mouth}´</Text>
-        </Box>
+        {drawing}
         <Box flexDirection="column" marginLeft={2}>
           <Button key="name" plain onPress={pet}>
-            <Text bold>Moss</Text>
+            <Text color={CLAWD} bold>
+              Clawd{mode === 'love' ? ' ♥' : ''}
+            </Text>
           </Button>
-          {line !== '' && <Text dimColor>{short(line, room)}</Text>}
+          {said !== '' && <Text dimColor>{short(said, room)}</Text>}
         </Box>
       </Box>
     )

@@ -1122,9 +1122,6 @@ const PET_COMMANDS: readonly [string, string][] = [
   ['refresh-songs', 'forget the songbook and write a new one'],
   ['off', 'hide the pet until /pet on'],
   ['on', 'bring the pet back'],
-  ['garden', 'switch to the garden'],
-  ['clawd', 'switch to Clawd'],
-  ['moss', 'switch to Moss'],
 ]
 
 // Rows for the typeahead while an argument of /pet is being typed: the commands, and once a few

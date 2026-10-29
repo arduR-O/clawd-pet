@@ -8,7 +8,7 @@
     {
       "name": "clawd",
       "source": "./",
-      "description": "Clawd, a little crab above your prompt that reacts to what Claude is doing (or a garden, or Moss)"
+      "description": "Clawd, a little crab above your prompt that reacts to what Claude is doing"
     }
   ]
 }

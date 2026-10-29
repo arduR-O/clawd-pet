@@ -14,7 +14,7 @@ import {
 } from './helpers'
 
 test('outside the terminal Clawd is drawn as a picture, its name and line as text', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
 
   for (const surface of ['vscode', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
@@ -46,7 +46,7 @@ test('the picture draws block characters as pixel rectangles and the rest as tex
 })
 
 test('Clawd is drawn in NarutoDark orange', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' })
+  await start($, on, {})
   await $.tool.call({ tool: 'Read', file_path: '/repo/app.py' })
 
   const ui = await $.ui.mount(BAND)
@@ -64,7 +64,7 @@ test('Clawd is drawn in NarutoDark orange', { options: OPTIONS }, async ($, on) 
 })
 
 test('under the noon sun Clawd puts sunglasses on only for a while', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   expect(await ui.find({ type: 'Text', text: /^██▀██$/ })).toBeFalsy()
 
@@ -76,7 +76,7 @@ test('under the noon sun Clawd puts sunglasses on only for a while', { options: 
 })
 
 test('the moon is out in the evening, and no sunglasses', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, LATE_EVENING_IST)
+  await start($, on, {}, LATE_EVENING_IST)
 
   const ui = await $.ui.mount(BAND)
   expect(await ui.find({ type: 'Text', text: /^[○☽●☾]$/ })).toBeTruthy()
@@ -280,7 +280,7 @@ test('a meditating Clawd sits with its claws raised beside its face, eyes shut, 
 })
 
 test('/pet meditate glows and hums in the band', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'meditate' })

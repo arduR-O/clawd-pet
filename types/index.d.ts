@@ -9,8 +9,6 @@ export type Kind =
   | 'love'
   | 'sleep'
 
-export type Species = 'garden' | 'clawd' | 'moss'
-
 // Clawd's little acts: idle ones, reactions to a pet, and poses for spinner words.
 export type EmoteName =
   | 'wave'
@@ -85,6 +83,6 @@ export type Mood = {
 
 declare module 'claude-code' {
   interface PluginState {
-    clawd: { mood: Shaped<Mood>; tick: number; species: Species; growth: number; emote: Shaped<Emote>; isOff: boolean }
+    clawd: { mood: Shaped<Mood>; tick: number; emote: Shaped<Emote>; isOff: boolean }
   }
 }
