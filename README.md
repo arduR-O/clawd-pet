@@ -146,6 +146,7 @@ To change a setting, run `/plugin configure clawd@clawd` in Claude Code.
 | Break every | `50` | Sets the minutes of work before Clawd suggests a break. Work means that you send prompts or type, with no gap of 10 minutes or more. `0` or empty turns it off. |
 | Songbook: Last.fm user | Empty | Sets your Last.fm user name. See [The songbook](#the-songbook). |
 | Songbook: Last.fm API key | Empty | Sets your Last.fm API key. See [The songbook](#the-songbook). |
+| Songbook: effort | `medium` | Sets how hard Claude Haiku thinks about the songbook: `low`, `medium` or `high`. Higher writes better lines and uses more tokens. |
 
 ### The songbook
 
@@ -170,7 +171,7 @@ nothing to your requests to Claude. Only two optional settings cost tokens:
 | Optional setting | Cost |
 |---|---|
 | Claude can talk to Clawd | About 400 tokens added to each request that Claude makes. Off by default. |
-| Songbook: Last.fm | One small call to Claude Haiku per day. Empty by default. |
+| Songbook: Last.fm | One call to Claude Haiku per day: about 2,000 output tokens at `low` effort, 4,000 at `medium`, 8,000 at `high`. Empty by default. |
 
 **Claude can talk to Clawd.** When you set it to `on`, Claude gets the `clawd` tool, and each
 request carries the tool's description. To remove the cost again, set it to `off`.

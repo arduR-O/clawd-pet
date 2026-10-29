@@ -430,7 +430,7 @@ async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }
 // once a day, and again when the source or the prompt's style changes (or `/pet refresh-songs`
 // forgets it). Until it is written, and whenever writing fails, the last songbook or the starter
 // songs are sung. Answers what happened, for `/pet refresh-songs` to tell the person.
-async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: string }, today: string): Promise<string> {
+async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: string }, effort: SongbookEffort, today: string): Promise<string> {
   // Without Last.fm, Clawd sings its built-in songs and calls no model.
   if (lastfm.user === '' || lastfm.key === '') {
     return lastfmUnset(lastfm)
@@ -451,9 +451,7 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
   }
   // A call the engine refuses to send (a blocked model) rejects; Clawd keeps the songs it has.
   let refused = ''
-  // Room for Haiku's thinking as well as the lines: the cap counts both, and at 400 its thinking
-  // took the lot, leaving no text. Low effort keeps that thinking short.
-  const request = { model: 'haiku', maxTokens: 4096, effort: 'low', prompt: songbookPrompt(taste) } as const
+  const request = { model: 'haiku', maxTokens: SONGBOOK_TOKENS[effort], effort, prompt: songbookPrompt(taste) } as const
   const reply = await $.model.complete(request).catch((error: unknown) => {
     refused = error instanceof Error ? error.message : String(error)
     return undefined
@@ -468,6 +466,12 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
 
   return `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm.`
 }
+
+// How hard Haiku thinks about the songbook, and the reply's cap for each: the cap counts its thinking
+// as well as the lines (at 400, the thinking took the lot and left no text). Tried live, each takes
+// about half its cap.
+type SongbookEffort = 'low' | 'medium' | 'high'
+const SONGBOOK_TOKENS: Readonly<Record<SongbookEffort, number>> = { low: 4096, medium: 8192, high: 16000 }
 
 // What to tell the person when Last.fm is not set up, naming the part that's missing.
 function lastfmUnset(lastfm: { user: string; key: string }): string {
@@ -527,6 +531,8 @@ export const register: Register = (on, options) => {
   // The clawd tool goes into every request Claude makes, so it is there only when asked for.
   const canTalk = String(options.talk ?? 'off') === 'on'
   const lastfm = { user: String(options.lastfm_user ?? '').trim(), key: String(options.lastfm_api_key ?? '').trim() }
+  const asked = String(options.songbook_effort ?? 'medium')
+  const songbookEffort: SongbookEffort = asked === 'low' || asked === 'high' ? asked : 'medium'
 
   on('session.start', async ($, e, next) => {
     life.prompts = 0
@@ -549,7 +555,7 @@ export const register: Register = (on, options) => {
     life.castleDay = castle?.day ?? ''
     life.castleTurns = Number(castle?.turns ?? 0)
     // Off the session's start, which waits for nothing: the songbook may need a model call.
-    const refresh = async () => refreshSongbook($, lastfm, dayOf(localTime(await $.clock.now(), offsetMinutes)))
+    const refresh = async () => refreshSongbook($, lastfm, songbookEffort, dayOf(localTime(await $.clock.now(), offsetMinutes)))
     $.clock.after(1000, () => {
       void refresh()
     })
@@ -825,7 +831,7 @@ export const register: Register = (on, options) => {
       life.songs = STARTER_SONGS
       await react($, 'happy', 'new songs coming…')
 
-      return { text: await refreshSongbook($, lastfm, dayOf(localTime(await $.clock.now(), offsetMinutes))) }
+      return { text: await refreshSongbook($, lastfm, songbookEffort, dayOf(localTime(await $.clock.now(), offsetMinutes))) }
     }
     if (asked === 'guest') {
       // Someone drops by, not whoever came last, with something to say.

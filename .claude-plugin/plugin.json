@@ -1,6 +1,6 @@
 {
   "name": "clawd",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Clawd, a little crab above your prompt that reacts to what Claude is doing",
   "author": {
     "name": "arduR-O"
@@ -38,6 +38,13 @@
       "description": "Optional. A read-only Last.fm API key from last.fm/api/accounts. Claude Code keeps it in secure storage",
       "sensitive": true,
       "default": ""
+    },
+    "songbook_effort": {
+      "type": "string",
+      "title": "Songbook: effort",
+      "description": "How hard Claude Haiku thinks about the day's songbook. Higher writes better lines and uses more tokens: about 2,000 for low, 4,000 for medium, 8,000 for high, once a day",
+      "default": "medium",
+      "options": ["low", "medium", "high"]
     },
     "talk": {
       "type": "string",

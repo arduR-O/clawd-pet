@@ -39,9 +39,24 @@ test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, asy
   const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
 
   expect(ran.text).toBe("New songbook: 3 lines from listener's Last.fm.")
-  // Room for Haiku to think and still write the lines.
-  expect(asked).toEqual([{ maxTokens: 4096, effort: 'low' }])
+  // Medium effort by default, with room for Haiku to think and still write the lines.
+  expect(asked).toEqual([{ maxTokens: 8192, effort: 'medium' }])
   expect(prompts.length).toBe(1)
+})
+
+test('the songbook effort setting picks how hard Haiku thinks, and the room it gets', { options: { ...LASTFM.options, songbook_effort: 'high' } }, async ($, on) => {
+  const asked: unknown[] = []
+  on('model.complete', (_, e) => {
+    asked.push({ maxTokens: e.maxTokens, effort: e.effort })
+
+    return { value: { isAnswered: true, text: 'one ♪\ntwo two ♪\nthree three ♪', usage: NO_USAGE } }
+  })
+  lastfmStub(on, [])
+  await start($, on, {}, NOON_IST)
+
+  await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+
+  expect(asked).toEqual([{ maxTokens: 16000, effort: 'high' }])
 })
 
 test('/pet refresh-songs says what Last.fm said when it refuses, such as a bad key', LASTFM, async ($, on) => {

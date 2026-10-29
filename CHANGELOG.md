@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.7
+
+### New
+
+- **Songbook: effort.** A setting for how hard Claude Haiku thinks about the songbook: `low`,
+  `medium` (the default) or `high`. Higher writes better lines and uses more tokens: about 2,000,
+  4,000 and 8,000 once a day. The reply's cap grows with it (4,096, 8,192, 16,000), so the thinking
+  never crowds out the lines. 0.2.6 wrote it at `low`.
+
 ## 0.2.6
 
 ### Fixed
