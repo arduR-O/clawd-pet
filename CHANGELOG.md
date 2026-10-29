@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.6
+
+### Fixed
+
+- **The Last.fm songbook is written again.** Claude Haiku now thinks before it answers, and its
+  thinking counts against the reply's token cap. At 400 tokens the thinking took them all, so the reply
+  held no lines and Clawd kept its built-in songs. The cap is now 4096, with low effort to keep the
+  thinking short. Tried live, with English and with Hindi songs.
+
 ## 0.2.5
 
 ### Fixed

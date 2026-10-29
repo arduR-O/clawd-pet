@@ -451,7 +451,10 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
   }
   // A call the engine refuses to send (a blocked model) rejects; Clawd keeps the songs it has.
   let refused = ''
-  const reply = await $.model.complete({ model: 'haiku', maxTokens: 400, prompt: songbookPrompt(taste) }).catch((error: unknown) => {
+  // Room for Haiku's thinking as well as the lines: the cap counts both, and at 400 its thinking
+  // took the lot, leaving no text. Low effort keeps that thinking short.
+  const request = { model: 'haiku', maxTokens: 4096, effort: 'low', prompt: songbookPrompt(taste) } as const
+  const reply = await $.model.complete(request).catch((error: unknown) => {
     refused = error instanceof Error ? error.message : String(error)
     return undefined
   })

@@ -22,8 +22,10 @@ import {
 
 test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, async ($, on) => {
   const prompts: string[] = []
+  const asked: unknown[] = []
   on('model.complete', (_, e) => {
     prompts.push(e.prompt)
+    asked.push({ maxTokens: e.maxTokens, effort: e.effort })
     const usage = { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
 
     return { value: { isAnswered: true, text: 'where do i begiiin\nwe will, we will\nsomebody to looove', usage } }
@@ -37,6 +39,8 @@ test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, asy
   const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
 
   expect(ran.text).toBe("New songbook: 3 lines from listener's Last.fm.")
+  // Room for Haiku to think and still write the lines.
+  expect(asked).toEqual([{ maxTokens: 4096, effort: 'low' }])
   expect(prompts.length).toBe(1)
 })
 
