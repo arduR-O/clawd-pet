@@ -58,9 +58,14 @@ test('the apps get a picture that plays a dozen frames, and a new one only when 
   await clock.advance(4 * 800)
   expect((await picture())?.source).toBe(first?.source)
 
-  // A pet changes what Clawd does: a new picture.
+  const boxes = async () => (await ui.findAll({ type: 'Box' })).length
+  const wrapped = await boxes()
+
+  // A pet changes what Clawd does: a new picture, as a new element, in a Box or out of one by turns,
+  // so an app that stopped drawing the old element draws this one afresh.
   await $.command.run({ ...TYPED, command: 'pet', args: '' })
   expect((await picture())?.source).not.toBe(first?.source)
+  expect(Math.abs((await boxes()) - wrapped)).toBe(1)
   await ui.unmount()
 })
 

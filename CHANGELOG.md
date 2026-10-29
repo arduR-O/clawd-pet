@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.10
+
+### Fixed
+
+- **Clawd comes back by itself in VS Code on a remote host.** There VS Code can stop drawing Clawd's
+  picture after the window sits in the background, showing only "Clawd", until a reload or
+  `/pet off` and `/pet on`. That showed the stuck part is the picture element, so each new picture
+  (about every 10 s) now comes as a new element, and a stuck one is replaced within about 10 s.
+
 ## 0.2.9
 
 ### Fixed

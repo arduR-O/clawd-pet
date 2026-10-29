@@ -91,8 +91,8 @@ const emote = atom(
 
 // What the module keeps between events; a reload starts it over.
 const life = {
-  // The picture the apps were last sent, and the frame it starts on.
-  film: { from: 0, source: '' },
+  // The picture the apps were last sent, the frame it starts on, and how many came before it.
+  film: { from: 0, source: '', count: 0 },
   isBusy: false,
   nextEmoteAt: 0,
   spinnerWord: '',
@@ -1073,12 +1073,16 @@ export const register: Register = (on, options) => {
           Array.from({ length: FILM_FRAMES }, (_, i) => sceneAt(from + i)),
           TICK_MS,
         )
-      const { from, source } = life.film
+      const { from, source, count } = life.film
       if (frame < from || frame >= from + FILM_FRAMES || filmFrom(from) !== source) {
-        life.film = { from: frame, source: filmFrom(frame) }
+        life.film = { from: frame, source: filmFrom(frame), count: count + 1 }
       }
       const { Svg } = $.ui.resolve(e)
-      drawing = <Svg source={life.film.source} alt={pose === undefined ? 'Clawd' : `Clawd: ${pose}`} isInteractive />
+      const picture = <Svg source={life.film.source} alt={pose === undefined ? 'Clawd' : `Clawd: ${pose}`} isInteractive />
+      // Every other picture sits in a Box, so each new one is a new element to the app. VS Code on a
+      // remote host can stop drawing a picture element left in the background, showing only its alt
+      // text, and swapping its source never brings it back; a new element does.
+      drawing = life.film.count % 2 === 0 ? picture : <Box>{picture}</Box>
     }
 
     const name = (
