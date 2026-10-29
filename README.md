@@ -2,196 +2,287 @@
 
 Clawd is a small pixel crab that lives above your prompt in Claude Code. It watches Claude work
 and reacts to it. It puts on glasses to read, gets dizzy when tests fail, and throws confetti
-when you ship.
+when Claude commits your work.
 
 <p align="center"><img src="assets/clawd.svg" alt="Clawd above the Claude Code prompt: waving, reading, dizzy, watching you type, a Jedi, singing, petted, meditating and celebrating" width="640"></p>
 
-Clawd works in the terminal, in VS Code and in the Claude desktop app. It costs almost nothing
-to run. Clawd is an unofficial fan mod. Anthropic did not make or endorse it.
+Clawd is a plugin for Claude Code. It works in the terminal, in VS Code and in the Claude desktop
+app. Clawd is an unofficial fan project. Anthropic did not make or endorse it.
 
 ## Install
 
-The easy way: ask Claude in Claude Code.
+You need Claude Code 2.1.312 or later. To see your version, run `claude --version`. You do not
+need to install anything else.
+
+**The easy way:** in Claude Code, send this prompt:
 
 > Install the Clawd mod from https://github.com/arduR-O/clawd-pet
 
-Claude does all the steps for you. To do them yourself:
+Claude runs the steps for you. It asks for your time zone.
 
-1. In a shell, add the marketplace and install the plugin:
+**To install it yourself:**
+
+1. In your terminal, outside Claude Code, run:
 
    ```sh
    claude plugin marketplace add arduR-O/clawd-pet
+   ```
+
+2. Run:
+
+   ```sh
    claude plugin install clawd@clawd
    ```
 
-2. Set your time zone. In Claude Code, run `/plugin configure clawd@clawd`. Set **UTC offset**
-   to your offset from UTC, for example `+05:30` or `-07:00`.
-3. In Claude Code, run `/reload-plugins`. Clawd appears above the prompt.
+   `clawd@clawd` means "the plugin `clawd` from the marketplace `clawd`". A marketplace is a list
+   of plugins. This repository is a marketplace with one plugin in it.
+3. In Claude Code, run `/plugin configure clawd@clawd`.
+4. Set **UTC offset** to your time zone, for example `+05:30` or `-07:00`. Clawd uses it to show
+   day and night. If you skip this step, Clawd uses UTC.
+5. In Claude Code, run `/reload-plugins`.
 
-Clawd is tested with Claude Code 2.1.312.
+Clawd appears above the prompt, with its name and what it says next to it. It uses four rows of
+the screen. In VS Code and the desktop app, Clawd is a picture.
+
+If Clawd does not appear, see [Troubleshooting](#troubleshooting).
 
 ## What Clawd does
 
 **It reacts to Claude.**
 
 - When Claude reads a file, Clawd puts on reading glasses.
-- When a commit goes through, Clawd throws confetti.
+- When Claude commits your work, Clawd throws confetti.
 - When a tool fails, Clawd winces. After two failures in a row, it facepalms. After three, it
   gets dizzy.
-- When a turn takes more than two minutes, Clawd sweats. At the end, it celebrates.
-- When Claude thinks, Clawd reacts to the word on the spinner. "Pondering…" can make it meditate.
+- When Claude works on one prompt for more than two minutes, Clawd sweats. When Claude
+  finishes, Clawd celebrates.
+- While Claude thinks, Clawd reacts to the word on the spinner. For example, it meditates for
+  "Pondering…".
 
 **It reacts to you.**
 
 - When you type, its eyes follow the cursor.
-- When you allow a permission request, Clawd thanks you. When you refuse, it shrugs.
+- When you allow a permission request, Clawd thanks you. When you refuse one, it shrugs.
 - After 50 minutes of work, Clawd stretches and tells you to take a break.
 - If you set a leave time, Clawd counts down to it and tells you to go home.
 
 **It has a life of its own.**
 
 - A sun or a moon moves over its head with your local time.
-- It sings lines from a songbook. The songbook can follow the music you listen to.
-- It builds a sandcastle. Each finished turn adds one level.
-- When you go away, it fishes, juggles, listens to music or takes a nap.
-- While you read Claude's answer, it keeps still.
+- It sings lines from songs. You can make it sing the music that you listen to.
+- It builds a sandcastle. Each prompt that Claude finishes adds one level. A new day starts a new
+  sandcastle.
+- When you send no prompt for 5 minutes in the day, Clawd fishes, juggles, builds or listens to
+  music. After 25 minutes, or at night, it takes a nap.
+- While you read Claude's answer, Clawd keeps still.
 
 **Claude can talk to it.** With the `clawd` tool, Claude can make Clawd act, sing or say how it
-is. Claude uses it only now and then.
+is. Claude uses the tool only at good moments, two times per prompt at most.
 
-<p align="center"><img src="assets/tricks.svg" alt="Clawd watches you type, thanks you for an ok, has a face for every mood, wears reading glasses, suggests stretch breaks and celebrates long turns" width="640"></p>
+<p align="center"><img src="assets/tricks.svg" alt="Clawd watches you type, thanks you when you allow a permission request, has a face for every mood, wears reading glasses, suggests stretch breaks and celebrates long work" width="640"></p>
 
 ## Guests
 
 Sometimes a guest comes. Each guest comes for a reason:
 
-| Guest | When it comes |
-|---|---|
-| Sherlock, in a deerstalker | Claude runs `git blame`, `git bisect` or `git log -S`, or searches three times in a row. |
-| A Jedi with a lightsaber | Claude runs `git push --force`. *"Use the --force, Luke."* |
-| Gandalf | You refuse a destructive command at a permission request. *"You shall not pass!"* |
-| The Terminator | Claude runs `kill`, `pkill` or `killall`. |
-| A DeLorean at 88 | Claude runs `git revert`, `git reflog` or `git reset` without `--hard`, or checks out an old commit. |
-| A ninja | Claude runs `git stash`. It comes back for `git stash pop`. |
-| A rubber duck | You write a long prompt about a bug. |
-| Neo | Claude loads a skill that Clawd does not know. *"I know pdf."* |
-| A mug of coffee | You send your first prompt of the morning. This happens once a day. |
-| An astronaut | A turn stops because of an API error. *"Houston, we have a problem."* |
-| A 1-UP mushroom | The tests pass after they failed earlier in the same turn. |
-| A whale | Claude runs `docker` or `podman`. |
+| Guest | Name to type | When it comes |
+|---|---|---|
+| Sherlock, in a deerstalker | `sherlock` | Claude runs `git blame`, `git bisect` or `git log -S`, or searches the code three times in a row. |
+| A Jedi with a lightsaber | `jedi` | Claude runs `git push --force`. *"Use the --force, Luke."* |
+| Gandalf | `gandalf` | You refuse a destructive command, such as `rm`, at a permission request. *"You shall not pass!"* |
+| The Terminator | `terminator` | Claude runs `kill`, `pkill` or `killall`. |
+| A DeLorean, the time machine | `delorean` | Claude goes back in time: `git revert`, `git reflog`, `git reset` without `--hard`, or a checkout of an old commit. |
+| A ninja | `ninja` | Claude runs `git stash`. The ninja comes back for `git stash pop`. |
+| A rubber duck | `duck` | You write a prompt of 280 characters or more about a bug. |
+| Neo, from The Matrix | `neo` | Claude loads a skill, such as pdf. *"I know pdf."* |
+| A mug of coffee | `coffee` | You send your first prompt of the day between 05:00 and 11:00. |
+| An astronaut | `astronaut` | Claude stops because of an API error. *"Houston, we have a problem."* |
+| A 1-UP mushroom | `oneup` | The tests pass after they failed earlier for the same prompt. |
+| A whale | `whale` | Claude runs `docker` or `podman`. |
+
+`git reset --hard` and `rm -rf` get a warning from Clawd, not a guest.
 
 <p align="center"><img src="assets/guests.svg" alt="Clawd's guests: Sherlock, a Jedi, Gandalf, the Terminator, a DeLorean, a ninja, a rubber duck, Neo, coffee, an astronaut, a 1-UP mushroom and a whale" width="640"></p>
 
-To see a guest now, run `/pet <guest>`, for example `/pet sherlock`. To see a random guest, run
-`/pet guest`.
+To see a guest now, run `/pet` and its name, for example `/pet sherlock`. To see a random guest,
+run `/pet guest`.
 
 ## Commands
 
-Click Clawd to pet it. In VS Code and the desktop app, click its name.
+To pet Clawd, click it or its name. In VS Code and the desktop app, click its name. Clicks need a
+terminal that sends mouse clicks. If yours does not, run `/pet`.
 
 All commands start with `/pet`. When you type `/pet `, Claude Code shows what can come next.
 
 | Command | What it does |
 |---|---|
-| `/pet` | Pets Clawd. Too many pets in a row annoy it. |
+| `/pet` | Pets Clawd. If you pet it 6 times in 10 seconds, it gets annoyed. |
 | `/pet treat` | Gives Clawd a treat. |
 | `/pet trick` | Makes Clawd do a trick. |
-| `/pet guest` | Brings a random guest. The same guest does not come twice in a row. |
-| `/pet <emote>` | Shows an emote now. For example: `/pet meditate`, `/pet sing`, `/pet spin`, `/pet uwu`. |
-| `/pet refresh-songs` | Writes a new songbook now. See [Settings](#settings). |
-| `/pet off` | Hides Clawd in all chats. `/pet on` shows it again. |
-| `/pet garden`, `/pet moss`, `/pet clawd` | Changes the pet: a garden that grows as you work, Moss, or Clawd. |
+| `/pet guest` | Brings a random guest. The same guest does not come two times in a row. |
+| `/pet <emote>` | Shows an emote now, for example `/pet meditate`. See [All emotes](#all-emotes). |
+| `/pet refresh-songs` | Writes a new songbook now. See [The songbook](#the-songbook). |
+| `/pet off` | Hides Clawd in all sessions. `/pet on` shows it again. |
+| `/pet garden`, `/pet moss`, `/pet clawd` | Changes the pet. The garden is six flowers that grow as Claude works. Moss is a small face made of letters. |
+
+### All emotes
+
+`wave`, `dance`, `bubbles`, `sidestep`, `peek`, `snack`, `sunbathe`, `shades`, `glasses`,
+`stargaze`, `wish`, `yawn`, `hearts`, `hop`, `wiggle`, `blush`, `shy`, `bow`, `golden`, `enough`,
+`milestone`, `sixseven`, `seagull`, `molt`, `cousin`, `pearl`, `tide`, `party`, `treat`,
+`meditate`, `uwu`, `stretch`, `facepalm`, `squish`, `rain`, `hiccup`, `fish`, `juggle`, `castle`,
+`sing`, `vibe`, `chef`, `hardhat`, `cry`, `spin`, `dizzy`, `tap`, and the twelve guests above.
 
 ## Settings
 
 To change a setting, run `/plugin configure clawd@clawd` in Claude Code.
 
-| Setting | Default | What it does | Cost |
-|---|---|---|---|
-| UTC offset | `+00:00` | Sets your time zone, for example `+05:30`. Clawd uses it for the sun, the moon and the time of day. | None |
-| Songbook: music, Last.fm user, Last.fm API key | Empty | Sets the songs that Clawd sings. See [The songbook](#the-songbook). | One small Haiku call per day. With Last.fm, also one Last.fm lookup per day. |
-| Leave time | Empty | Sets when you leave work on weekdays, as `HH:MM`. Clawd counts down to it and tells you to go home. Empty turns it off. | None |
-| Break every | `50` | Sets the minutes of work before Clawd suggests a break. `0` or empty turns it off. | None |
+| Setting | Default | What it does |
+|---|---|---|
+| UTC offset | `+00:00` | Sets your time zone, for example `+05:30`. Clawd uses it for the sun, the moon and the time of day. Change it when daylight saving time starts or ends. |
+| Leave time | Empty | Sets when you leave work on weekdays, as `HH:MM`. Clawd counts down to it and tells you to go home. Empty turns it off. |
+| Break every | `50` | Sets the minutes of work before Clawd suggests a break. Work means that you send prompts or type, with no gap of 10 minutes or more. `0` or empty turns it off. |
+| Songbook: music | Empty | Sets artists or songs for Clawd to sing. See [The songbook](#the-songbook). |
+| Songbook: Last.fm user | Empty | Sets your Last.fm user name. See [The songbook](#the-songbook). |
+| Songbook: Last.fm API key | Empty | Sets your Last.fm API key. See [The songbook](#the-songbook). |
 
 ### The songbook
 
-Clawd sings short lines from songs. The lines change each day. Sometimes Clawd changes the end of
-a line into a joke about code. Clawd chooses the songs like this:
+Clawd sings the first line of a song. Sometimes it changes the end of the line into a joke about
+code. Clawd writes a new songbook each day. It chooses the songs in this order:
 
-1. If you set **Songbook: Last.fm user** and **Songbook: Last.fm API key**, Clawd uses the songs
-   you played recently. Get a key at [last.fm/api/accounts](https://www.last.fm/api/accounts).
+1. **Last.fm:** if you set your Last.fm user and API key, Clawd uses the songs that you played
+   this week. To get a key, go to [last.fm/api/accounts](https://www.last.fm/api/accounts).
    Claude Code keeps the key in secure storage.
-2. If Last.fm is not set, or has no plays this week, Clawd uses **Songbook: music**. Set it to
-   artists or songs, separated by commas.
-3. If you set neither, Clawd sings its 30 built-in lines. These cost nothing.
+2. **Music:** if you did not set Last.fm, or Last.fm has no plays this week, Clawd uses the
+   music setting. Write artists or songs with commas between them, for example
+   `Queen, Billy Joel`.
+3. **Built-in songs:** if you set neither, Clawd sings its 30 built-in lines.
 
-`/pet refresh-songs` writes a new songbook now, without waiting for the next day.
+To write a new songbook now, run `/pet refresh-songs`.
 
-### What it costs
+## Costs and privacy
 
-The `clawd` tool adds a few hundred tokens to each request that Claude makes. A songbook costs
-one small Haiku call per day, and only if you set the music or Last.fm settings. Everything else runs on your
-computer and costs nothing.
+**Tokens.** The `clawd` tool adds about 400 tokens to each request that Claude makes. Claude Code
+caches them with the rest of the prompt, so they usually cost little. `/pet off` hides Clawd but
+does not remove the tool. To remove the cost, disable or uninstall Clawd.
+
+**The songbook.** If you set music or Last.fm, Clawd makes one call to Claude Haiku per day. The
+call uses your Claude Code account, as Claude itself does. It sends only your music setting, or
+the names of your recent songs and artists. With Last.fm, Clawd also asks Last.fm for your plays
+once per day. Without music or Last.fm, the songbook costs nothing.
+
+**What Clawd reads.** To choose what to show, Clawd reads:
+
+- your prompts and the text that you type;
+- the tools that Claude uses, with their arguments, such as commands and file paths;
+- the word on the spinner.
+
+When Claude uses the `clawd` tool, Clawd tells Claude its pets, treats and your local time. Clawd
+sends nothing else anywhere, except the songbook calls above. It has no telemetry.
 
 ## Updates
 
-Claude Code does not update Clawd automatically unless you turn it on.
+Claude Code does not update plugins from this marketplace by itself. You can turn on automatic
+updates.
 
-- **To update now:** in a shell, run `claude plugin update clawd@clawd`. Then run
-  `/reload-plugins` in Claude Code.
-- **To update automatically:** in Claude Code, run `/plugin`. Open **Marketplaces**, select
-  **clawd**, then select **Enable auto-update**.
+**To update now:**
+
+1. In your terminal, run `claude plugin update clawd@clawd`.
+2. In Claude Code, run `/reload-plugins`.
+
+**To update automatically:**
+
+1. In Claude Code, run `/plugin`.
+2. Open **Marketplaces** and select **clawd**.
+3. Select **Enable auto-update**.
 
 [CHANGELOG.md](CHANGELOG.md) tells you what changed in each version.
 
-## Uninstall
+## Troubleshooting
 
-In a shell, run:
+If Clawd does not appear above the prompt:
+
+1. Run `claude --version`. You need 2.1.312 or later.
+2. Run `claude plugin list`. Make sure that `clawd@clawd` is in the list and enabled.
+3. In Claude Code, run `/pet on`. This shows Clawd if you hid it.
+4. In Claude Code, run `/reload-plugins`, or start a new session.
+
+If your organization blocks plugins from other marketplaces, ask your administrator.
+
+## Turn off or uninstall
+
+To turn Clawd off but keep it installed, run `claude plugin disable clawd@clawd`. To turn it on
+again, run `claude plugin enable clawd@clawd`.
+
+To uninstall Clawd, run these two commands in your terminal:
 
 ```sh
 claude plugin uninstall clawd@clawd
+```
+
+```sh
 claude plugin marketplace remove clawd
 ```
 
 ## For Claude: installing Clawd
 
-When a user asks you to install this mod:
+When a user asks you to install this plugin:
 
-1. Run `claude plugin marketplace add arduR-O/clawd-pet`, then `claude plugin install clawd@clawd`.
-2. Ask the user for their time zone. Do not read it from the machine, because Claude Code often
-   runs on a server set to UTC. Save it as an offset. For example, for India:
-   `echo '{"utc_offset": "+05:30"}' | claude plugin configure clawd@clawd --values-stdin`
-3. Tell the user about the optional settings, one line each: the songbook (music or Last.fm, one
-   small Haiku call per day), leave time, and break reminders (on by default, every 50 minutes).
-   Set only the settings they ask for. Never ask the user to paste an API key into the chat. Tell
-   them to run `/plugin configure clawd@clawd` and enter it there.
-4. Tell the user to run `/reload-plugins`. Clawd appears above the prompt.
+1. Run `claude plugin marketplace add arduR-O/clawd-pet`.
+2. Run `claude plugin install clawd@clawd`.
+3. Ask the user for their time zone. Do not read it from the machine. Claude Code often runs on a
+   server that uses UTC.
+4. Save the time zone as an offset. For example, for India, run
+   `echo '{"utc_offset": "+05:30"}' | claude plugin configure clawd@clawd --values-stdin`.
+5. Tell the user about the optional settings, in one line each:
+   - the songbook: music or Last.fm, one small Haiku call per day;
+   - the leave time;
+   - break reminders: on by default, every 50 minutes.
+6. Set only the settings that the user asks for.
+7. Never ask the user to paste an API key into the chat. Tell them to run
+   `/plugin configure clawd@clawd` and to enter the key there.
+8. Tell the user to run `/reload-plugins`.
 
 ## Developing
 
-Clawd is a Claude Code hooks module. `hooks/register.tsx` connects to the session,
-`hooks/clawd.ts` draws Clawd, and `tests/` holds the tests. With Claude Code installed, run:
+Clawd is a Claude Code plugin with a hooks module. `hooks/register.tsx` connects to the session.
+`hooks/clawd.ts` draws Clawd. `tests/` holds the tests. To check and test the plugin, run:
 
 ```sh
 claude plugin validate .
+```
+
+```sh
 claude plugin test .
 ```
 
-CI runs both on every push. The pictures in this README come from the mod's own drawing code:
+CI runs both on every push. The pictures in this README come from the plugin's own drawing code.
+To draw them again, run:
 
 ```sh
 bun scripts/hero.ts > assets/clawd.svg
+```
+
+```sh
 bun scripts/tricks.ts > assets/tricks.svg
+```
+
+```sh
 bun scripts/tricks.ts guests > assets/guests.svg
 ```
 
-`promo/build.sh` makes the promo video. See [promo/README.md](promo/README.md).
+To make the promo video, see [promo/README.md](promo/README.md).
 
 ## Credits
 
-Some of Clawd's newer features come from ideas in
+Some of Clawd's features come from ideas in
 [physics-clawd-pet](https://github.com/Ramirez0291/physics-clawd-pet) by
 [Ramirez0291](https://github.com/Ramirez0291). It is a desktop Clawd with cartoon physics. You can
 pick it up and throw it across your screen. Its ideas gave us five features: faces for each mood,
-permission reactions, long-turn celebrations, break reminders and eyes that follow the cursor. We did not copy its code. The two projects work in very different ways.
-Try theirs too.
+permission reactions, celebrations of long work, break reminders and eyes that follow the cursor.
+We did not copy its code. The two projects work in very different ways. Try theirs too.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
