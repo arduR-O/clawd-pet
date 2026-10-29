@@ -111,13 +111,18 @@ const life = {
   songs: STARTER_SONGS as readonly string[],
   // Clawd keeps its headphones on until then, through the song it breaks into.
   headphonesUntil: 0,
+  // The song Clawd is singing, sung to its end: what comes up meanwhile waits for it (songLeft).
+  song: { line: '', until: 0 },
   // Times Claude has talked to Clawd this turn.
   talks: 0,
   petTimes: [] as number[],
   prompts: 0,
-  // The pose Clawd was last drawn in, and since when, so a pose's own moves start at its start.
+  // The pose Clawd was last drawn in, and since when, so a pose's own moves start at its start;
+  // and whether it came straight from another pose, crouching through the tick it changed on.
   pose: undefined as EmoteName | undefined,
   poseSince: 0,
+  isTurning: false,
+  poseTick: 0,
   // What the person last typed in the prompt and when, for Clawd to watch.
   typed: { at: -Infinity, draft: '', caret: 0 },
   // The tool whose permission prompt is waiting on the person, while one is.
@@ -319,12 +324,16 @@ function say(saying: Saying): string {
 }
 
 // Shows a reaction for a few seconds, then Clawd settles back.
+// How long the song Clawd is singing has to go: what else it would do waits that long, and then
+// gets its full time.
+const songLeft = (now: number) => Math.max(0, life.song.until - now)
+
 async function react($: EngineInterface, kind: Kind, line: string, ms = REACTION_MS) {
   const now = await $.clock.now()
   await update($, mood, (): Mood => ({
     kind,
     line,
-    until: now + ms,
+    until: now + songLeft(now) + ms,
     lastActiveAt: now,
   }))
 }
@@ -341,12 +350,14 @@ async function stopWaiting($: EngineInterface) {
 // One pet, from /pet or a click on Clawd. Too many in a row and it has had enough.
 async function petOnce($: EngineInterface) {
   const now = await $.clock.now()
+  // A pet is the person's own doing, and stops a song.
+  life.song.until = 0
   life.sitting = satAt(life.sitting, now)
   const pets = Number((await $.store.get('pets')) ?? 0) + 1
   await $.store.set('pets', pets)
   life.petTimes = [...life.petTimes.filter(at => now - at < PET_SPREE_MS), now]
   const [name, line] = pickPetted(pets, life.petTimes.length, Math.random())
-  await update($, emote, (): Emote => ({ name, line, until: now + EMOTE_MS }))
+  await update($, emote, (): Emote => ({ name, line, until: now + songLeft(now) + EMOTE_MS }))
   await react($, 'love', line)
 }
 
@@ -357,6 +368,7 @@ const dayOf = (local: { month: number; day: number }) => `${local.month}-${local
 async function sing($: EngineInterface): Promise<string> {
   const now = await $.clock.now()
   const line = life.songs[Math.floor(Math.random() * life.songs.length)] ?? STARTER_SONGS[0]!
+  life.song = { line, until: now + SING_MS }
   await update($, emote, (): Emote => ({ name: 'sing', line, until: now + SING_MS }))
 
   return line
@@ -366,7 +378,7 @@ async function sing($: EngineInterface): Promise<string> {
 async function vibe($: EngineInterface) {
   const now = await $.clock.now()
   life.headphonesUntil = now + VIBE_MS + SING_MS
-  await update($, emote, (): Emote => ({ name: 'vibe', line: '♪ *vibing* ♪', until: now + VIBE_MS }))
+  await update($, emote, (): Emote => ({ name: 'vibe', line: '♪ *vibing* ♪', until: now + songLeft(now) + VIBE_MS }))
   $.clock.after(VIBE_MS, () => {
     void sing($)
   })
@@ -449,7 +461,7 @@ async function maybeEmote($: EngineInterface, offsetMinutes: number) {
   } else if (picked.name === 'vibe') {
     await vibe($)
   } else {
-    await update($, emote, (): Emote => ({ name: picked.name, line: picked.line, until: now + EMOTE_MS }))
+    await update($, emote, (): Emote => ({ name: picked.name, line: picked.line, until: now + songLeft(now) + EMOTE_MS }))
   }
   life.nextEmoteAt = now + EMOTE_GAP_MS + Math.random() * EMOTE_GAP_MS
 }
@@ -539,7 +551,7 @@ export const register: Register = (on, options) => {
       line = onSkill(e.command.name, `/${short(e.command.name, 30)}? sure.`)
       const pose = skillPose(e.command.name)
       if (pose !== undefined) {
-        await update($, emote, (): Emote => ({ name: pose, line, until: now + EMOTE_MS }))
+        await update($, emote, (): Emote => ({ name: pose, line, until: now + songLeft(now) + EMOTE_MS }))
       }
     } else {
       line = isLate
@@ -549,7 +561,7 @@ export const register: Register = (on, options) => {
             ? 'ooh, what are we making?'
             : (ROUTINE[Math.floor(Math.random() * ROUTINE.length)] ?? 'on it.')))
       if (isLate) {
-        await update($, emote, (): Emote => ({ name: 'yawn', line, until: now + EMOTE_MS }))
+        await update($, emote, (): Emote => ({ name: 'yawn', line, until: now + songLeft(now) + EMOTE_MS }))
       }
       const phase = phaseOf(local.hour)
       const today = dayOf(local)
@@ -557,23 +569,23 @@ export const register: Register = (on, options) => {
         // The day's first prompt, in the morning, in any chat: coffee first.
         await $.store.set('coffee', today)
         line = say('coffee')
-        await update($, emote, (): Emote => ({ name: 'coffee', line, until: now + EMOTE_MS }))
+        await update($, emote, (): Emote => ({ name: 'coffee', line, until: now + songLeft(now) + EMOTE_MS }))
       } else if (e.text.length >= DUCK_PROMPT && DEBUGGING.test(e.text)) {
         // A long prompt working through a bug: a rubber duck turns up to listen.
         line = say('duck')
-        await update($, emote, (): Emote => ({ name: 'duck', line, until: now + EMOTE_MS }))
+        await update($, emote, (): Emote => ({ name: 'duck', line, until: now + songLeft(now) + EMOTE_MS }))
       }
     }
     if (e.command === undefined && NAMES_CLAWD.test(e.text)) {
       // Named in the prompt: Clawd perks up, or glows at a kind word.
       const [name, said]: [EmoteName, string] = PRAISES.test(e.text) ? ['hearts', 'aw, thanks!'] : ['peek', 'you called?']
       line = said
-      await update($, emote, (): Emote => ({ name, line, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name, line, until: now + songLeft(now) + EMOTE_MS }))
     }
     if (wasAway) {
       // Back from a while away: Clawd wakes with a stretch, or looks up from its pastime.
       const [name, welcome] = welcomeOf(pastimeOf(m.lastActiveAt, now, local))
-      await update($, emote, (): Emote => ({ name, line: welcome, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name, line: welcome, until: now + songLeft(now) + EMOTE_MS }))
       line = welcome
     }
     await react($, wasAway ? 'happy' : 'think', line)
@@ -600,7 +612,7 @@ export const register: Register = (on, options) => {
     const [kind, line, pose] = opinion(e, seen) ?? reaction(e)
     if (pose !== undefined) {
       const now = await $.clock.now()
-      await update($, emote, (): Emote => ({ name: pose, line, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name: pose, line, until: now + songLeft(now) + EMOTE_MS }))
     }
     await react($, kind, line)
     // A background agent's call returns as soon as it starts, so only a waited-for one is out.
@@ -627,7 +639,7 @@ export const register: Register = (on, options) => {
       const isWizard = isDenied && e.tool === 'Bash' && DESTRUCTIVE.test(field(e, 'command'))
       const line = isWizard ? say('gandalf') : isDenied ? say('refused') : say('thanks')
       const pose: EmoteName = isWizard ? 'gandalf' : isDenied ? 'enough' : 'hop'
-      await update($, emote, (): Emote => ({ name: pose, line, until: now + (isWizard ? EMOTE_MS : REACTION_MS) }))
+      await update($, emote, (): Emote => ({ name: pose, line, until: now + songLeft(now) + (isWizard ? EMOTE_MS : REACTION_MS) }))
       await react($, isDenied ? 'idle' : 'happy', line)
     }
     // Only the main conversation's tools count towards a streak, and a refused call is neither.
@@ -642,14 +654,14 @@ export const register: Register = (on, options) => {
       // A commit or push that went through gets confetti.
       const line = say(shipped === 'push' ? 'pushed' : 'committed')
       const now = await $.clock.now()
-      await update($, emote, (): Emote => ({ name: 'party', line, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name: 'party', line, until: now + songLeft(now) + EMOTE_MS }))
       await react($, 'happy', line)
     } else if (isTests && !isFailed && seen.testsFailed) {
       // Green after red, in the same turn: an extra life.
       seen.testsFailed = false
       const line = say('oneup')
       const now = await $.clock.now()
-      await update($, emote, (): Emote => ({ name: 'oneup', line, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name: 'oneup', line, until: now + songLeft(now) + EMOTE_MS }))
       await react($, 'happy', line)
     } else if (isTests) {
       seen.testsFailed ||= isFailed
@@ -657,25 +669,25 @@ export const register: Register = (on, options) => {
       if (!isFailed) {
         // Squinting at the green, not cheering it.
         const now = await $.clock.now()
-        await update($, emote, (): Emote => ({ name: 'enough', line, until: now + EMOTE_MS }))
+        await update($, emote, (): Emote => ({ name: 'enough', line, until: now + songLeft(now) + EMOTE_MS }))
       }
       await react($, isFailed ? 'oops' : 'happy', line)
     } else if (isFailed && life.failStreak >= 3) {
       const now = await $.clock.now()
       const line = say('dizzy')
-      await update($, emote, (): Emote => ({ name: 'dizzy', line, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name: 'dizzy', line, until: now + songLeft(now) + EMOTE_MS }))
       await react($, 'oops', line)
     } else if (isFailed && life.failStreak >= 2) {
       const now = await $.clock.now()
       const line = say('again')
-      await update($, emote, (): Emote => ({ name: 'facepalm', line, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name: 'facepalm', line, until: now + songLeft(now) + EMOTE_MS }))
       await react($, 'oops', line)
     } else if (isFailed) {
       await react($, 'oops', say('broke'))
     } else if (isAgent && !isDenied && life.agentsOut === 0) {
       const now = await $.clock.now()
       const line = say('crew')
-      await update($, emote, (): Emote => ({ name: 'cousin', line, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name: 'cousin', line, until: now + songLeft(now) + EMOTE_MS }))
       await react($, 'happy', line)
     }
 
@@ -688,7 +700,7 @@ export const register: Register = (on, options) => {
     const now = await $.clock.now()
     const line = askLine(e.tool_name)
     life.waitingOn = e.tool_name
-    await update($, emote, (): Emote => ({ name: 'tap', line, until: now + WAIT_MS }))
+    await update($, emote, (): Emote => ({ name: 'tap', line, until: now + songLeft(now) + WAIT_MS }))
     await react($, 'think', line, WAIT_MS)
 
     return next(e)
@@ -717,14 +729,14 @@ export const register: Register = (on, options) => {
     if (stretch !== undefined) {
       // A long stretch of work: Clawd stretches, and suggests the person does too.
       life.sitting = { ...life.sitting, nudgedAt: now }
-      await update($, emote, (): Emote => ({ name: 'stretch', line: stretch, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name: 'stretch', line: stretch, until: now + songLeft(now) + EMOTE_MS }))
     }
     if (e.reason === 'aborted' || e.reason === 'error' || e.reason === 'refusal') {
       // Stopped short: nothing to cheer. Lost to an API error, Clawd radios Houston.
       const isLost = e.reason === 'error'
       const said = e.reason === 'aborted' ? 'ok, stopping.' : isLost ? say('houston') : 'that ended badly.'
       if (isLost) {
-        await update($, emote, (): Emote => ({ name: 'astronaut', line: said, until: now + EMOTE_MS }))
+        await update($, emote, (): Emote => ({ name: 'astronaut', line: said, until: now + songLeft(now) + EMOTE_MS }))
       }
       await react($, e.reason === 'aborted' ? 'idle' : 'oops', said)
 
@@ -744,7 +756,7 @@ export const register: Register = (on, options) => {
             : say('done'))
     if (isLong && stretch === undefined) {
       // A long turn's end: a burst of confetti, and the line stays up a while so the person sees it when they look back.
-      await update($, emote, (): Emote => ({ name: 'party', line, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name: 'party', line, until: now + songLeft(now) + EMOTE_MS }))
     }
     await react($, 'happy', line, isLong ? LONG_DONE_MS : REACTION_MS)
 
@@ -754,6 +766,8 @@ export const register: Register = (on, options) => {
   on('command.run', { command: 'pet' }, async ($, e) => {
     const asked = e.args.trim().toLowerCase()
     life.sitting = satAt(life.sitting, await $.clock.now())
+    // What the person asks for comes at once, song or no song.
+    life.song.until = 0
     if (asked === 'off' || asked === 'on') {
       await $.store.set('off', asked === 'off')
       await update($, isOff, () => asked === 'off')
@@ -781,7 +795,7 @@ export const register: Register = (on, options) => {
       life.lastGuest = name
       const line = say(saying).replace('{skill}', 'kung fu')
       const now = await $.clock.now()
-      await update($, emote, (): Emote => ({ name, line, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name, line, until: now + songLeft(now) + EMOTE_MS }))
       await react($, 'happy', line)
 
       return {}
@@ -797,7 +811,7 @@ export const register: Register = (on, options) => {
         act = pickTrick(Math.random())
       }
       const [name, line] = act
-      await update($, emote, (): Emote => ({ name, line, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name, line, until: now + songLeft(now) + EMOTE_MS }))
       await react($, 'love', line)
 
       return {}
@@ -811,7 +825,7 @@ export const register: Register = (on, options) => {
     if (shown !== undefined) {
       // After treat and trick, which are commands first: a preview, the emote as it plays, with its name for a line.
       const now = await $.clock.now()
-      await update($, emote, (): Emote => ({ name: shown, line: `(${shown})`, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name: shown, line: `(${shown})`, until: now + songLeft(now) + EMOTE_MS }))
 
       return {}
     }
@@ -850,7 +864,7 @@ export const register: Register = (on, options) => {
     life.talks += 1
     const now = await $.clock.now()
     if (request.action === 'act') {
-      await update($, emote, (): Emote => ({ name: request.emote, line: request.line, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name: request.emote, line: request.line, until: now + songLeft(now) + EMOTE_MS }))
       await react($, 'idle', request.line)
 
       return { result: `Clawd did "${request.emote}"${request.line === '' ? '' : ` and said "${request.line}"`}.` }
@@ -880,7 +894,7 @@ export const register: Register = (on, options) => {
     if (isCompacting) {
       const now = await $.clock.now()
       const line = say('squish')
-      await update($, emote, (): Emote => ({ name: 'squish', line, until: now + EMOTE_MS }))
+      await update($, emote, (): Emote => ({ name: 'squish', line, until: now + songLeft(now) + EMOTE_MS }))
       await react($, 'idle', line)
     }
 
@@ -939,22 +953,34 @@ export const register: Register = (on, options) => {
         isListening = pastime === 'vibe'
       }
     }
-    if (pose === 'sing' && said === act.line) {
+    if (now < life.song.until) {
+      // The song plays on to its end, over whatever came up meanwhile.
+      pose = 'sing'
+      mode = e.props.isWorking ? 'think' : 'idle'
+      said = sungSoFar(life.song.line, now - (life.song.until - SING_MS), TICK_MS)
+    } else if (pose === 'sing' && said === act.line) {
       said = sungSoFar(act.line, now - (act.until - SING_MS), TICK_MS)
     }
     if (said === '') {
       said = ambient(local, now, leaveAt)
     }
     if (pose !== life.pose) {
+      life.isTurning = life.pose !== undefined && pose !== undefined
       life.pose = pose
       life.poseSince = now
+      life.poseTick = frame
     }
     const thinking = e.props.isWorking && life.thinkingSince > 0 ? now - life.thinkingSince - BUBBLE_AFTER_MS : -1
     const poseFrame = Math.floor((now - life.poseSince) / TICK_MS)
-    const sceneAt = (at: number) =>
-      clawdScene({
+    const sceneAt = (at: number) => {
+      // Going straight from one pose to another, Clawd crouches for a frame in between, so it reads
+      // as Clawd moving, not as another Clawd popping up in its place.
+      const isTurning = life.isTurning && at <= life.poseTick
+
+      return clawdScene({
         kind: mode,
-        emote: pose,
+        emote: isTurning ? undefined : pose,
+        isCrouching: isTurning,
         frame: at,
         poseFrame: Math.max(0, poseFrame + at - frame),
         nowMs: now,
@@ -970,6 +996,7 @@ export const register: Register = (on, options) => {
           },
         }),
       })
+    }
 
     // A terminal draws the rows as characters; the apps that draw pictures get them as a drawing,
     // since their fonts and line spacing pull block characters apart.

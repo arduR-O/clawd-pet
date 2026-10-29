@@ -17,6 +17,7 @@ import {
   LOWERED,
   LASTFM_SONGBOOK,
   TALK,
+  saying,
 } from './helpers'
 
 test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, async ($, on) => {
@@ -92,6 +93,41 @@ test('/pet sing sings a line from the songbook, a few letters at a time', LASTFM
 
   await clock.advance(6_000)
   expect(await ui.find({ type: 'Text', text: /^mama, oooooooo, the build is green ♪$/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('a song plays to its end over whatever comes up, which then gets its turn', LASTFM, async ($, on) => {
+  const songbook = { ...LASTFM_SONGBOOK, lines: ['mama, oooooooo, the build is green ♪'] }
+  const clock = await start($, on, { songbook }, NOON_IST)
+  await clock.advance(1_500)
+  const ui = await $.ui.mount(BAND)
+  await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
+
+  // A force push mid-song: the Jedi waits.
+  await clock.advance(2_400)
+  await $.tool.call({ tool: 'Bash', command: 'git push --force origin main' })
+  await clock.advance(800)
+  expect(await ui.find({ type: 'Text', text: /^mama/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: saying('jedi') })).toBeFalsy()
+
+  // The song done and a crouch later, the Jedi gets its turn.
+  await clock.advance(5_600)
+  expect(await ui.find({ type: 'Text', text: saying('jedi') })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /▪/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('a pet is the person asking, and cuts a song short', LASTFM, async ($, on) => {
+  const songbook = { ...LASTFM_SONGBOOK, lines: ['mama, oooooooo, the build is green ♪'] }
+  const clock = await start($, on, { songbook }, NOON_IST)
+  await clock.advance(1_500)
+  const ui = await $.ui.mount(BAND)
+  await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
+
+  await $.command.run({ ...TYPED, command: 'pet', args: '' })
+
+  expect(await ui.find({ type: 'Text', text: /^Clawd ♥$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^mama/ })).toBeFalsy()
   await ui.unmount()
 })
 

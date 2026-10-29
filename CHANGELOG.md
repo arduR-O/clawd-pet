@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.4
+
+### Changed
+
+- **Songs play to their end.** Something that happens mid-song waits until the song stops, and then
+  gets its full time. A pet or a `/pet` command still stops the song at once.
+- **Clawd moves from pose to pose.** Going straight from one pose to another, Clawd crouches for a
+  frame in between, so it looks like Clawd moving, not another Clawd popping up in its place.
+- **A ninja in black.** The ninja is masked in black to the edges of its face, only its eyes showing,
+  the mask's tails flapping behind, in place of a red headband.
+- **An astronaut in a spacesuit.** The astronaut wears a white suit under its helmet.
+
 ## 0.2.3
 
 ### Fixed

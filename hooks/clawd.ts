@@ -20,15 +20,18 @@ const PHONES = '#8a8fbf'
 const TOQUE = '#f4f1de'
 const ROD = '#c9a36b'
 // The guest props: a deerstalker, a lightsaber and its hilt, a wizard's grey, a red eye, fire
-// trails, a ninja's headband, a rubber duck and its beak, falling code, a mug, a space helmet, a
-// 1-UP mushroom and a whale.
+// trails, a ninja's blacks and the tails of its mask, a rubber duck and its beak, falling code, a
+// mug, a space helmet and suit, a 1-UP mushroom and a whale.
 const DEERSTALKER = '#9c7a4f'
 const SABER = '#6dff8f'
 const HILT = '#b0b0b8'
 const WIZARD = '#8c8c9c'
 const RED_EYE = '#ff2a2a'
 const FLAME = '#ff6a3d'
-const HEADBAND = '#d63c3c'
+// Near black, a shade off the dark terminals' own so the ninja is stealthy but still there.
+const NINJA = '#3a3a46'
+const NINJA_TAILS = '#5a5a68'
+const SPACESUIT = '#e8ecf2'
 const DUCK = '#ffd84a'
 const BEAK = '#ff9d3c'
 const MATRIX = '#38d66b'
@@ -733,6 +736,8 @@ export function clawdScene(input: {
   poseFrame?: number
   // While the person types: the caret's column down in the prompt, and whether they are typing /pet.
   typing?: { caret: number; isPet: boolean }
+  // Crouched for a frame, between one pose and the next.
+  isCrouching?: boolean
 }): Row[] {
   const { kind, emote, frame, nowMs, local, crew = 0, bubble = 0, castle = 0, hasHeadphones = false } = input
   const poseFrame = input.poseFrame ?? frame
@@ -845,9 +850,9 @@ export function clawdScene(input: {
     put(x + 10, '8', GOLD)
     put(x + 11, '8', GOLD)
   } else if (emote === 'ninja') {
-    // A red headband round its head, its tails flapping out behind.
-    for (const [i, text] of [...'▄▄▄▄▄▄▄'].entries()) put(x + 1 + i, text, HEADBAND)
-    put(x + 8 + (frame % 2), '~', HEADBAND)
+    // The top of its black hood, the mask's tails flapping out behind.
+    for (const [i, text] of [...'▗▄▄▄▄▄▖'].entries()) put(x + 1 + i, text, NINJA)
+    put(x + 8 + (frame % 2), '~', NINJA_TAILS)
   } else if (emote === 'astronaut') {
     // The top of a space helmet's glass dome.
     for (const [i, text] of [...'╭───────╮'].entries()) put(x + i, text, DOME)
@@ -927,13 +932,15 @@ export function clawdScene(input: {
   if (emote === 'snack' || emote === 'treat') held = [{ text: '·', color: GOLD }]
   else if (emote === 'molt') held = [pad(1), { text: '▟▀▙', color: SHELL }]
   else if (emote === 'pearl') held = [pad(1), { text: '●', color: PEARL }]
-  let arms: Row = [pad(x), { text: claws, color: body }, ...held]
+  // A suit over Clawd's claws and legs: the ninja's blacks, the astronaut's white.
+  const suit = emote === 'ninja' ? NINJA : emote === 'astronaut' ? SPACESUIT : body
+  let arms: Row = [pad(x), { text: claws, color: suit }, ...held]
   if (emote === 'yawn' && frame % 4 < 2) {
     // Mid-yawn, eyes shut: its mouth wide open in the middle of its body.
     arms = [pad(x), { text: claws.slice(0, 4), color: body }, { text: 'O', color: SHADES, backgroundColor: body }, { text: claws.slice(5), color: body }, ...held]
   }
 
-  let feet: Row = [pad(x), { text: legs, color: body }]
+  let feet: Row = [pad(x), { text: legs, color: suit }]
   if (emote === 'tide') {
     // The water washes over Clawd's feet, rolling one cell a frame.
     feet = [{ text: Array.from({ length: SKY }, (_, at) => ((at + frame) % 3 === 0 ? '≈' : '~')).join(''), color: WATER }]
@@ -975,6 +982,8 @@ export function clawdScene(input: {
     // Fire trails left behind, at 88 miles an hour.
     feet = [{ text: (frame % 2 === 0 ? '═≡' : '≡═').repeat(x).slice(0, x), color: frame % 2 === 0 ? FLAME : GOLD }, { text: legs, color: body }]
   } else if (emote === 'ninja') {
+    // Masked in black to the face's edges, only a slit of orange round the eyes showing.
+    face = face.map(part => (part.text === '▐' || part.text === '▌' ? { ...part, color: NINJA } : part))
     // A puff of smoke beside it, there and gone.
     arms = [...arms, pad(1), { text: frame % 2 === 0 ? '∘°' : '°∘', color: MOON }]
   } else if (emote === 'duck') {
@@ -1023,7 +1032,7 @@ export function clawdScene(input: {
   }
 
   // Clawd ducks from shy moments and seagulls: only its face and claws show; a hopping or bowing one crouches every other frame.
-  const isDucking = emote === 'shy' || emote === 'seagull' || ((emote === 'hop' || emote === 'bow') && frame % 2 === 1)
+  const isDucking = input.isCrouching === true || emote === 'shy' || emote === 'seagull' || ((emote === 'hop' || emote === 'bow') && frame % 2 === 1)
 
   if (emote === 'meditate') {
     // Floating down half a row a frame and back, from where Clawd's face and body stand.

@@ -72,6 +72,15 @@ test('a film shows its first frame without SMIL, and the heaviest pose stays wit
   expect(film.length).toBeLessThan(131072)
 })
 
+test('the ninja wears black to the edges of its face, and the astronaut a white spacesuit', () => {
+  const at = (emote: 'ninja' | 'astronaut') => clawdScene({ kind: 'idle', emote, frame: 0, nowMs: NOON_IST, local: { hour: 12, weekday: 2, month: 10, day: 27 } })
+  const ninja = at('ninja')
+  expect(ninja[1]!.filter(part => /[▐▌]/.test(part.text)).map(part => part.color)).toEqual(['#3a3a46', '#3a3a46'])
+  expect(ninja[1]!.some(part => part.color === CLAWD)).toBe(true)
+  expect(ninja[2]!.find(part => part.text.includes('█'))?.color).toBe('#3a3a46')
+  expect(at('astronaut')[3]!.find(part => /▘/.test(part.text))?.color).toBe('#e8ecf2')
+})
+
 test('the picture draws block characters as pixel rectangles and the rest as text', () => {
   const svg = sceneSvg([
     [{ text: '█▀', color: '#ff8800' }],

@@ -94,11 +94,11 @@ Sometimes a guest comes. Each guest comes for a reason:
 | Gandalf | `gandalf` | You refuse a destructive command, such as `rm`, at a permission request. *"You shall not pass!"* |
 | The Terminator | `terminator` | Claude runs `kill`, `pkill` or `killall`. |
 | A DeLorean, the time machine | `delorean` | Claude goes back in time: `git revert`, `git reflog`, `git reset` without `--hard`, or a checkout of an old commit. |
-| A ninja | `ninja` | Claude runs `git stash`. The ninja comes back for `git stash pop`. |
+| A ninja | `ninja` | Claude runs `git stash`. Clawd dresses in black and hides in a puff of smoke. It comes back for `git stash pop`. |
 | A rubber duck | `duck` | You write a prompt of 280 characters or more about a bug. |
 | Neo, from The Matrix | `neo` | Claude loads a skill, such as pdf. *"I know pdf."* |
 | A mug of coffee | `coffee` | You send your first prompt of the day between 05:00 and 11:00. |
-| An astronaut | `astronaut` | Claude stops because of an API error. *"Houston, we have a problem."* |
+| An astronaut | `astronaut` | Claude stops because of an API error. Clawd puts on a white spacesuit and helmet. *"Houston, we have a problem."* |
 | A 1-UP mushroom | `oneup` | The tests pass after they failed earlier for the same prompt. |
 | A whale | `whale` | Claude runs `docker` or `podman`. |
 
@@ -150,7 +150,8 @@ To change a setting, run `/plugin configure clawd@clawd` in Claude Code.
 ### The songbook
 
 Clawd sings the first line of a song. Sometimes it changes the end of the line into a joke about
-code.
+code. Clawd always sings the line to its end. If something happens during the song, Clawd reacts
+when the song stops. If you pet Clawd or run a `/pet` command, it stops the song at once.
 
 - **Built-in songs:** by default, Clawd sings its 30 built-in lines. This costs nothing.
 - **Last.fm:** if you set your Last.fm user and API key, Clawd writes a new songbook each day

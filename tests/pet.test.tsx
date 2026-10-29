@@ -100,7 +100,7 @@ test('/pet glasses puts the reading glasses on', { options: OPTIONS }, async ($,
 })
 
 test('a pet gets a reaction, and only a long spree gets told off', { options: OPTIONS }, async ($, on) => {
-  await start($, on, {}, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: '' })
@@ -113,7 +113,8 @@ test('a pet gets a reaction, and only a long spree gets told off', { options: OP
 
   await $.command.run({ ...TYPED, command: 'pet', args: '' })
   expect(await ui.find({ type: 'Text', text: /ok ok, I get it\./ })).toBeTruthy()
-  // Heavy lids rather than eyes that vanish.
+  // Past the crouch between one pose and the next: heavy lids rather than eyes that vanish.
+  await clock.advance(800)
   expect(await ui.find({ type: 'Text', text: /^▀$/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeTruthy()
   await ui.unmount()
@@ -181,7 +182,7 @@ test('an unknown /pet argument is refused with what /pet takes', { options: OPTI
 })
 
 test('/pet <emote> shows that emote on demand', { options: OPTIONS }, async ($, on) => {
-  await start($, on, {}, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   const shown = await $.command.run({ ...TYPED, command: 'pet', args: 'uwu' })
@@ -190,6 +191,7 @@ test('/pet <emote> shows that emote on demand', { options: OPTIONS }, async ($, 
   expect(await ui.find({ type: 'Text', text: /\(uwu\)/ })).toBeTruthy()
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'meditate' })
+  await clock.advance(800)
   expect(await auraShown(ui)).toBe(true)
   await ui.unmount()
 })
@@ -242,8 +244,27 @@ test('/pet spin and the spinner word Spinning make Clawd spin', { options: OPTIO
   }
 })
 
+test('from one pose straight into another, Clawd crouches for a tick in between; from standing, it goes straight in', { options: OPTIONS }, async ($, on) => {
+  const clock = await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+  const feet = /▘▘ ▝▝|▝▝ ▘▘/
+
+  await $.command.run({ ...TYPED, command: 'pet', args: 'chef' })
+  expect(await shows(ui, /▀/, TOQUE)).toBe(true)
+
+  await $.command.run({ ...TYPED, command: 'pet', args: 'hardhat' })
+  // Crouched: no feet, no hat yet.
+  expect(await ui.find({ type: 'Text', text: feet })).toBeFalsy()
+  expect(await shows(ui, /▗/, GOLD)).toBe(false)
+
+  await clock.advance(800)
+  expect(await ui.find({ type: 'Text', text: feet })).toBeTruthy()
+  expect(await shows(ui, /▗/, GOLD)).toBe(true)
+  await ui.unmount()
+})
+
 test('/pet chef, /pet hardhat and /pet cry show those emotes', { options: OPTIONS }, async ($, on) => {
-  await start($, on, {}, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'chef' })
@@ -251,11 +272,13 @@ test('/pet chef, /pet hardhat and /pet cry show those emotes', { options: OPTION
   expect(await shows(ui, /▀/, TOQUE)).toBe(true)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'hardhat' })
+  await clock.advance(800)
   expect(await ui.find({ type: 'Text', text: /^\(hardhat\)$/ })).toBeTruthy()
   expect(await shows(ui, /▗/, GOLD)).toBe(true)
   expect(await shows(ui, /▀/, TOQUE)).toBe(false)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'cry' })
+  await clock.advance(800)
   expect(await ui.find({ type: 'Text', text: /^\(cry\)$/ })).toBeTruthy()
   // Eyes shut, tears streaming from under the lids, and one dropping beside it.
   expect(await ui.findAll({ type: 'Text', text: /^╥$/ })).toHaveLength(2)

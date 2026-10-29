@@ -230,6 +230,8 @@ test('turning down something destructive brings out the wizard', { options: OPTI
   const call = $.tool.call({ tool: 'Bash', command: 'rm -r build' })
   await clock.advance(5000)
   await call
+  // From tapping its foot, through a crouch, to the wizard.
+  await clock.advance(800)
 
   expect(await ui.find({ type: 'Text', text: /^you shall not pass!$/ })).toBeTruthy()
   // The grey hat, and the staff's glowing tip.
@@ -491,18 +493,20 @@ const GUESTS: readonly [string, Saying, RegExp][] = [
   ['git log -S parseOffset', 'sherlock', /▗▆▆▆▖/],
   ['git revert HEAD', 'delorean', /88/],
   ['git checkout 4f2a91c', 'delorean', /88/],
-  ['git stash', 'ninja', /▄▄▄▄▄▄▄/],
-  ['git stash pop', 'ninjaBack', /▄▄▄▄▄▄▄/],
+  ['git stash', 'ninja', /▗▄▄▄▄▄▖/],
+  ['git stash pop', 'ninjaBack', /▗▄▄▄▄▄▖/],
   ['kill -9 4242', 'terminator', /●/],
   ['docker compose up', 'whale', /▟██▙/],
 ]
 
 test('some commands bring a guest: a Jedi, Sherlock, a DeLorean, a ninja, the Terminator, a whale', { options: OPTIONS }, async ($, on) => {
-  await start($, on, {}, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   for (const [command, name, prop] of GUESTS) {
     await $.tool.call({ tool: 'Bash', command })
+    // Past the crouch from the last guest to this one.
+    await clock.advance(800)
     expect(await ui.find({ type: 'Text', text: saying(name) })).toBeTruthy()
     expect(await ui.find({ type: 'Text', text: prop })).toBeTruthy()
   }
