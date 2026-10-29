@@ -16,27 +16,13 @@ import {
   TALK,
 } from './helpers'
 
-test('Moss reacts to a Bash call, then settles', { options: OPTIONS }, async ($, on) => {
-  const clock = await start($, on, { species: 'moss' })
-  await $.tool.call({ tool: 'Bash', command: 'ls -la' })
-
-  const ui = await $.ui.mount(BAND)
-  expect((await ui.find({ type: 'Text', text: /\$ ls -la/ }))?.text).toBe('$ ls -la')
-  expect(await ui.find({ type: 'Text', text: /> </ })).toBeTruthy()
-
-  await clock.advance(4000)
-  expect(await ui.find({ type: 'Text', text: /\$ ls/ })).toBeFalsy()
-  await ui.unmount()
-})
-
-test('/pet counts pets across calls', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'moss' })
+test('/pet counts pets across calls, every 25th a milestone', { options: OPTIONS }, async ($, on) => {
+  await start($, on, { pets: 23 })
   await $.command.run({ ...TYPED, command: 'pet', args: '' })
   await $.command.run({ ...TYPED, command: 'pet', args: '' })
 
   const ui = await $.ui.mount(BAND)
-  expect((await ui.find({ type: 'Text', text: /purr/ }))?.text).toBe('purr (pet #2)')
-  expect(await ui.find({ type: 'Text', text: /♥ ♥/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^pet #25! a milestone\.$/ })).toBeTruthy()
   await ui.unmount()
 })
 
@@ -55,7 +41,7 @@ test('/pet off hides the pet, and Clawd turns down pets and Claude', { options: 
 
     return <Text>engine</Text>
   })
-  await start($, on, { species: 'clawd' })
+  await start($, on, {})
   const ui = await $.ui.mount(BAND)
 
   const off = await $.command.run({ ...TYPED, command: 'pet', args: 'off' })
@@ -73,7 +59,7 @@ test('a pet hidden in an earlier session stays hidden until /pet on', { options:
 
     return <Text>engine</Text>
   })
-  await start($, on, { species: 'clawd', off: true })
+  await start($, on, { off: true })
   const later = await $.ui.mount(BAND)
   expect(await later.find({ type: 'Text', text: /^Clawd$/ })).toBeFalsy()
   await $.command.run({ ...TYPED, command: 'pet', args: 'on' })
@@ -84,7 +70,7 @@ test('a pet hidden in an earlier session stays hidden until /pet on', { options:
 test('typing /pet offers the commands, and a few letters in, the emotes', () => {
   const names = (draft: string) => petSuggestions(draft).map(one => one.text)
 
-  expect(names('/pet ')).toEqual(['treat', 'trick', 'guest', 'refresh-songs', 'off', 'on', 'garden', 'clawd', 'moss'])
+  expect(names('/pet ')).toEqual(['treat', 'trick', 'guest', 'refresh-songs', 'off', 'on'])
   expect(names('/pet gu')).toEqual(['guest'])
   expect(names('/pet tr')).toEqual(['treat', 'trick'])
   expect(names('/pet me')).toEqual(['meditate'])
@@ -100,28 +86,8 @@ test('typing /pet offers the commands, and a few letters in, the emotes', () => 
   expect(names('/other ')).toEqual([])
 })
 
-test('the garden starts as seeds', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'garden' })
-
-  const ui = await $.ui.mount(BAND)
-  expect(await ui.find({ type: 'Text', text: /^garden$/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /0\/6 in bloom/ })).toBeTruthy()
-  await ui.unmount()
-})
-
-test('watering grows the garden, and growth is kept', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'garden', growth: 17 })
-  const ui = await $.ui.mount(BAND)
-  expect(await ui.find({ type: 'Text', text: /5\/6 in bloom/ })).toBeTruthy()
-
-  await $.command.run({ ...TYPED, command: 'pet', args: '' })
-  expect(await ui.find({ type: 'Text', text: /in full bloom/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /watered \(#1\)/ })).toBeTruthy()
-  await ui.unmount()
-})
-
 test('/pet glasses puts the reading glasses on', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'glasses' })
@@ -134,7 +100,7 @@ test('/pet glasses puts the reading glasses on', { options: OPTIONS }, async ($,
 })
 
 test('a pet gets a reaction, and only a long spree gets told off', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: '' })
@@ -154,7 +120,7 @@ test('a pet gets a reaction, and only a long spree gets told off', { options: OP
 })
 
 test('a click on Clawd pets it, and a spree of clicks gets told off', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await ui.press({ key: 'clawd' })
@@ -166,7 +132,7 @@ test('a click on Clawd pets it, and a spree of clicks gets told off', { options:
 })
 
 test('where Clawd is drawn as a picture, a click on its name pets it', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
 
   await ui.press({ key: 'name' })
@@ -175,21 +141,8 @@ test('where Clawd is drawn as a picture, a click on its name pets it', { options
   await ui.unmount()
 })
 
-test('a click on the garden waters it, and one on Moss pets it', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'garden' }, NOON_IST)
-  const ui = await $.ui.mount(BAND)
-
-  await ui.press({ key: 'name' })
-  expect(await ui.find({ type: 'Text', text: /^watered \(#1\)$/ })).toBeTruthy()
-
-  await $.command.run({ ...TYPED, command: 'pet', args: 'moss' })
-  await ui.press({ key: 'name' })
-  expect(await ui.find({ type: 'Text', text: /^purr \(pet #2\)$/ })).toBeTruthy()
-  await ui.unmount()
-})
-
 test('/pet treat feeds Clawd, and every 10th treat is noted', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd', treats: 9 }, NOON_IST)
+  await start($, on, { treats: 9 }, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   const fed = await $.command.run({ ...TYPED, command: 'pet', args: 'treat' })
@@ -198,33 +151,26 @@ test('/pet treat feeds Clawd, and every 10th treat is noted', { options: OPTIONS
   await ui.unmount()
 })
 
-test('/pet trick does a trick, and only Clawd does them', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+test('/pet trick does a trick', { options: OPTIONS }, async ($, on) => {
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'trick' })
   const tricks = /ta-da|six… seven|boing|waves both claws|sideways shuffle|wiggle wiggle|takes a bow|UwU|spins/
   expect(await ui.find({ type: 'Text', text: tricks })).toBeTruthy()
   await ui.unmount()
-
-  await $.command.run({ ...TYPED, command: 'pet', args: 'moss' })
-  const refused = await $.command.run({ ...TYPED, command: 'pet', args: 'trick' })
-  expect(refused.text).toContain('/pet clawd')
 })
 
-test('/pet moss switches, and an unknown name is refused', { options: OPTIONS }, async ($, on) => {
+test('an unknown /pet argument is refused with what /pet takes', { options: OPTIONS }, async ($, on) => {
   await start($, on)
-  const refused = await $.command.run({ ...TYPED, command: 'pet', args: 'dragon' })
-  expect(refused.text).toContain('/pet garden')
-
-  await $.command.run({ ...TYPED, command: 'pet', args: 'moss' })
-  const ui = await $.ui.mount(BAND)
-  expect(await ui.find({ type: 'Text', text: /^Moss$/ })).toBeTruthy()
-  await ui.unmount()
+  for (const asked of ['dragon', 'moss', 'garden']) {
+    const refused = await $.command.run({ ...TYPED, command: 'pet', args: asked })
+    expect(refused.text).toContain('/pet guest')
+  }
 })
 
 test('/pet <emote> shows that emote on demand', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   const shown = await $.command.run({ ...TYPED, command: 'pet', args: 'uwu' })
@@ -239,7 +185,7 @@ test('/pet <emote> shows that emote on demand', { options: OPTIONS }, async ($, 
 
 test('Clawd perks up when it sees /pet being typed', { options: OPTIONS }, async ($, on) => {
   on('prompt.edit', (_, e) => ({ text: e.inputText, cursor: e.inputText.length }))
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   await clock.advance(5 * 800)
 
@@ -251,7 +197,7 @@ test('Clawd perks up when it sees /pet being typed', { options: OPTIONS }, async
 })
 
 test('/pet hiccup makes Clawd hic', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'hiccup' })
@@ -261,7 +207,7 @@ test('/pet hiccup makes Clawd hic', { options: OPTIONS }, async ($, on) => {
 })
 
 test('/pet rain has Clawd hold up an umbrella', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'rain' })
@@ -273,7 +219,7 @@ test('/pet rain has Clawd hold up an umbrella', { options: OPTIONS }, async ($, 
 })
 
 test('/pet spin and the spinner word Spinning make Clawd spin', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'spin' })
@@ -286,7 +232,7 @@ test('/pet spin and the spinner word Spinning make Clawd spin', { options: OPTIO
 })
 
 test('/pet chef, /pet hardhat and /pet cry show those emotes', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'chef' })
@@ -318,8 +264,8 @@ test('a random guest is never the one that came last, and every guest can come',
   expect(seen.size).toBe(GUESTS.length)
 })
 
-test('/pet guest brings a random guest with something to say, and only Clawd has guests', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+test('/pet guest brings a random guest with something to say', { options: OPTIONS }, async ($, on) => {
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   const anyGuest = new RegExp(`^(${GUESTS.flatMap(([, name]) => SAYINGS[name]).map(line => line.replace('{skill}', 'kung fu').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`)
 
@@ -327,8 +273,5 @@ test('/pet guest brings a random guest with something to say, and only Clawd has
     await $.command.run({ ...TYPED, command: 'pet', args: 'guest' })
     expect(await ui.find({ type: 'Text', text: anyGuest })).toBeTruthy()
   }
-
-  await $.command.run({ ...TYPED, command: 'pet', args: 'moss' })
-  expect(await $.command.run({ ...TYPED, command: 'pet', args: 'guest' })).toEqual({ text: 'Only Clawd has guests: /pet clawd' })
   await ui.unmount()
 })

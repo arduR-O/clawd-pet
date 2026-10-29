@@ -30,7 +30,7 @@ import {
 
 test('Clawd does an emote now and then while Claude works', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   await $.prompt.submit({ ...SUBMITTED, text: 'go' })
   const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, isWorking: true } })
 
@@ -50,7 +50,7 @@ test("Clawd riffs on the spinner's word while Claude works", { options: OPTIONS 
 
     return <Text>spinner</Text>
   })
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const spinner = await $.ui.mount({
     plugin: 'clawd',
     component: 'Spinner',
@@ -66,7 +66,7 @@ test("Clawd riffs on the spinner's word while Claude works", { options: OPTIONS 
 })
 
 test('Clawd has opinions', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' })
+  await start($, on, {})
   const ui = await $.ui.mount(BAND)
   const says = async (text: RegExp) => Boolean(await ui.find({ type: 'Text', text }))
 
@@ -92,7 +92,7 @@ test('Clawd has opinions', { options: OPTIONS }, async ($, on) => {
 })
 
 test('a commit that goes through gets confetti', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.tool.call({ tool: 'Bash', command: 'git commit -m "feat: add things"' })
@@ -105,7 +105,7 @@ test('a commit that goes through gets confetti', { options: OPTIONS }, async ($,
 
 test("Clawd greets the session's first prompt, then takes later ones in stride", { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.prompt.submit({ ...SUBMITTED, text: 'add a login page' })
@@ -119,7 +119,7 @@ test("Clawd greets the session's first prompt, then takes later ones in stride",
 
 test('Clawd has a line for slash commands and skills', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   const says = async (text: RegExp) => Boolean(await ui.find({ type: 'Text', text }))
 
@@ -144,7 +144,7 @@ test('deep thinking on a word with no take of its own gets a nod, not a meditati
 
     return <Text>spinner</Text>
   })
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const spinner = await $.ui.mount({
     plugin: 'clawd',
     component: 'Spinner',
@@ -161,7 +161,7 @@ test('deep thinking on a word with no take of its own gets a nod, not a meditati
 
 test('two failed tools in a row make Clawd facepalm', { options: OPTIONS }, async ($, on) => {
   on('tool.call', { tool: 'Bash' }, () => ({ result: 'make: *** No rule', isError: true }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   await $.tool.call({ tool: 'Bash', command: 'make' })
   expect(await ui.find({ type: 'Text', text: /^pfft\. that broke\.$/ })).toBeTruthy()
@@ -176,7 +176,7 @@ test('two failed tools in a row make Clawd facepalm', { options: OPTIONS }, asyn
 
 test('a third failure in a row leaves Clawd dizzy, seeing stars', { options: OPTIONS }, async ($, on) => {
   on('tool.call', { tool: 'Bash' }, () => ({ result: 'make: *** No rule', isError: true }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   await $.tool.call({ tool: 'Bash', command: 'make' })
   await $.tool.call({ tool: 'Bash', command: 'make' })
@@ -192,7 +192,7 @@ test('a third failure in a row leaves Clawd dizzy, seeing stars', { options: OPT
 test('while a permission prompt waits, Clawd taps its foot, and thanks the person for an ok', { options: OPTIONS }, async ($, on) => {
   let clock: Awaited<ReturnType<typeof start>> | undefined
   promptFirst($, on, () => clock!, 'allow')
-  clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   const call = $.tool.call({ tool: 'Bash', command: 'rm -r build' })
@@ -210,7 +210,7 @@ test('while a permission prompt waits, Clawd taps its foot, and thanks the perso
 test('a refused permission prompt gets a shrug', { options: OPTIONS }, async ($, on) => {
   let clock: Awaited<ReturnType<typeof start>> | undefined
   promptFirst($, on, () => clock!, 'deny')
-  clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   const call = $.tool.call({ tool: 'Bash', command: 'make deploy' })
@@ -224,7 +224,7 @@ test('a refused permission prompt gets a shrug', { options: OPTIONS }, async ($,
 test('turning down something destructive brings out the wizard', { options: OPTIONS }, async ($, on) => {
   let clock: Awaited<ReturnType<typeof start>> | undefined
   promptFirst($, on, () => clock!, 'deny')
-  clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   const call = $.tool.call({ tool: 'Bash', command: 'rm -r build' })
@@ -239,7 +239,7 @@ test('turning down something destructive brings out the wizard', { options: OPTI
 
 test('a question from Claude is announced as one', { options: OPTIONS }, async ($, on) => {
   on('classic.PermissionRequest', () => ({}))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.classic.PermissionRequest({ tool_name: 'AskUserQuestion', tool_input: {} })
@@ -253,7 +253,7 @@ test('a question from Claude is announced as one', { options: OPTIONS }, async (
 
 test('a failure after a success is not facepalmed', { options: OPTIONS }, async ($, on) => {
   on('tool.call', { tool: 'Bash' }, () => ({ result: 'make: *** No rule', isError: true }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   await $.tool.call({ tool: 'Bash', command: 'make' })
   await $.tool.call({ tool: 'Read', file_path: '/repo/Makefile' })
@@ -267,7 +267,7 @@ test('a failure after a success is not facepalmed', { options: OPTIONS }, async 
 test('a new prompt starts the failure streak over', { options: OPTIONS }, async ($, on) => {
   on('tool.call', { tool: 'Bash' }, () => ({ result: 'make: *** No rule', isError: true }))
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   await $.tool.call({ tool: 'Bash', command: 'make' })
   await $.prompt.submit({ ...SUBMITTED, text: 'try again' })
@@ -280,7 +280,7 @@ test('a new prompt starts the failure streak over', { options: OPTIONS }, async 
 
 test('compacting the conversation squishes Clawd flat', { options: OPTIONS }, async ($, on) => {
   on('session.compact', () => ({ messages: [SUMMARY] }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.session.compact({ trigger: 'manual', messages: [SUMMARY] })
@@ -292,7 +292,7 @@ test('compacting the conversation squishes Clawd flat', { options: OPTIONS }, as
 
 test("a subagent's compaction leaves Clawd alone", { options: OPTIONS }, async ($, on) => {
   on('session.compact', () => ({ messages: [SUMMARY] }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.session.compact({ trigger: 'auto', agentId: 'a1', messages: [SUMMARY] })
@@ -303,7 +303,7 @@ test("a subagent's compaction leaves Clawd alone", { options: OPTIONS }, async (
 
 test('a compaction computed ahead of time leaves Clawd alone', { options: OPTIONS }, async ($, on) => {
   on('session.compact', () => ({ messages: [SUMMARY] }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.session.compact({ trigger: 'precompute', messages: [SUMMARY] })
@@ -364,7 +364,7 @@ test('a tiny cousin marches by while a subagent is out, and the crew is welcomed
 
     return { result: {} }
   })
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   const call = $.tool.call({ tool: 'Agent', description: 'look around', prompt: 'look around' })
@@ -378,7 +378,7 @@ test('a tiny cousin marches by while a subagent is out, and the crew is welcomed
 })
 
 test('a subagent sent off in the background is not waited back', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.tool.call(anyTool({ tool: 'Agent', description: 'look around', prompt: 'look around', run_in_background: true }))
@@ -416,7 +416,7 @@ test('Onioning makes Clawd cry', { options: OPTIONS }, async ($, on) => {
 })
 
 test('fetching with curl has Clawd holding a snack', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.tool.call({ tool: 'Bash', command: 'curl -s https://example.com' })
@@ -428,7 +428,7 @@ test('fetching with curl has Clawd holding a snack', { options: OPTIONS }, async
 
 test('/simplify sits Clawd down to meditate', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.prompt.submit({ ...SUBMITTED, text: '/simplify', command: { name: 'simplify', args: '' } })
@@ -439,7 +439,7 @@ test('/simplify sits Clawd down to meditate', { options: OPTIONS }, async ($, on
 })
 
 test('more dependencies get a sigh with claws hanging, not pumping', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.tool.call({ tool: 'Bash', command: 'npm install left-pad' })
@@ -465,7 +465,7 @@ test("spinner lines about the tide, rain, made-up words and hot air get poses to
 
 test('a prompt that names Clawd makes it perk up, and a kind word makes it glow', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.prompt.submit({ ...SUBMITTED, text: 'what does clawd think?' })
@@ -498,7 +498,7 @@ const GUESTS: readonly [string, Saying, RegExp][] = [
 ]
 
 test('some commands bring a guest: a Jedi, Sherlock, a DeLorean, a ninja, the Terminator, a whale', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   for (const [command, name, prop] of GUESTS) {
@@ -513,7 +513,7 @@ test('some commands bring a guest: a Jedi, Sherlock, a DeLorean, a ninja, the Te
 })
 
 test('a third search in a row puts the deerstalker on', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   for (const pattern of ['TODO', 'FIXME', 'XXX']) await $.tool.call(anyTool({ tool: 'Grep', pattern }))
@@ -526,7 +526,7 @@ test('a third search in a row puts the deerstalker on', { options: OPTIONS }, as
 test('tests going green after going red in a turn earn a 1-UP; green on the first try only a squint', { options: OPTIONS }, async ($, on) => {
   let fails = true
   on('tool.call', { tool: 'Bash' }, () => (fails ? { result: '1 failed', isError: true } : { result: 'all passed' }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.tool.call({ tool: 'Bash', command: 'npm test' })
@@ -543,7 +543,7 @@ test('tests going green after going red in a turn earn a 1-UP; green on the firs
 test("the day's first prompt in the morning comes with coffee, once a day", { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
   // 08:30 in India.
-  await start($, on, { species: 'clawd' }, istOn(28, 8, 30))
+  await start($, on, {}, istOn(28, 8, 30))
   const ui = await $.ui.mount(BAND)
 
   await $.prompt.submit({ ...SUBMITTED, text: 'morning! where were we' })
@@ -556,7 +556,7 @@ test("the day's first prompt in the morning comes with coffee, once a day", { op
 
 test('a long prompt working through a bug gets a rubber duck to listen; a long plain one does not', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   const story = 'So the login form submits, the request goes out, the server answers 200, and then the page just sits there. '
 

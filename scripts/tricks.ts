@@ -47,7 +47,7 @@ const TRICKS: Panel[] = [
     frames: [0, 4, 8, 12, 16, 20, 24, 24, 24].map(n => ({ line: '', typed: typing.slice(0, n) })),
   },
   {
-    title: 'thanks you for an ok',
+    title: 'thanks you for a yes',
     frames: [...repeat({ kind: 'happy', emote: 'hop', line: 'thanks!' }, 4), ...repeat({ emote: 'enough', line: 'fine, not that then.' }, 4)],
   },
   {
@@ -106,7 +106,7 @@ const firstLine: Partial<Record<EmoteName, string>> = {
 
 const SHEETS: Record<string, Sheet> = {
   tricks: {
-    title: "Clawd's newer tricks: watching you type, thanking you for an ok, a face for every mood, reading glasses, stretch breaks and confetti for long turns",
+    title: "Clawd's newer tricks: watching you type, thanking you when you allow a permission request, a face for every mood, reading glasses, stretch breaks and confetti for long turns",
     columns: 2,
     // One cell of the band, as the hero picture draws it.
     cell: { width: 10, height: 20 },

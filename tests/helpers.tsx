@@ -123,7 +123,7 @@ export async function thinkAbout($: Args[0], on: Args[1], word: string) {
 
     return <Text>spinner</Text>
   })
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const spinner = await $.ui.mount({
     plugin: 'clawd',
     component: 'Spinner',

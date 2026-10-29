@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 Some of these ideas came from [physics-clawd-pet](https://github.com/Ramirez0291/physics-clawd-pet),
 a desktop Clawd with cartoon physics.
@@ -22,8 +22,7 @@ a desktop Clawd with cartoon physics.
 - **Long turns.** A turn of two minutes or more ends in confetti, and its "done! that took N min."
   stays up a minute. A turn you stopped, or one that died on an error, is no longer cheered.
 - **Landings.** A hop and a hiccup kick up a puff of dust.
-- **Click to pet.** A click on Clawd, or on its name, pets it, as `/pet` does; the garden's and
-  Moss's names take a click too.
+- **Click to pet.** A click on Clawd, or on its name, pets it, as `/pet` does.
 
 - **Guests.** Twelve visitors, each with a real trigger: Sherlock (`git blame`, a search spree),
   a Jedi (`git push --force`), Gandalf (turning down a destructive command), the Terminator
@@ -35,6 +34,15 @@ a desktop Clawd with cartoon physics.
   (a failure, a facepalm, a finished turn, tests, commits, permission answers) rotate through a few.
 - **Better poses.** Meditation sits wide with its claws raised and a mote of light drifting up; a
   stretch reaches up over its head; crying shows tears (`╥ ╥`); a yawn opens wide.
+
+- **Talking is opt-in.** The `clawd` tool, which lets Claude make Clawd act and sing, adds about
+  400 tokens to every request. It is now off by default; the new **Claude can talk to Clawd**
+  setting turns it on.
+
+### Removed
+
+- **Moss and the garden.** The two other pets fell far behind Clawd, so Clawd is now the only
+  pet. `/pet moss`, `/pet garden` and `/pet clawd` are gone; a stored choice of either is ignored.
 
 ### Fixed
 

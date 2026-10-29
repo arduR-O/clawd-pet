@@ -15,7 +15,7 @@ import {
 } from './helpers'
 
 test('an hour before leave time, idle Clawd counts down to it', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, istOn(27, 17, 10))
+  await start($, on, {}, istOn(27, 17, 10))
 
   const ui = await $.ui.mount(BAND)
 
@@ -25,7 +25,7 @@ test('an hour before leave time, idle Clawd counts down to it', { options: OPTIO
 })
 
 test('in the last 15 minutes before leave time, Clawd nudges for a commit', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, istOn(27, 17, 20))
+  await start($, on, {}, istOn(27, 17, 20))
 
   const ui = await $.ui.mount(BAND)
 
@@ -34,7 +34,7 @@ test('in the last 15 minutes before leave time, Clawd nudges for a commit', { op
 })
 
 test('at leave time, Clawd says go home', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, istOn(27, 17, 30))
+  await start($, on, {}, istOn(27, 17, 30))
 
   const ui = await $.ui.mount(BAND)
 
@@ -44,7 +44,7 @@ test('at leave time, Clawd says go home', { options: OPTIONS }, async ($, on) =>
 
 test('a prompt after leave time gets asked if it is the last one', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  await start($, on, { species: 'clawd' }, istOn(27, 18, 0))
+  await start($, on, {}, istOn(27, 18, 0))
   const ui = await $.ui.mount(BAND)
 
   await $.prompt.submit({ ...SUBMITTED, text: 'fix the flaky test' })
@@ -54,7 +54,7 @@ test('a prompt after leave time gets asked if it is the last one', { options: OP
 })
 
 test('a turn that finishes after leave time ends with go home', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, istOn(27, 18, 0))
+  await start($, on, {}, istOn(27, 18, 0))
   const ui = await $.ui.mount(BAND)
 
   await $.turn.complete({ answer: 'fixed.', durationMs: 1000, isAborted: false, turnId: 't1', reason: 'answer' })
@@ -65,7 +65,7 @@ test('a turn that finishes after leave time ends with go home', { options: OPTIO
 
 test('after the set minutes of work, a finished turn has Clawd stretch and suggest a break', { options: { ...OPTIONS, break_every: '2' } }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   const done = () => $.turn.complete({ answer: 'ok.', durationMs: 1000, isAborted: false, turnId: 't1', reason: 'answer' })
 
@@ -81,7 +81,7 @@ test('after the set minutes of work, a finished turn has Clawd stretch and sugge
 
 test('with no break time set, Clawd never suggests one', { options: { ...OPTIONS, break_every: '' } }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await workFor($, clock, 3)
@@ -117,7 +117,7 @@ test('break minutes are read from the setting, and empty, 0 or nonsense turns th
 })
 
 test('a long turn ends with confetti, and its done stays up a minute for whoever looks back', { options: OPTIONS }, async ($, on) => {
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.turn.complete({ answer: 'fixed.', durationMs: 4 * 60_000, isAborted: false, turnId: 't1', reason: 'answer' })
@@ -132,7 +132,7 @@ test('a long turn ends with confetti, and its done stays up a minute for whoever
 })
 
 test('a turn stopped short is not cheered', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.turn.complete({ answer: '', durationMs: 5 * 60_000, isAborted: true, turnId: 't1', reason: 'aborted' })
@@ -148,7 +148,7 @@ test('a turn stopped short is not cheered', { options: OPTIONS }, async ($, on) 
 
 test('on a weekend Clawd says nothing about leave time', { options: OPTIONS }, async ($, on) => {
   // Sunday 1 Nov 2026, 17:10 IST: dusk.
-  await start($, on, { species: 'clawd' }, istOn(32, 17, 10))
+  await start($, on, {}, istOn(32, 17, 10))
 
   const ui = await $.ui.mount(BAND)
 
@@ -159,7 +159,7 @@ test('on a weekend Clawd says nothing about leave time', { options: OPTIONS }, a
 
 test('a turn past two minutes makes Clawd sweat', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, isWorking: true } })
   await $.prompt.submit({ ...SUBMITTED, text: 'refactor everything' })
   expect(await ui.find({ type: 'Text', text: /^[’,]$/ })).toBeFalsy()
@@ -172,7 +172,7 @@ test('a turn past two minutes makes Clawd sweat', { options: OPTIONS }, async ($
 
 test('/pet vibe puts on headphones, then Clawd breaks into song with them on', { options: OPTIONS }, async ($, on) => {
   const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 7, lines: ['ooh, the tests are green ♪'] }
-  const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
+  const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
   const ui = await $.ui.mount(BAND)
 
@@ -193,7 +193,7 @@ test('/pet vibe puts on headphones, then Clawd breaks into song with them on', {
 
 test('a prompt in the night gets a yawn', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  await start($, on, { species: 'clawd' }, istOn(27, 2, 0))
+  await start($, on, {}, istOn(27, 2, 0))
   const ui = await $.ui.mount(BAND)
 
   await $.prompt.submit({ ...SUBMITTED, text: 'one more thing' })

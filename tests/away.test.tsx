@@ -21,8 +21,8 @@ import {
   TALK,
 } from './helpers'
 
-test('Moss falls asleep after a quiet while', { options: OPTIONS }, async ($, on) => {
-  const clock = await start($, on, { species: 'moss' })
+test('at night, Clawd falls asleep after a quiet while', { options: OPTIONS }, async ($, on) => {
+  const clock = await start($, on, {}, istOn(27, 23, 30))
   await clock.advance(6 * 60 * 1000)
 
   const ui = await $.ui.mount(BAND)
@@ -31,7 +31,7 @@ test('Moss falls asleep after a quiet while', { options: OPTIONS }, async ($, on
 })
 
 test('Clawd keeps still while Claude is idle, for reading', { options: OPTIONS }, async ($, on) => {
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   expect(await ui.find({ type: 'Text', text: /too bright\./ })).toBeTruthy()
 
@@ -45,7 +45,7 @@ test('Clawd keeps still while Claude is idle, for reading', { options: OPTIONS }
 
 test('back at night after a doze, Clawd stretches awake', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  const clock = await start($, on, { species: 'clawd' }, istOn(27, 2, 0))
+  const clock = await start($, on, {}, istOn(27, 2, 0))
   await clock.advance(AWAY_MS)
   const ui = await $.ui.mount(BAND)
 
@@ -57,7 +57,7 @@ test('back at night after a doze, Clawd stretches awake', { options: OPTIONS }, 
 
 test('back by day, Clawd looks up from its pastime', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  const clock = await start($, on, { species: 'clawd' }, LEFT_TO_FISH)
+  const clock = await start($, on, {}, LEFT_TO_FISH)
   await clock.advance(AWAY_MS)
   const ui = await $.ui.mount(BAND)
 
@@ -69,7 +69,7 @@ test('back by day, Clawd looks up from its pastime', { options: OPTIONS }, async
 
 test('away more than 25 minutes by day, Clawd has given up its pastime for a nap', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  const clock = await start($, on, { species: 'clawd' }, LEFT_TO_FISH)
+  const clock = await start($, on, {}, LEFT_TO_FISH)
   // Mounted after the wait: drawing every frame of 26 minutes runs past the test's time limit.
   await clock.advance(26 * 60 * 1000)
   const ui = await $.ui.mount(BAND)
@@ -82,7 +82,7 @@ test('away more than 25 minutes by day, Clawd has given up its pastime for a nap
 
 test('a prompt within 5 minutes gets no welcome back', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  const clock = await start($, on, { species: 'clawd' }, LEFT_TO_FISH)
+  const clock = await start($, on, {}, LEFT_TO_FISH)
   await clock.advance(4 * 60 * 1000)
   const ui = await $.ui.mount(BAND)
 
@@ -93,7 +93,7 @@ test('a prompt within 5 minutes gets no welcome back', { options: OPTIONS }, asy
 })
 
 test('away by day, Clawd goes fishing', { options: OPTIONS }, async ($, on) => {
-  const clock = await start($, on, { species: 'clawd' }, LEFT_TO_FISH)
+  const clock = await start($, on, {}, LEFT_TO_FISH)
 
   await clock.advance(AWAY_MS)
 
@@ -105,7 +105,7 @@ test('away by day, Clawd goes fishing', { options: OPTIONS }, async ($, on) => {
 })
 
 test('away by day, Clawd juggles two pearls at a time', { options: OPTIONS }, async ($, on) => {
-  const clock = await start($, on, { species: 'clawd' }, LEFT_TO_JUGGLE)
+  const clock = await start($, on, {}, LEFT_TO_JUGGLE)
 
   await clock.advance(AWAY_MS)
 
@@ -116,7 +116,7 @@ test('away by day, Clawd juggles two pearls at a time', { options: OPTIONS }, as
 })
 
 test('away by day with no turns done today, Clawd starts a sandcastle', { options: OPTIONS }, async ($, on) => {
-  const clock = await start($, on, { species: 'clawd' }, LEFT_TO_BUILD)
+  const clock = await start($, on, {}, LEFT_TO_BUILD)
 
   await clock.advance(AWAY_MS)
 
@@ -127,7 +127,7 @@ test('away by day with no turns done today, Clawd starts a sandcastle', { option
 })
 
 test("the sandcastle stands as tall as today's turns, with a flag from 10", { options: OPTIONS }, async ($, on) => {
-  const clock = await start($, on, { species: 'clawd', castle: { day: '10-27', turns: 12 } }, LEFT_TO_BUILD)
+  const clock = await start($, on, { castle: { day: '10-27', turns: 12 } }, LEFT_TO_BUILD)
 
   await clock.advance(AWAY_MS)
 
@@ -140,7 +140,7 @@ test("the sandcastle stands as tall as today's turns, with a flag from 10", { op
 })
 
 test("yesterday's sandcastle is gone", { options: OPTIONS }, async ($, on) => {
-  const clock = await start($, on, { species: 'clawd', castle: { day: '10-26', turns: 12 } }, LEFT_TO_BUILD)
+  const clock = await start($, on, { castle: { day: '10-26', turns: 12 } }, LEFT_TO_BUILD)
 
   await clock.advance(AWAY_MS)
 
@@ -156,7 +156,7 @@ test("a finished turn adds a storey to today's stored sandcastle", { options: OP
 
     return next(e)
   })
-  await start($, on, { species: 'clawd', castle: { day: '10-27', turns: 2 } }, NOON_IST)
+  await start($, on, { castle: { day: '10-27', turns: 2 } }, NOON_IST)
 
   await $.turn.complete({ answer: 'fixed.', durationMs: 1000, isAborted: false, turnId: 't1', reason: 'answer' })
 
@@ -170,7 +170,7 @@ test("a subagent's finished turn adds nothing to the sandcastle", { options: OPT
 
     return next(e)
   })
-  await start($, on, { species: 'clawd', castle: { day: '10-27', turns: 2 } }, NOON_IST)
+  await start($, on, { castle: { day: '10-27', turns: 2 } }, NOON_IST)
 
   await $.turn.complete({ answer: 'found it.', durationMs: 1000, isAborted: false, turnId: 't1', reason: 'answer', agentId: 'a1' })
 
@@ -184,7 +184,7 @@ test("the first turn of a new day starts a new sandcastle", { options: OPTIONS }
 
     return next(e)
   })
-  await start($, on, { species: 'clawd', castle: { day: '10-26', turns: 9 } }, NOON_IST)
+  await start($, on, { castle: { day: '10-26', turns: 9 } }, NOON_IST)
 
   await $.turn.complete({ answer: 'fixed.', durationMs: 1000, isAborted: false, turnId: 't1', reason: 'answer' })
 
@@ -193,7 +193,7 @@ test("the first turn of a new day starts a new sandcastle", { options: OPTIONS }
 
 test('Clawd watches the person type, eyes on the caret, and looks back up once they stop', { options: OPTIONS }, async ($, on) => {
   on('prompt.edit', (_, e) => ({ text: e.inputText, cursor: e.inputText.length }))
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   // Past the settling after the session's start, and off a blink.
   await clock.advance(5 * 800)
@@ -208,7 +208,7 @@ test('Clawd watches the person type, eyes on the caret, and looks back up once t
 })
 
 test('away by day, Clawd may listen to music with its headphones on', { options: OPTIONS }, async ($, on) => {
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST + 4000)
+  const clock = await start($, on, {}, NOON_IST + 4000)
   await clock.advance(AWAY_MS)
   const ui = await $.ui.mount(BAND)
 
@@ -222,7 +222,7 @@ test('with no plays this week, the songbook falls back to the music setting', LA
   const prompts: string[] = []
   lastfmStub(on, urls, false)
   modelStub(on, prompts)
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   await clock.advance(1_500)
 
   expect(prompts[0]).toContain(MUSIC)
@@ -230,7 +230,7 @@ test('with no plays this week, the songbook falls back to the music setting', LA
 
 test('back by day from the sandcastle, Clawd shows it off', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  const clock = await start($, on, { species: 'clawd' }, LEFT_TO_BUILD)
+  const clock = await start($, on, {}, LEFT_TO_BUILD)
   await clock.advance(AWAY_MS)
   const ui = await $.ui.mount(BAND)
 
@@ -244,7 +244,7 @@ test('back by day from the sandcastle, Clawd shows it off', { options: OPTIONS }
 test('asking Clawd how it is doing tells Claude its pets, treats, sandcastle and songbook', { options: OPTIONS }, async ($, on) => {
   const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 7, taste: MUSIC, lines: ['la ♪'] }
   const castle = { day: '10-27', turns: 4 }
-  await start($, on, { species: 'clawd', pets: 12, treats: 1, castle, songbook }, NOON_IST)
+  await start($, on, { pets: 12, treats: 1, castle, songbook }, NOON_IST)
 
   const status = await $.tool.call({ tool: TALK, action: 'ask' })
   expect(status.result).toBe(

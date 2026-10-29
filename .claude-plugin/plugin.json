@@ -1,7 +1,7 @@
 {
   "name": "clawd",
-  "version": "0.1.0",
-  "description": "Clawd, a little crab above your prompt that reacts to what Claude is doing (or a garden, or Moss)",
+  "version": "0.2.0",
+  "description": "Clawd, a little crab above your prompt that reacts to what Claude is doing",
   "author": {
     "name": "arduR-O"
   },
@@ -11,39 +11,49 @@
     "utc_offset": {
       "type": "string",
       "title": "UTC offset",
-      "description": "Your time zone's offset from UTC, like +05:30, for Clawd's sun and moon",
+      "description": "Your time zone as an offset from UTC, for example +05:30. Clawd uses it for the sun, the moon and the time of day",
       "default": "+00:00"
     },
     "leave_at": {
       "type": "string",
       "title": "Leave time",
-      "description": "Optional: when you leave work on weekdays, as 24-hour HH:MM, for Clawd's going-home nudges. Empty turns them off",
+      "description": "Optional. When you leave work on weekdays, as HH:MM in 24-hour time. Clawd counts down to it and tells you to go home. Empty turns it off",
       "default": ""
     },
     "break_every": {
       "type": "string",
       "title": "Break every",
-      "description": "Minutes of work before Clawd stretches and suggests a break, like 50. Empty or 0 turns it off",
+      "description": "Minutes of work before Clawd suggests a break, for example 50. Empty or 0 turns it off",
       "default": "50"
     },
     "music": {
       "type": "string",
-      "title": "Music",
-      "description": "Optional: artists or songs for Clawd's songbook, comma-separated. Empty uses its built-in songs; set, it costs one small Haiku call a day",
+      "title": "Songbook: music",
+      "description": "Optional. Artists or songs for Clawd to sing, separated by commas. Clawd uses this when Last.fm is not set or has no plays this week. Costs one small Haiku call per day",
       "default": ""
     },
     "lastfm_user": {
       "type": "string",
-      "title": "Last.fm user",
-      "description": "Optional: your Last.fm username, so the songbook follows what you play lately. Needs the API key too; adds a Last.fm lookup and one small Haiku call a day",
+      "title": "Songbook: Last.fm user",
+      "description": "Optional. Your Last.fm username. With the API key, Clawd sings from what you played recently. Costs one Last.fm lookup and one small Haiku call per day",
       "default": ""
     },
     "lastfm_api_key": {
       "type": "string",
-      "title": "Last.fm API key",
-      "description": "Optional: a read-only Last.fm API key (last.fm/api/accounts), kept in secure storage",
+      "title": "Songbook: Last.fm API key",
+      "description": "Optional. A read-only Last.fm API key from last.fm/api/accounts. Claude Code keeps it in secure storage",
       "sensitive": true,
       "default": ""
+    },
+    "talk": {
+      "type": "string",
+      "title": "Claude can talk to Clawd",
+      "description": "On lets Claude use the clawd tool to make Clawd act, sing or say how it is. It adds about 400 tokens to each request. Off by default",
+      "default": "off",
+      "options": [
+        "off",
+        "on"
+      ]
     }
   }
 }

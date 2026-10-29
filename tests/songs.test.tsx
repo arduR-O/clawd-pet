@@ -30,7 +30,7 @@ test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, asy
   })
   on('http.fetch', () => ({ value: { ok: true, status: 200, headers: {}, text: '{}' } }))
   const songbook = { day: '10-27', source: 'lastfm:listener', style: 7, taste: 'x', lines: ['old song ♪'] }
-  const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
+  const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
   expect(prompts.length).toBe(0)
 
@@ -42,7 +42,7 @@ test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, asy
 })
 
 test('/pet refresh-songs with no music set says Clawd keeps its built-in songs', { options: { utc_offset: '+05:30' } }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
 
   const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
 
@@ -81,7 +81,7 @@ test('the starter songs turn up one in ten among a songbook, and not at all in a
 
 test('/pet sing sings a line from the songbook, a few letters at a time', { options: OPTIONS }, async ($, on) => {
   const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 7, lines: ['mama, oooooooo, the build is green ♪'] }
-  const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
+  const clock = await start($, on, { songbook }, NOON_IST)
   // The songbook loads a moment after the session starts.
   await clock.advance(1_500)
   const ui = await $.ui.mount(BAND)
@@ -112,7 +112,7 @@ test("a stale songbook is rewritten once by Claude, in the music's vibe", { opti
     return next(e)
   })
   const songbook = { day: '10-26', source: `music:${MUSIC}`, lines: ['yesterday ♪'] }
-  const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
+  const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
 
   expect(prompts.length).toBe(1)
@@ -135,7 +135,7 @@ test('with no music and no Last.fm set, Clawd sings its built-in songs and calls
 
     return { value: { isAnswered: false, reason: 'empty-reply', usage: NO_USAGE } }
   })
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   await clock.advance(1_500)
   const ui = await $.ui.mount(BAND)
 
@@ -154,7 +154,7 @@ test("today's songbook is not written again", { options: OPTIONS }, async ($, on
     return { value: { isAnswered: false, reason: 'empty-reply', usage: NO_USAGE } }
   })
   const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 7, lines: ['today ♪'] }
-  const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
+  const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
 
   expect(asked).toBe(0)
@@ -167,7 +167,7 @@ test("with a Last.fm key, the songbook follows this week's plays", LASTFM, async
   modelStub(on, prompts)
   // Today's book came from the music setting; Last.fm being set up writes a new one now.
   const songbook = { day: '10-27', source: `music:${MUSIC}`, lines: ['old ♪'] }
-  const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
+  const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
 
   // This week's artists and songs, the last plays, and the all-time songs.
@@ -184,7 +184,7 @@ test('without a Last.fm key, Last.fm is never asked', { options: OPTIONS }, asyn
   const prompts: string[] = []
   lastfmStub(on, urls)
   modelStub(on, prompts)
-  const clock = await start($, on, { species: 'clawd' }, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   await clock.advance(1_500)
 
   expect(urls).toEqual([])
@@ -192,7 +192,7 @@ test('without a Last.fm key, Last.fm is never asked', { options: OPTIONS }, asyn
 })
 
 test('passing tests get a suspicious squint, not a cheer', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.tool.call({ tool: 'Bash', command: 'pytest -x' })
@@ -215,7 +215,7 @@ test('a songbook written by an older prompt is written again', { options: OPTION
   const prompts: string[] = []
   modelStub(on, prompts)
   const songbook = { day: '10-27', source: `music:${MUSIC}`, lines: ['old style ♪'] }
-  const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
+  const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
 
   expect(prompts.length).toBe(1)
@@ -227,23 +227,29 @@ test("today's Last.fm songbook is not asked for again", LASTFM, async ($, on) =>
   const prompts: string[] = []
   lastfmStub(on, urls)
   modelStub(on, prompts)
-  const clock = await start($, on, { species: 'clawd', songbook: LASTFM_SONGBOOK }, NOON_IST)
+  const clock = await start($, on, { songbook: LASTFM_SONGBOOK }, NOON_IST)
   await clock.advance(1_500)
 
   expect(urls).toEqual([])
   expect(prompts).toEqual([])
 })
 
-test('Claude gets a clawd tool, listed from the start and allowed without asking', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+test('with talk on, Claude gets a clawd tool, listed from the start and allowed without asking', { options: { ...OPTIONS, talk: 'on' } }, async ($, on) => {
+  await start($, on, {}, NOON_IST)
 
   expect(registered.map(one => [one.name, one.isDeferred])).toEqual([['clawd', false]])
   const verdict = await $.tool.check({ tool: TALK, input: { action: 'ask' } })
   expect(verdict.decision).toBe('allow')
 })
 
+test('by default Claude gets no clawd tool, so no request carries it', { options: OPTIONS }, async ($, on) => {
+  await start($, on, {}, NOON_IST)
+
+  expect(registered).toEqual([])
+})
+
 test('Claude can have Clawd act something out, and Clawd says its line', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   const done = await $.tool.call({ tool: TALK, action: 'act', emote: 'party', line: 'green tests, claude!' })
@@ -255,14 +261,14 @@ test('Claude can have Clawd act something out, and Clawd says its line', { optio
 })
 
 test('Clawd refuses an emote it does not know, naming the ones it does', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
 
   const refused = await $.tool.call({ tool: TALK, action: 'act', emote: 'backflip', line: 'hi' })
   expect(refused.deny).toContain('emote must be one of: wave, dance')
 })
 
 test("a long line is cut to fit beside Clawd", { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
 
   const done = await $.tool.call({ tool: TALK, action: 'act', emote: 'wave', line: 'x'.repeat(60) })
   expect(done.result).toBe(`Clawd did "wave" and said "${'x'.repeat(39)}…".`)
@@ -270,7 +276,7 @@ test("a long line is cut to fit beside Clawd", { options: OPTIONS }, async ($, o
 
 test('Claude may talk to Clawd twice a turn, and a new prompt starts the count over', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  await start($, on, { species: 'clawd' }, NOON_IST)
+  await start($, on, {}, NOON_IST)
 
   await $.tool.call({ tool: TALK, action: 'act', emote: 'wave', line: 'hi' })
   await $.tool.call({ tool: TALK, action: 'act', emote: 'wave', line: 'hi again' })
@@ -284,16 +290,10 @@ test('Claude may talk to Clawd twice a turn, and a new prompt starts the count o
 
 test('Claude can ask Clawd to sing, and hears the line', { options: OPTIONS }, async ($, on) => {
   const songbook = { day: '10-27', source: `music:${MUSIC}`, style: 7, lines: ['under pressure… to ship it ♪'] }
-  const clock = await start($, on, { species: 'clawd', songbook }, NOON_IST)
+  const clock = await start($, on, { songbook }, NOON_IST)
   await clock.advance(1_500)
 
   const sung = await $.tool.call({ tool: TALK, action: 'sing' })
   expect(sung.result).toBe('Clawd sang: "under pressure… to ship it ♪"')
 })
 
-test('with the garden on screen, Clawd is off duty', { options: OPTIONS }, async ($, on) => {
-  await start($, on, { species: 'garden' }, NOON_IST)
-
-  const done = await $.tool.call({ tool: TALK, action: 'act', emote: 'wave', line: 'hi' })
-  expect(done.result).toContain('the garden; Clawd is off duty')
-})
