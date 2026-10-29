@@ -7,6 +7,8 @@
 - In VS Code and the desktop app, Clawd's name no longer sits in a blue button. Those apps draw
   every button as a native one, so there the name is plain text, and `/pet` pets Clawd. In the
   terminal a click still pets it.
+- In VS Code and the desktop app, Clawd's line is no longer cut short with `…`. It was cut to the
+  terminal's columns, which those apps don't have; now they wrap it to the room they have.
 
 ### Removed
 

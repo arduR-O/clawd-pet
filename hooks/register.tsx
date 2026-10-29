@@ -912,7 +912,6 @@ export const register: Register = (on, options) => {
     const frame = await read($, tick)
     const now = await $.clock.now()
     const [kind, line] = current(m, now, e.props.isWorking)
-    const room = Math.max(10, e.props.bodyColumns - 16)
     const local = localTime(now, offsetMinutes)
     const act = await read($, emote)
     let pose = act.name !== null && now < act.until ? act.name : undefined
@@ -1008,7 +1007,16 @@ export const register: Register = (on, options) => {
           ) : (
             name
           )}
-          {said !== '' && <Text dimColor>{short(said, room)}</Text>}
+          {said !== '' &&
+            (e.surface === 'terminal' ? (
+              // Cut to the columns beside the drawing.
+              <Text dimColor>{short(said, Math.max(10, e.props.bodyColumns - 16))}</Text>
+            ) : (
+              // The apps' columns are not the terminal's: they wrap the line to the room they have.
+              <Text dimColor wrap="wrap">
+                {said}
+              </Text>
+            ))}
         </Box>
       </Box>
     )

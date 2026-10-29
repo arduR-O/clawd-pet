@@ -29,6 +29,21 @@ test('outside the terminal Clawd is drawn as a picture, its name and line as tex
   }
 })
 
+test("outside the terminal Clawd's line is never cut to the terminal's columns, but wrapped by the app", { options: OPTIONS }, async ($, on) => {
+  await start($, on, { treats: 9 }, NOON_IST)
+  const narrow = { ...BAND.props, bodyColumns: 20 }
+  const app = await $.ui.mount({ ...BAND, surface: 'vscode', props: narrow })
+  const terminal = await $.ui.mount({ ...BAND, props: narrow })
+
+  await $.command.run({ ...TYPED, command: 'pet', args: 'treat' })
+
+  const line = await app.find({ type: 'Text', text: /^treat #10\. spoiled crab\.$/ })
+  expect(line?.props.wrap).toBe('wrap')
+  expect(await terminal.find({ type: 'Text', text: /^treat #10…$/ })).toBeTruthy()
+  await app.unmount()
+  await terminal.unmount()
+})
+
 test('the picture draws block characters as pixel rectangles and the rest as text', () => {
   const svg = sceneSvg([
     [{ text: '█▀', color: '#ff8800' }],
