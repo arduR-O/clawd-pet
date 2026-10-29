@@ -70,7 +70,7 @@ If Clawd does not appear, see [Troubleshooting](#troubleshooting).
 **It has a life of its own.**
 
 - A sun or a moon moves over its head with your local time.
-- It sings lines from songs. You can make it sing the music that you listen to.
+- It sings lines from songs. With Last.fm, it sings the music that you listen to.
 - It builds a sandcastle. Each prompt that Claude finishes adds one level. A new day starts a new
   sandcastle.
 - When you send no prompt for 5 minutes in the day, Clawd fishes, juggles, builds or listens to
@@ -111,8 +111,8 @@ run `/pet guest`.
 
 ## Commands
 
-To pet Clawd, click it or its name. In VS Code and the desktop app, click its name. Clicks need a
-terminal that sends mouse clicks. If yours does not, run `/pet`.
+To pet Clawd in the terminal, click it or its name. Clicks need a terminal that sends mouse clicks.
+In VS Code and the desktop app, or if your terminal does not send clicks, run `/pet`.
 
 All commands start with `/pet`. When you type `/pet `, Claude Code shows what can come next.
 
@@ -144,22 +144,19 @@ To change a setting, run `/plugin configure clawd@clawd` in Claude Code.
 | Leave time | Empty | Sets when you leave work on weekdays, as `HH:MM`. Clawd counts down to it and tells you to go home. Empty turns it off. |
 | Claude can talk to Clawd | `off` | Set it to `on` to give Claude the `clawd` tool. Claude can then make Clawd act, sing or say how it is. It adds about 400 tokens to each request. |
 | Break every | `50` | Sets the minutes of work before Clawd suggests a break. Work means that you send prompts or type, with no gap of 10 minutes or more. `0` or empty turns it off. |
-| Songbook: music | Empty | Sets artists or songs for Clawd to sing. See [The songbook](#the-songbook). |
 | Songbook: Last.fm user | Empty | Sets your Last.fm user name. See [The songbook](#the-songbook). |
 | Songbook: Last.fm API key | Empty | Sets your Last.fm API key. See [The songbook](#the-songbook). |
 
 ### The songbook
 
 Clawd sings the first line of a song. Sometimes it changes the end of the line into a joke about
-code. Clawd writes a new songbook each day. It chooses the songs in this order:
+code.
 
-1. **Last.fm:** if you set your Last.fm user and API key, Clawd uses the songs that you played
-   this week. To get a key, go to [last.fm/api/accounts](https://www.last.fm/api/accounts).
-   Claude Code keeps the key in secure storage.
-2. **Music:** if you did not set Last.fm, or Last.fm has no plays this week, Clawd uses the
-   music setting. Write artists or songs with commas between them, for example
-   `Queen, Billy Joel`.
-3. **Built-in songs:** if you set neither, Clawd sings its 30 built-in lines.
+- **Built-in songs:** by default, Clawd sings its 30 built-in lines. This costs nothing.
+- **Last.fm:** if you set your Last.fm user and API key, Clawd writes a new songbook each day
+  from the songs that you played this week. To get a key, go to
+  [last.fm/api/accounts](https://www.last.fm/api/accounts). Claude Code keeps the key in secure
+  storage. If Last.fm has no plays this week, Clawd keeps the songs that it has.
 
 To write a new songbook now, run `/pet refresh-songs`.
 
@@ -171,15 +168,14 @@ nothing to your requests to Claude. Only two optional settings cost tokens:
 | Optional setting | Cost |
 |---|---|
 | Claude can talk to Clawd | About 400 tokens added to each request that Claude makes. Off by default. |
-| Songbook: music or Last.fm | One small call to Claude Haiku per day. Empty by default. |
+| Songbook: Last.fm | One small call to Claude Haiku per day. Empty by default. |
 
 **Claude can talk to Clawd.** When you set it to `on`, Claude gets the `clawd` tool, and each
 request carries the tool's description. To remove the cost again, set it to `off`.
 
-**The songbook.** If you set music or Last.fm, Clawd makes one call to Claude Haiku per day. The
-call uses your Claude Code account, as Claude itself does. It sends only your music setting, or
-the names of your recent songs and artists. With Last.fm, Clawd also asks Last.fm for your plays
-once per day. Without music or Last.fm, the songbook costs nothing.
+**The songbook.** If you set Last.fm, Clawd asks Last.fm for your plays and makes one call to
+Claude Haiku per day. The call uses your Claude Code account, as Claude itself does. It sends only
+the names of your recent songs and artists. Without Last.fm, the songbook costs nothing.
 
 **What Clawd reads.** To choose what to show, Clawd reads:
 
@@ -187,9 +183,18 @@ once per day. Without music or Last.fm, the songbook costs nothing.
 - the tools that Claude uses, with their arguments, such as commands and file paths;
 - the word on the spinner.
 
-If you turn on **Claude can talk to Clawd**, Clawd can tell Claude its pets, treats and your local
-time. Clawd
-sends nothing else anywhere, except the songbook calls above. It has no telemetry.
+**All of this stays on your computer.** Clawd reads these things only to choose a face or a line,
+for example a Jedi when you run `git push --force`. Then it forgets them:
+
+- Clawd does not save your prompts, commands or files. It saves only its own state: the number of
+  pets and treats, the sandcastle, the songbook and if it is hidden.
+- Clawd does not send your prompts, commands or files anywhere. It has no telemetry and no server.
+- The only network calls are the songbook calls above, and only if you set Last.fm. They send
+  only the names of songs and artists.
+- If you turn on **Claude can talk to Clawd**, Clawd can tell Claude its pets, treats and your
+  local time. Claude gets nothing else from Clawd.
+
+You can read all of the code in [hooks/](hooks/).
 
 ## Updates
 
@@ -246,7 +251,7 @@ When a user asks you to install this plugin:
 4. Save the time zone as an offset. For example, for India, run
    `echo '{"utc_offset": "+05:30"}' | claude plugin configure clawd@clawd --values-stdin`.
 5. Tell the user about the optional settings, in one line each:
-   - the songbook: music or Last.fm, one small Haiku call per day;
+   - the songbook: Last.fm, one small Haiku call per day;
    - the leave time;
    - break reminders: on by default, every 50 minutes;
    - Claude can talk to Clawd: off by default, about 400 tokens per request when on.

@@ -29,9 +29,8 @@ export async function auraShown(ui: Shown) {
   return (await ui.findAll({ type: 'Text' })).some(one => AURA.includes(one.props.backgroundColor ?? ''))
 }
 
-export const MUSIC = 'Queen, Wasia Project, Goodnight Saigon by Billy Joel'
-// The settings the tests run with: India's time, a 17:30 leave time and some music.
-export const OPTIONS = { utc_offset: '+05:30', leave_at: '17:30', music: MUSIC }
+// The settings the tests run with: India's time and a 17:30 leave time.
+export const OPTIONS = { utc_offset: '+05:30', leave_at: '17:30' }
 // With Last.fm on as well.
 export const LASTFM = { options: { ...OPTIONS, lastfm_user: 'listener', lastfm_api_key: 'k3y' } }
 

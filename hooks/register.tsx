@@ -369,12 +369,8 @@ async function vibe($: EngineInterface) {
   })
 }
 
-// What to sing like: your last week on Last.fm when `lastfm` names a user and a key and Last.fm
-// has plays, else the `music` setting.
-async function tasteOf($: EngineInterface, music: string, lastfm: { user: string; key: string }): Promise<string> {
-  if (lastfm.user === '' || lastfm.key === '') {
-    return music
-  }
+// What to sing like: your last week on Last.fm, or '' when Last.fm has no plays or can't be reached.
+async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }): Promise<string> {
   const ask = (method: string, extra: string) =>
     $.http
       .fetch(
@@ -392,20 +388,19 @@ async function tasteOf($: EngineInterface, music: string, lastfm: { user: string
     ask('user.gettoptracks', 'period=overall&limit=5'),
   ])
 
-  return tasteFrom(artists, week, recent, allTime) || music
+  return tasteFrom(artists, week, recent, allTime)
 }
 
 // Loads the songbook, or has Claude write one in the vibe of what you've been playing (tasteOf):
 // once a day, and again when the source or the prompt's style changes (or `/pet refresh-songs`
 // forgets it). Until it is written, and whenever writing fails, the last songbook or the starter
 // songs are sung.
-async function refreshSongbook($: EngineInterface, music: string, lastfm: { user: string; key: string }, today: string) {
-  const hasLastfm = lastfm.user !== '' && lastfm.key !== ''
-  // With no music and no Last.fm, Clawd sings its built-in songs and calls no model.
-  if (music === '' && !hasLastfm) {
+async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: string }, today: string) {
+  // Without Last.fm, Clawd sings its built-in songs and calls no model.
+  if (lastfm.user === '' || lastfm.key === '') {
     return
   }
-  const source = hasLastfm ? `lastfm:${lastfm.user}` : `music:${music}`
+  const source = `lastfm:${lastfm.user}`
   type Songbook = { day?: string; source?: string; style?: number; taste?: string; lines?: string[] }
   const kept = (await $.store.get('songbook')) as Songbook | undefined
   if (kept?.lines !== undefined && kept.lines.length > 0) {
@@ -415,7 +410,7 @@ async function refreshSongbook($: EngineInterface, music: string, lastfm: { user
   if (isCurrent) {
     return
   }
-  const taste = await tasteOf($, music, lastfm)
+  const taste = await tasteOf($, lastfm)
   if (taste === '') {
     return
   }
@@ -477,7 +472,6 @@ export const register: Register = (on, options) => {
   const breakEvery = parseMinutes(String(options.break_every ?? '50'))
   // The clawd tool goes into every request Claude makes, so it is there only when asked for.
   const canTalk = String(options.talk ?? 'off') === 'on'
-  const music = String(options.music ?? '').trim()
   const lastfm = { user: String(options.lastfm_user ?? '').trim(), key: String(options.lastfm_api_key ?? '').trim() }
 
   on('session.start', async ($, e, next) => {
@@ -501,7 +495,7 @@ export const register: Register = (on, options) => {
     life.castleDay = castle?.day ?? ''
     life.castleTurns = Number(castle?.turns ?? 0)
     // Off the session's start, which waits for nothing: the songbook may need a model call.
-    const refresh = async () => refreshSongbook($, music, lastfm, dayOf(localTime(await $.clock.now(), offsetMinutes)))
+    const refresh = async () => refreshSongbook($, lastfm, dayOf(localTime(await $.clock.now(), offsetMinutes)))
     $.clock.after(1000, () => {
       void refresh()
     })
@@ -769,13 +763,13 @@ export const register: Register = (on, options) => {
       return { text: 'The pet is hidden; /pet on brings it back.' }
     }
     if (asked === 'refresh-songs') {
-      // Forget the songbook and write a new one now, from Last.fm or the music setting.
-      if (music === '' && !(lastfm.user !== '' && lastfm.key !== '')) {
-        return { text: 'No music or Last.fm is set, so Clawd only sings its built-in songs. Set one with /plugin configure.' }
+      // Forget the songbook and write a new one now, from Last.fm.
+      if (lastfm.user === '' || lastfm.key === '') {
+        return { text: 'Last.fm is not set, so Clawd only sings its built-in songs. Set it with /plugin configure.' }
       }
       await $.store.set('songbook', null)
       life.songs = STARTER_SONGS
-      void refreshSongbook($, music, lastfm, dayOf(localTime(await $.clock.now(), offsetMinutes)))
+      void refreshSongbook($, lastfm, dayOf(localTime(await $.clock.now(), offsetMinutes)))
       await react($, 'happy', 'new songs coming…')
 
       return {}
@@ -915,7 +909,7 @@ export const register: Register = (on, options) => {
     }
 
     const { Box, Button, Text } = $.ui.resolve(e)
-    // A click on Clawd, or on its name, pets it.
+    // In the terminal, a click on Clawd, or on its name, pets it.
     const pet = () => void petOnce($)
     const m = await read($, mood)
     const frame = await read($, tick)
@@ -1000,15 +994,24 @@ export const register: Register = (on, options) => {
       drawing = <Svg source={sceneSvg(rows)} alt={pose === undefined ? 'Clawd' : `Clawd: ${pose}`} />
     }
 
+    const name = (
+      <Text color={CLAWD} bold>
+        Clawd{mode === 'love' ? ' ♥' : ''}
+      </Text>
+    )
+
     return (
       <Box flexDirection="row">
         {drawing}
         <Box flexDirection="column" marginLeft={2}>
-          <Button key="name" plain onPress={pet}>
-            <Text color={CLAWD} bold>
-              Clawd{mode === 'love' ? ' ♥' : ''}
-            </Text>
-          </Button>
+          {/* The apps draw every Button as a native one, a filled box, so there the name is text. */}
+          {e.surface === 'terminal' ? (
+            <Button key="name" plain onPress={pet}>
+              {name}
+            </Button>
+          ) : (
+            name
+          )}
           {said !== '' && <Text dimColor>{short(said, room)}</Text>}
         </Box>
       </Box>
