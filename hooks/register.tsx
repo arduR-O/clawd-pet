@@ -21,6 +21,12 @@ import {
   TURNS,
   songbookLines,
   songbookPrompt,
+  songsFrom,
+  searchTitle,
+  linesOfLyrics,
+  twistPrompt,
+  mixSongbook,
+  type Song,
   SONGBOOK_STYLE,
   tasteFrom,
   sungSoFar,
@@ -395,7 +401,7 @@ async function vibe($: EngineInterface) {
 
 // What to sing like: your last week on Last.fm; '' with why not, when Last.fm has no plays or
 // can't be reached.
-async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }): Promise<{ taste: string; problem?: string }> {
+async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }): Promise<{ taste: string; songs: Song[]; problem?: string }> {
   let problem: string | undefined
   const ask = (method: string, extra: string) =>
     $.http
@@ -431,15 +437,38 @@ async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }
   ])
 
   const taste = tasteFrom(artists, week, recent, allTime)
+  const songs = songsFrom(week, recent, allTime)
 
-  return taste === '' ? { taste, problem: problem ?? `Last.fm has no plays for ${lastfm.user} yet` } : { taste }
+  return taste === '' ? { taste, songs, problem: problem ?? `Last.fm has no plays for ${lastfm.user} yet` } : { taste, songs }
+}
+
+// Real lines of the songs, looked up on LRCLIB, a free lyrics database music players use: a song's
+// first line and its chorus, for up to SUNG_SONGS songs. Only the titles and artists go to it.
+async function lyricLines($: EngineInterface, songs: readonly Song[]): Promise<{ lines: string[]; found: number }> {
+  const found = await Promise.all(
+    songs.map(song =>
+      $.http
+        .fetch(`https://lrclib.net/api/search?track_name=${encodeURIComponent(searchTitle(song.title))}&artist_name=${encodeURIComponent(song.artist)}`, {
+          headers: { 'User-Agent': 'clawd (https://github.com/arduR-O/clawd-pet)' },
+        })
+        .then(reply => {
+          const hits = reply.ok ? (JSON.parse(reply.text) as { plainLyrics?: unknown; instrumental?: unknown }[]) : []
+          const hit = Array.isArray(hits) ? hits.find(one => one.instrumental !== true && typeof one.plainLyrics === 'string' && one.plainLyrics !== '') : undefined
+          return hit === undefined ? [] : linesOfLyrics(hit.plainLyrics as string)
+        })
+        .catch(() => [] as string[]),
+    ),
+  )
+  const sung = found.filter(lines => lines.length > 0).slice(0, SUNG_SONGS)
+
+  return { lines: [...new Set(sung.flat())], found: sung.length }
 }
 
 // Loads the songbook, or has Claude write one in the vibe of what you've been playing (tasteOf):
 // once a day, and again when the source or the prompt's style changes, or `/pet refresh-songs`
 // asks (`isAsked`). Until it is written, and whenever writing fails, the last songbook or the starter
 // songs are sung. Answers what happened, for `/pet refresh-songs` to tell the person.
-async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: string }, effort: SongbookEffort, today: string, isAsked = false): Promise<Refreshed> {
+async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: string }, effort: SongbookEffort, isLyrics: boolean, today: string, isAsked = false): Promise<Refreshed> {
   // Without Last.fm, Clawd sings its built-in songs and calls no model.
   if (lastfm.user === '' || lastfm.key === '') {
     return { text: lastfmUnset(lastfm), line: 'no Last.fm: built-in songs' }
@@ -454,13 +483,50 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
   if (isCurrent && !isAsked) {
     return { text: `Today's songbook is already written: ${kept.lines?.length ?? 0} lines from ${lastfm.user}'s Last.fm.`, line: 'songbook up to date ♪' }
   }
-  const { taste, problem } = await tasteOf($, lastfm)
+  const { taste, songs, problem } = await tasteOf($, lastfm)
   if (taste === '') {
     return { text: `${problem}. Clawd keeps the songs it has.`, line: 'no new songs: Last.fm' }
   }
+  // The songs' real lines when LRCLIB has enough of them, with a few of Haiku's twists on them; else
+  // Haiku writes the songbook from what it knows of the songs.
+  const sung = isLyrics ? await lyricLines($, songs) : { lines: [], found: 0 }
+  if (sung.lines.length >= 3) {
+    const { reply } = await askHaiku($, twistPrompt(sung.lines), effort)
+    const twists = reply?.isAnswered === true ? songbookLines(reply.text).slice(0, 4) : []
+    const lines = mixSongbook(sung.lines, twists)
+    life.songs = withStarters(lines)
+    await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines })
+
+    return {
+      text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, the lyrics of ${sung.found} of its ${songs.length} songs from LRCLIB, such as "${lines[0]}"`,
+      line: `new songbook: ${lines.length} songs ♪`,
+    }
+  }
+  const { reply, refused } = await askHaiku($, songbookPrompt(taste), effort)
+  const lines = reply?.isAnswered === true ? songbookLines(reply.text) : []
+  if (lines.length < 3) {
+    const why =
+      reply === undefined
+        ? `the call was refused: ${refused}`
+        : reply.isAnswered
+          ? 'its answer held too few song lines'
+          : reply.reason === 'api-error'
+            ? `the Claude API answered with an error (${reply.error}${reply.status === null ? ', no response' : `, HTTP ${reply.status}`}), even on a second try`
+            : `it did not answer (${reply.reason})`
+    return { text: `Last.fm worked, but Claude Haiku wrote no songbook: ${why}. Clawd keeps the songs it has.`, line: 'no new songs: Haiku' }
+  }
+  life.songs = withStarters(lines)
+  await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines })
+
+  return { text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, such as "${lines[0]}"`, line: `new songbook: ${lines.length} songs ♪` }
+}
+
+// One songbook request to Haiku at `effort`, seen through what can go wrong: a passing API error
+// gets one more try a moment on, and an effort the API refuses gives way to the others.
+async function askHaiku($: EngineInterface, prompt: string, effort: SongbookEffort) {
   // A call the engine refuses to send (a blocked model) rejects; Clawd keeps the songs it has.
   let refused = ''
-  const request = { model: 'haiku', maxTokens: SONGBOOK_TOKENS[effort], effort, prompt: songbookPrompt(taste) } as const
+  const request = { model: 'haiku', maxTokens: SONGBOOK_TOKENS[effort], effort, prompt } as const
   const ask = (asked: { model: string; maxTokens: number; effort?: SongbookEffort; prompt: string } = request) =>
     $.model.complete(asked).catch((error: unknown) => {
       refused = error instanceof Error ? error.message : String(error)
@@ -480,28 +546,16 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
       reply = await ask({ ...request, effort: other, maxTokens: SONGBOOK_TOKENS[other] })
     }
   }
-  const lines = reply?.isAnswered === true ? songbookLines(reply.text) : []
-  if (lines.length < 3) {
-    const why =
-      reply === undefined
-        ? `the call was refused: ${refused}`
-        : reply.isAnswered
-          ? 'its answer held too few song lines'
-          : reply.reason === 'api-error'
-            ? `the Claude API answered with an error (${reply.error}${reply.status === null ? ', no response' : `, HTTP ${reply.status}`}), even on a second try`
-            : `it did not answer (${reply.reason})`
-    return { text: `Last.fm worked, but Claude Haiku wrote no songbook: ${why}. Clawd keeps the songs it has.`, line: 'no new songs: Haiku' }
-  }
-  life.songs = withStarters(lines)
-  await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines })
 
-  return { text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, such as "${lines[0]}"`, line: `new songbook: ${lines.length} songs ♪` }
+  return { reply, refused }
 }
 
 // Whether an API error is one that passes: busy, rate-limited, a server's hiccup, or no response.
 const isPassing = (status: number | null, error: string) =>
   status === null || status === 429 || status >= 500 || ['rate_limit', 'overloaded', 'server_error'].includes(error)
 const RETRY_MS = 5_000
+// The songs whose real lines a songbook takes, two lines each at most.
+const SUNG_SONGS = 8
 // What to try when the API refuses an effort, in order: up to better lines first, then down.
 const EFFORT_FALLBACKS: Readonly<Record<SongbookEffort, readonly SongbookEffort[]>> = { low: [], medium: ['high', 'low'], high: ['low'] }
 
@@ -574,6 +628,7 @@ export const register: Register = (on, options) => {
   const lastfm = { user: String(options.lastfm_user ?? '').trim(), key: String(options.lastfm_api_key ?? '').trim() }
   const asked = String(options.songbook_effort ?? 'medium')
   const songbookEffort: SongbookEffort = asked === 'low' || asked === 'high' ? asked : 'medium'
+  const isLyrics = String(options.lyrics ?? 'lrclib') !== 'off'
 
   on('session.start', async ($, e, next) => {
     life.prompts = 0
@@ -596,7 +651,7 @@ export const register: Register = (on, options) => {
     life.castleDay = castle?.day ?? ''
     life.castleTurns = Number(castle?.turns ?? 0)
     // Off the session's start, which waits for nothing: the songbook may need a model call.
-    const refresh = async () => refreshSongbook($, lastfm, songbookEffort, dayOf(localTime(await $.clock.now(), offsetMinutes)))
+    const refresh = async () => refreshSongbook($, lastfm, songbookEffort, isLyrics, dayOf(localTime(await $.clock.now(), offsetMinutes)))
     $.clock.after(1000, () => {
       void refresh()
     })
@@ -873,7 +928,7 @@ export const register: Register = (on, options) => {
       // Clawd holds up how it's going, over whatever else comes up, until it's done and a while after.
       life.status = { line: 'writing new songs…', until: (await $.clock.now()) + REFRESH_MS }
       await update($, tick, n => n + 1)
-      const refreshed = await refreshSongbook($, lastfm, songbookEffort, dayOf(localTime(await $.clock.now(), offsetMinutes)), true)
+      const refreshed = await refreshSongbook($, lastfm, songbookEffort, isLyrics, dayOf(localTime(await $.clock.now(), offsetMinutes)), true)
       life.status = { line: refreshed.line, until: (await $.clock.now()) + STATUS_MS }
       await update($, tick, n => n + 1)
 

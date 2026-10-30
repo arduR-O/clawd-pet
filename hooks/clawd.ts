@@ -277,7 +277,7 @@ export function tasteFrom(artists: unknown, weekTracks: unknown, recentPlays: un
 }
 
 // The songbook prompt's version: a songbook written by an older prompt is written again.
-export const SONGBOOK_STYLE = 9
+export const SONGBOOK_STYLE = 10
 
 // What Claude is asked for the songbook: lines actually sung in the songs of `taste`, each from
 // the line's start, most sung as is and about one in four carried on into code.
@@ -302,6 +302,92 @@ export function songbookPrompt(taste: string): string {
     'Never join two lines of a song; at most 12 words a line; lowercase;',
     'stretch a vowel in some ("ooooh"). One line each, no numbering, no quotes, no commentary.',
   ].join('\n')
+}
+
+// A song from Last.fm, to look its lyrics up by.
+export type Song = { title: string; artist: string }
+
+// The songs in Last.fm's replies, in the order the songbook leans on them: the newest plays, most
+// repeated first, then this week's repeats, then the all-time favourites; each once, at most `most`.
+export function songsFrom(weekTracks: unknown, recentPlays: unknown, allTimeTracks: unknown, most = 12): Song[] {
+  const list = (value: unknown): Record<string, unknown>[] =>
+    Array.isArray(value) ? value.filter((one): one is Record<string, unknown> => typeof one === 'object' && one !== null) : []
+  const text = (value: unknown) => (typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined)
+  const song = (one: Record<string, unknown>): Song | undefined => {
+    const artist = one.artist as { '#text'?: unknown; name?: unknown } | undefined
+    const title = text(one.name)
+    const by = text(artist?.['#text']) ?? text(artist?.name)
+    return title !== undefined && by !== undefined ? { title, artist: by } : undefined
+  }
+  const plays = list((recentPlays as { recenttracks?: { track?: unknown } } | undefined)?.recenttracks?.track).map(song)
+  const key = (one: Song) => `${one.title}\u0000${one.artist}`.toLowerCase()
+  const counts = new Map<string, number>()
+  for (const one of plays) if (one !== undefined) counts.set(key(one), (counts.get(key(one)) ?? 0) + 1)
+  const byRepeats = plays
+    .filter((one): one is Song => one !== undefined)
+    .map((one, at) => ({ one, at }))
+    .sort((a, b) => counts.get(key(b.one))! - counts.get(key(a.one))! || a.at - b.at)
+    .map(({ one }) => one)
+  const top = (tracks: unknown) => list((tracks as { toptracks?: { track?: unknown } } | undefined)?.toptracks?.track).map(song)
+  const seen = new Set<string>()
+  const songs: Song[] = []
+  for (const one of [...byRepeats, ...top(weekTracks), ...top(allTimeTracks)]) {
+    if (one === undefined || seen.has(key(one))) continue
+    seen.add(key(one))
+    songs.push(one)
+  }
+
+  return songs.slice(0, most)
+}
+
+// A title as a lyrics search takes it: without "(From …)", "[Live]" or " - Remastered 2011".
+export const searchTitle = (title: string) =>
+  title
+    .replace(/\s*[([][^)\]]*[)\]]/g, '')
+    .replace(/\s+-\s+.*$/, '')
+    .trim() || title
+
+// The lines of a song's lyrics worth singing: its first sung line, and the line it sings most (the
+// chorus, mostly) when that is another; lowercase, as Clawd sings, each with its ♪.
+export function linesOfLyrics(lyrics: string): string[] {
+  const sung = lyrics
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line !== '' && !/^[([].*[)\]]$/.test(line))
+  const fits = (line: string) => line.length >= 6 && line.length <= 70
+  const first = sung.find(fits)
+  if (first === undefined) return []
+  const counts = new Map<string, number>()
+  for (const line of sung) if (fits(line)) counts.set(line.toLowerCase(), (counts.get(line.toLowerCase()) ?? 0) + 1)
+  const [chorus, times] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] ?? ['', 0]
+  const lines = [first.toLowerCase(), ...(times >= 2 && chorus !== first.toLowerCase() ? [chorus] : [])]
+
+  return lines.map(line => `${line.replace(/[,.;:]+$/, '')} ♪`)
+}
+
+// What Claude is asked to add to a songbook of real lines: a few that carry a line on into code.
+export function twistPrompt(lines: readonly string[]): string {
+  return [
+    "Clawd, a tiny crab who lives in a programmer's terminal, sings lines from the songs its person plays.",
+    'Here are some of those lines:',
+    ...lines.map(line => `- ${line.replace(/ ♪$/, '')}`),
+    'Write 4 new lines, each taking the start of a different one of those lines (its first few words,',
+    'as sung) and carrying it on into code (bugs, builds, tests, git) or crab life, keeping its rhythm,',
+    'e.g. "before you go… run the linter". Vary the jokes. At most 12 words a line; lowercase. One',
+    'line each, no numbering, no quotes, no commentary.',
+  ].join('\n')
+}
+
+// A songbook from real lines and Claude's twists on them: a twist after every three real lines.
+export function mixSongbook(sung: readonly string[], twists: readonly string[]): string[] {
+  const book: string[] = []
+  sung.forEach((line, at) => {
+    book.push(line)
+    const twist = twists[Math.floor(at / 3)]
+    if (at % 3 === 2 && twist !== undefined) book.push(twist)
+  })
+
+  return book
 }
 
 // The sung lines in Claude's reply: numbering, bullets and quotes stripped, odd lengths and

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0
+
+### New
+
+- **The songbook sings your songs' real lines.** Clawd looks your Last.fm songs up on LRCLIB
+  (lrclib.net), a free lyrics database that music players use, and takes each song's first line and
+  its chorus; Claude Haiku only adds a few twists on those lines into code. Before, Haiku had to
+  remember the words, so it leaned on the few songs it knew and skipped the rest. If LRCLIB has fewer
+  than 3 lines for your songs, Haiku writes the songbook as before. The new **Songbook: lyrics**
+  setting turns LRCLIB off. Only song titles and artists go to LRCLIB. Songbooks from before are
+  written again.
+
 ## 0.3.3
 
 ### Fixed

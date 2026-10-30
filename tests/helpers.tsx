@@ -159,6 +159,8 @@ export const cellsOf = (row: { text: string; color?: string }[]) => row.flatMap(
 // Answers Last.fm's two lookups; `played` false answers as a user with no plays this week.
 export function lastfmStub(on: Parameters<TestBody>[1], urls: string[], played = true) {
   on('http.fetch', (_, e) => {
+    // LRCLIB knows none of these songs, so the songbook is Haiku's.
+    if (!e.url.includes('audioscrobbler')) return { value: { status: 404, ok: false, headers: {}, text: '{"code":404}' } }
     urls.push(e.url)
     const body = e.url.includes('gettopartists')
       ? { topartists: { artist: played ? [{ name: 'Laufey' }, { name: 'Queen' }] : [] } }
@@ -197,7 +199,7 @@ export const LOWERED = /^▝▜█████▛▘$/
 export const LASTFM_SONGBOOK = {
   day: '10-27',
   source: 'lastfm:listener',
-  style: 9,
+  style: 10,
   taste: "this week's repeats: From the Start by Laufey. artists lately: Laufey, Queen",
   lines: ['from the start… of the build ♪'],
 }

@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { STARTER_SONGS, songbookLines, songbookPrompt, tasteFrom, withStarters } from '../hooks/clawd'
+import { STARTER_SONGS, linesOfLyrics, mixSongbook, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
 import {
   BAND,
   OPTIONS,
@@ -155,6 +155,82 @@ test('an effort the API refuses steps up to a better one first, as Claude Code 2
     { maxTokens: 16000, effort: 'medium' },
     { maxTokens: 32000, effort: 'high' },
   ])
+})
+
+// Lyrics made up for the tests: a first line, a chorus sung three times, and section tags.
+const MADE_UP = '[Verse 1]\nThe kettle hums a lonely tune,\nwe dance around the empty room\n\n[Chorus]\nOh paper moon, come down soon\nOh paper moon, come down soon\n\nOh paper moon, come down soon'
+
+test("a song's lines worth singing: its first line and its chorus, lowercase, tags dropped", () => {
+  expect(linesOfLyrics(MADE_UP)).toEqual(['the kettle hums a lonely tune ♪', 'oh paper moon, come down soon ♪'])
+  expect(linesOfLyrics('[Instrumental]')).toEqual([])
+})
+
+test('a title is searched for without its "(From …)", "[Live]" or " - Remastered"', () => {
+  expect(searchTitle('Phir Se (From "Dhurandhar The Revenge")')).toBe('Phir Se')
+  expect(searchTitle('Kashmir - Remaster')).toBe('Kashmir')
+  expect(searchTitle('Song [Live]')).toBe('Song')
+})
+
+test('the songs to look up: the most repeated newest plays first, then the week, then all time, each once', () => {
+  const play = (name: string, by: string) => ({ name, artist: { '#text': by } })
+  const songs = songsFrom(
+    { toptracks: { track: [{ name: 'B', artist: { name: 'Two' } }, { name: 'C', artist: { name: 'Three' } }] } },
+    { recenttracks: { track: [play('A', 'One'), play('B', 'Two'), play('B', 'Two')] } },
+    { toptracks: { track: [{ name: 'A', artist: { name: 'One' } }, { name: 'D', artist: { name: 'Four' } }] } },
+  )
+
+  expect(songs.map(one => one.title)).toEqual(['B', 'A', 'C', 'D'])
+})
+
+test("a songbook of real lines takes one of Claude's twists after every three", () => {
+  expect(mixSongbook(['1 ♪', '2 ♪', '3 ♪', '4 ♪', '5 ♪', '6 ♪', '7 ♪'], ['x ♪', 'y ♪'])).toEqual(['1 ♪', '2 ♪', '3 ♪', 'x ♪', '4 ♪', '5 ♪', '6 ♪', 'y ♪', '7 ♪'])
+})
+
+test('with LRCLIB on, the songbook sings the songs\' real lines, looked up by title and artist, with a few twists', LASTFM, async ($, on) => {
+  const looked: { url: string; agent?: string }[] = []
+  on('http.fetch', (_, e) => {
+    if (e.url.includes('lrclib.net')) {
+      looked.push({ url: e.url, agent: e.init?.headers?.['User-Agent'] })
+      const lyrics = e.url.includes('Paper') ? MADE_UP : 'Second song, its first line\nla la la, the chorus here\nla la la, the chorus here'
+      return { value: { status: 200, ok: true, headers: {}, text: JSON.stringify([{ instrumental: false, plainLyrics: lyrics }]) } }
+    }
+    const body = e.url.includes('getrecenttracks')
+      ? { recenttracks: { track: [{ name: 'Paper Moon (From "A Film")', artist: { '#text': 'The Kettles' } }] } }
+      : e.url.includes('gettoptracks')
+        ? { toptracks: { track: [{ name: 'Second Song', artist: { name: 'The Kettles' } }] } }
+        : { topartists: { artist: [{ name: 'The Kettles' }] } }
+    return { value: { status: 200, ok: true, headers: {}, text: JSON.stringify(body) } }
+  })
+  const prompts: string[] = []
+  on('model.complete', (_, e) => {
+    prompts.push(e.prompt)
+    return { value: { isAnswered: true, text: 'the kettle hums… and the build is green', usage: NO_USAGE } }
+  })
+  await start($, on, { songbook: LASTFM_SONGBOOK }, NOON_IST)
+
+  const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+
+  expect(ran.text).toBe(
+    'New songbook: 5 lines from listener\'s Last.fm, the lyrics of 2 of its 2 songs from LRCLIB, such as "the kettle hums a lonely tune ♪"',
+  )
+  expect(looked[0]?.url).toContain('track_name=Paper%20Moon&artist_name=The%20Kettles')
+  expect(looked[0]?.agent).toContain('clawd')
+  // Claude is given the real lines to twist, not asked to remember any.
+  expect(prompts[0]).toContain('- the kettle hums a lonely tune')
+})
+
+test('with lyrics off, LRCLIB is never asked', { options: { ...LASTFM.options, lyrics: 'off' } }, async ($, on) => {
+  const urls: string[] = []
+  on('http.fetch', (_, e) => {
+    urls.push(e.url)
+    return { value: { status: 200, ok: true, headers: {}, text: '{"toptracks":{"track":[{"name":"A","artist":{"name":"B"}}]}}' } }
+  })
+  modelStub(on, [])
+  await start($, on, { songbook: LASTFM_SONGBOOK }, NOON_IST)
+
+  await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+
+  expect(urls.some(url => url.includes('lrclib'))).toBe(false)
 })
 
 test('a refresh that fails keeps the songbook Clawd has', LASTFM, async ($, on) => {
@@ -323,7 +399,7 @@ test("a stale songbook is rewritten once by Claude, in the vibe of this week's p
     {
       day: '10-27',
       source: 'lastfm:listener',
-      style: 9,
+      style: 10,
       taste: LASTFM_SONGBOOK.taste,
       lines: ['ooh, the tests are green ♪', 'another one bites the bug ♪', 'we will, we will lint you ♪'],
     },

@@ -146,6 +146,7 @@ To change a setting, run `/plugin configure clawd@clawd` in Claude Code.
 | Break every | `50` | Sets the minutes of work before Clawd suggests a break. Work means that you send prompts or type, with no gap of 10 minutes or more. `0` or empty turns it off. |
 | Songbook: Last.fm user | Empty | Sets your Last.fm user name. See [The songbook](#the-songbook). |
 | Songbook: Last.fm API key | Empty | Sets your Last.fm API key. See [The songbook](#the-songbook). |
+| Songbook: lyrics | `lrclib` | Sets where the songbook's real lines come from: `lrclib` looks your songs up on LRCLIB, `off` has Claude Haiku write from what it knows. See [The songbook](#the-songbook). |
 | Songbook: effort | `medium` | Sets how hard Claude Haiku thinks about the songbook: `low`, `medium` or `high`. Higher writes better lines and uses more tokens. |
 
 ### The songbook
@@ -159,6 +160,12 @@ when the song stops. If you pet Clawd or run a `/pet` command, it stops the song
   from the songs that you played this week. To get a key, go to
   [last.fm/api/accounts](https://www.last.fm/api/accounts). Claude Code keeps the key in secure
   storage. If Last.fm has no plays this week, Clawd keeps the songs that it has.
+
+**Where the lines come from.** Clawd looks your songs up on [LRCLIB](https://lrclib.net), a free
+lyrics database that music players use. From each song it takes the first line and the line that the
+song sings most, which is usually the chorus. Then Claude Haiku turns a few of those lines into jokes
+about code. If LRCLIB has fewer than 3 lines for your songs, Claude Haiku writes the songbook from
+what it knows of the songs. To turn LRCLIB off, set **Songbook: lyrics** to `off`.
 
 To write a new songbook now, run `/pet refresh-songs`. Clawd keeps its current songbook until the
 new one is ready. If the new one fails, Clawd keeps the current one. While Clawd writes it, and for
@@ -178,9 +185,10 @@ nothing to your requests to Claude. Only two optional settings cost tokens:
 **Claude can talk to Clawd.** When you set it to `on`, Claude gets the `clawd` tool, and each
 request carries the tool's description. To remove the cost again, set it to `off`.
 
-**The songbook.** If you set Last.fm, Clawd asks Last.fm for your plays and makes one call to
-Claude Haiku per day. The call uses your Claude Code account, as Claude itself does. It sends only
-the names of your recent songs and artists. Without Last.fm, the songbook costs nothing.
+**The songbook.** If you set Last.fm, Clawd asks Last.fm for your plays, looks the songs up on
+LRCLIB, and makes one call to Claude Haiku per day. The call uses your Claude Code account, as Claude
+itself does. Last.fm, LRCLIB and Claude get only the names of your recent songs and artists, and
+Claude also gets the lines that LRCLIB found. Without Last.fm, the songbook costs nothing.
 
 **What Clawd reads.** To choose what to show, Clawd reads:
 
@@ -194,8 +202,8 @@ for example a Jedi when you run `git push --force`. Then it forgets them:
 - Clawd does not save your prompts, commands or files. It saves only its own state: the number of
   pets and treats, the sandcastle, the songbook and if it is hidden.
 - Clawd does not send your prompts, commands or files anywhere. It has no telemetry and no server.
-- The only network calls are the songbook calls above, and only if you set Last.fm. They send
-  only the names of songs and artists.
+- The only network calls are the songbook calls above (Last.fm, LRCLIB and Claude Haiku), and
+  only if you set Last.fm. They send only the names of songs and artists, and song lines.
 - If you turn on **Claude can talk to Clawd**, Clawd can tell Claude its pets, treats and your
   local time. Claude gets nothing else from Clawd.
 
