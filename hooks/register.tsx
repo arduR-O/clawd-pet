@@ -461,16 +461,21 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
   // A call the engine refuses to send (a blocked model) rejects; Clawd keeps the songs it has.
   let refused = ''
   const request = { model: 'haiku', maxTokens: SONGBOOK_TOKENS[effort], effort, prompt: songbookPrompt(taste) } as const
-  const ask = () =>
-    $.model.complete(request).catch((error: unknown) => {
+  const ask = (asked: { model: string; maxTokens: number; effort?: SongbookEffort; prompt: string } = request) =>
+    $.model.complete(asked).catch((error: unknown) => {
       refused = error instanceof Error ? error.message : String(error)
       return undefined
     })
   let reply = await ask()
-  // A passing API error (busy, rate-limited, a dropped connection) gets one more try, a moment on.
   if (reply?.isAnswered === false && reply.reason === 'api-error' && isPassing(reply.status, reply.error)) {
+    // A passing API error (busy, rate-limited, a dropped connection) gets one more try, a moment on.
     await new Promise<void>(resolve => $.clock.after(RETRY_MS, resolve))
     reply = await ask()
+  } else if (reply?.isAnswered === false && reply.reason === 'api-error' && reply.status === 400) {
+    // The request itself refused, as a Haiku with a lower output limit (an older one, or through
+    // some providers) refuses a high cap. One more try with what every Haiku takes: low effort,
+    // which the engine drops for a model without it, keeps the thinking well inside the cap.
+    reply = await ask({ model: 'haiku', maxTokens: PLAIN_TOKENS, effort: 'low', prompt: request.prompt })
   }
   const lines = reply?.isAnswered === true ? songbookLines(reply.text) : []
   if (lines.length < 3) {
@@ -480,7 +485,7 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
         : reply.isAnswered
           ? 'its answer held too few song lines'
           : reply.reason === 'api-error'
-            ? `the Claude API answered with an error (${reply.error}${reply.status === null ? ', no response' : `, HTTP ${reply.status}`}), twice if it looked passing`
+            ? `the Claude API answered with an error (${reply.error}${reply.status === null ? ', no response' : `, HTTP ${reply.status}`}), even on a second try`
             : `it did not answer (${reply.reason})`
     return { text: `Last.fm worked, but Claude Haiku wrote no songbook: ${why}. Clawd keeps the songs it has.`, line: 'no new songs: Haiku' }
   }
@@ -494,6 +499,8 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
 const isPassing = (status: number | null, error: string) =>
   status === null || status === 429 || status >= 500 || ['rate_limit', 'overloaded', 'server_error'].includes(error)
 const RETRY_MS = 5_000
+// A songbook cap within every Haiku's output limit.
+const PLAIN_TOKENS = 8192
 
 // What a songbook refresh came to: in full for the command's answer, and short for Clawd's line.
 type Refreshed = { text: string; line: string }

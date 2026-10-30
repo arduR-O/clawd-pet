@@ -241,8 +241,9 @@ what went wrong:
 - **Last.fm has no plays for this user yet.** Make sure that the user name is correct and that
   Last.fm records what you play.
 - **Claude Haiku wrote no songbook.** If the message names an API error such as `overloaded` or
-  `rate_limit`, the Claude API was busy: Clawd already tried twice, so try again in a minute.
-  Otherwise, your account or organization may not allow Haiku.
+  `rate_limit`, the Claude API was busy: Clawd already tried twice, so try again in a minute. If
+  it names HTTP 400, set **Songbook: effort** lower: the Haiku you reach may not take as many
+  tokens. Otherwise, your account or organization may not allow Haiku.
 
 ## Turn off or uninstall
 

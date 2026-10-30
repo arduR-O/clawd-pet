@@ -113,8 +113,28 @@ test('a passing API error gets one more try a moment on; one that persists is na
   const failed = $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
   await clock.advance(5_000)
   expect((await failed).text).toBe(
-    'Last.fm worked, but Claude Haiku wrote no songbook: the Claude API answered with an error (overloaded, HTTP 529), twice if it looked passing. Clawd keeps the songs it has.',
+    'Last.fm worked, but Claude Haiku wrote no songbook: the Claude API answered with an error (overloaded, HTTP 529), even on a second try. Clawd keeps the songs it has.',
   )
+})
+
+test('a request the API refuses as invalid is tried again plain: a cap every Haiku takes, at low effort', { options: { ...LASTFM.options, songbook_effort: 'high' } }, async ($, on) => {
+  const asked: unknown[] = []
+  on('model.complete', (_, e) => {
+    asked.push({ maxTokens: e.maxTokens, effort: e.effort })
+    if (e.maxTokens! > 8192) return { value: { isAnswered: false, reason: 'api-error', status: 400, error: 'unknown', usage: NO_USAGE } }
+
+    return { value: { isAnswered: true, text: 'where do i begiiin\nand so it iiis\nwe will, we will', usage: NO_USAGE } }
+  })
+  lastfmStub(on, [])
+  await start($, on, { songbook: LASTFM_SONGBOOK }, NOON_IST)
+
+  const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+
+  expect(ran.text).toContain('New songbook: 3 lines')
+  expect(asked).toEqual([
+    { maxTokens: 16000, effort: 'high' },
+    { maxTokens: 8192, effort: 'low' },
+  ])
 })
 
 test('a refresh that fails keeps the songbook Clawd has', LASTFM, async ($, on) => {

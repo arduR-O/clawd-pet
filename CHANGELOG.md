@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.13
+
+### Fixed
+
+- **A songbook request the API refuses gets a plain second try.** With effort set to `high`, the
+  request asks for up to 16,000 tokens, and a Haiku with a lower output limit (an older one, or
+  through some providers) refuses it with HTTP 400. Now a 400 is tried again at 8,192 tokens and low
+  effort, which every Haiku takes.
+
 ## 0.2.12
 
 ### Fixed
