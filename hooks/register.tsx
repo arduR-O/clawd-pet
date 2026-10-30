@@ -436,10 +436,10 @@ async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }
 }
 
 // Loads the songbook, or has Claude write one in the vibe of what you've been playing (tasteOf):
-// once a day, and again when the source or the prompt's style changes (or `/pet refresh-songs`
-// forgets it). Until it is written, and whenever writing fails, the last songbook or the starter
+// once a day, and again when the source or the prompt's style changes, or `/pet refresh-songs`
+// asks (`isAsked`). Until it is written, and whenever writing fails, the last songbook or the starter
 // songs are sung. Answers what happened, for `/pet refresh-songs` to tell the person.
-async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: string }, effort: SongbookEffort, today: string): Promise<Refreshed> {
+async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: string }, effort: SongbookEffort, today: string, isAsked = false): Promise<Refreshed> {
   // Without Last.fm, Clawd sings its built-in songs and calls no model.
   if (lastfm.user === '' || lastfm.key === '') {
     return { text: lastfmUnset(lastfm), line: 'no Last.fm: built-in songs' }
@@ -451,7 +451,7 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
     life.songs = withStarters(kept.lines)
   }
   const isCurrent = kept?.day === today && kept.source === source && kept.style === SONGBOOK_STYLE
-  if (isCurrent) {
+  if (isCurrent && !isAsked) {
     return { text: `Today's songbook is already written: ${kept.lines?.length ?? 0} lines from ${lastfm.user}'s Last.fm.`, line: 'songbook up to date ♪' }
   }
   const { taste, problem } = await tasteOf($, lastfm)
@@ -461,13 +461,27 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
   // A call the engine refuses to send (a blocked model) rejects; Clawd keeps the songs it has.
   let refused = ''
   const request = { model: 'haiku', maxTokens: SONGBOOK_TOKENS[effort], effort, prompt: songbookPrompt(taste) } as const
-  const reply = await $.model.complete(request).catch((error: unknown) => {
-    refused = error instanceof Error ? error.message : String(error)
-    return undefined
-  })
+  const ask = () =>
+    $.model.complete(request).catch((error: unknown) => {
+      refused = error instanceof Error ? error.message : String(error)
+      return undefined
+    })
+  let reply = await ask()
+  // A passing API error (busy, rate-limited, a dropped connection) gets one more try, a moment on.
+  if (reply?.isAnswered === false && reply.reason === 'api-error' && isPassing(reply.status, reply.error)) {
+    await new Promise<void>(resolve => $.clock.after(RETRY_MS, resolve))
+    reply = await ask()
+  }
   const lines = reply?.isAnswered === true ? songbookLines(reply.text) : []
   if (lines.length < 3) {
-    const why = reply === undefined ? `the call was refused: ${refused}` : reply.isAnswered ? 'its answer held too few song lines' : `it did not answer (${reply.reason})`
+    const why =
+      reply === undefined
+        ? `the call was refused: ${refused}`
+        : reply.isAnswered
+          ? 'its answer held too few song lines'
+          : reply.reason === 'api-error'
+            ? `the Claude API answered with an error (${reply.error}${reply.status === null ? ', no response' : `, HTTP ${reply.status}`}), twice if it looked passing`
+            : `it did not answer (${reply.reason})`
     return { text: `Last.fm worked, but Claude Haiku wrote no songbook: ${why}. Clawd keeps the songs it has.`, line: 'no new songs: Haiku' }
   }
   life.songs = withStarters(lines)
@@ -475,6 +489,11 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
 
   return { text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, such as "${lines[0]}"`, line: `new songbook: ${lines.length} songs ♪` }
 }
+
+// Whether an API error is one that passes: busy, rate-limited, a server's hiccup, or no response.
+const isPassing = (status: number | null, error: string) =>
+  status === null || status === 429 || status >= 500 || ['rate_limit', 'overloaded', 'server_error'].includes(error)
+const RETRY_MS = 5_000
 
 // What a songbook refresh came to: in full for the command's answer, and short for Clawd's line.
 type Refreshed = { text: string; line: string }
@@ -840,12 +859,11 @@ export const register: Register = (on, options) => {
       if (lastfm.user === '' || lastfm.key === '') {
         return { text: lastfmUnset(lastfm) }
       }
-      await $.store.set('songbook', null)
-      life.songs = STARTER_SONGS
+      // The songbook Clawd has stays until a new one is written; a refresh that fails keeps it.
       // Clawd holds up how it's going, over whatever else comes up, until it's done and a while after.
       life.status = { line: 'writing new songs…', until: (await $.clock.now()) + REFRESH_MS }
       await update($, tick, n => n + 1)
-      const refreshed = await refreshSongbook($, lastfm, songbookEffort, dayOf(localTime(await $.clock.now(), offsetMinutes)))
+      const refreshed = await refreshSongbook($, lastfm, songbookEffort, dayOf(localTime(await $.clock.now(), offsetMinutes)), true)
       life.status = { line: refreshed.line, until: (await $.clock.now()) + STATUS_MS }
       await update($, tick, n => n + 1)
 

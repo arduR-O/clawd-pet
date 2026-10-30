@@ -1,6 +1,6 @@
 {
   "name": "clawd",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "description": "Clawd, a little crab above your prompt that reacts to what Claude is doing",
   "author": {
     "name": "arduR-O"

@@ -160,8 +160,9 @@ when the song stops. If you pet Clawd or run a `/pet` command, it stops the song
   [last.fm/api/accounts](https://www.last.fm/api/accounts). Claude Code keeps the key in secure
   storage. If Last.fm has no plays this week, Clawd keeps the songs that it has.
 
-To write a new songbook now, run `/pet refresh-songs`. While Clawd writes it, and for 10 seconds
-after, Clawd shows how it is going. If Clawd cannot write one, the command tells you why, for
+To write a new songbook now, run `/pet refresh-songs`. Clawd keeps its current songbook until the
+new one is ready. If the new one fails, Clawd keeps the current one. While Clawd writes it, and for
+10 seconds after, Clawd shows how it is going. If Clawd cannot write one, the command tells you why, for
 example an empty or incorrect API key.
 
 ## Costs and privacy
@@ -239,7 +240,9 @@ what went wrong:
   [last.fm/api/accounts](https://www.last.fm/api/accounts).
 - **Last.fm has no plays for this user yet.** Make sure that the user name is correct and that
   Last.fm records what you play.
-- **Claude Haiku wrote no songbook.** Your account or organization may not allow Haiku.
+- **Claude Haiku wrote no songbook.** If the message names an API error such as `overloaded` or
+  `rate_limit`, the Claude API was busy: Clawd already tried twice, so try again in a minute.
+  Otherwise, your account or organization may not allow Haiku.
 
 ## Turn off or uninstall
 

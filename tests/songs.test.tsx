@@ -90,6 +90,48 @@ test('while a refresh runs and a while after, Clawd holds up how it is going ove
   await ui.unmount()
 })
 
+test('a passing API error gets one more try a moment on; one that persists is named', LASTFM, async ($, on) => {
+  let calls = 0
+  let busyFor = 1
+  on('model.complete', () => {
+    calls += 1
+    if (calls <= busyFor) return { value: { isAnswered: false, reason: 'api-error', status: 529, error: 'overloaded', usage: NO_USAGE } }
+
+    return { value: { isAnswered: true, text: 'where do i begiiin\nand so it iiis\nwe will, we will', usage: NO_USAGE } }
+  })
+  lastfmStub(on, [])
+  // Today's book already written, so the session's start asks for none.
+  const clock = await start($, on, { songbook: LASTFM_SONGBOOK }, NOON_IST)
+
+  const retried = $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+  await clock.advance(5_000)
+  expect((await retried).text).toContain('New songbook: 3 lines')
+  expect(calls).toBe(2)
+
+  calls = 0
+  busyFor = 2
+  const failed = $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+  await clock.advance(5_000)
+  expect((await failed).text).toBe(
+    'Last.fm worked, but Claude Haiku wrote no songbook: the Claude API answered with an error (overloaded, HTTP 529), twice if it looked passing. Clawd keeps the songs it has.',
+  )
+})
+
+test('a refresh that fails keeps the songbook Clawd has', LASTFM, async ($, on) => {
+  on('model.complete', () => ({ value: { isAnswered: false, reason: 'empty-reply', usage: NO_USAGE } }))
+  lastfmStub(on, [])
+  const songbook = { ...LASTFM_SONGBOOK, lines: ['mama, oooooooo, the build is green ♪'] }
+  const clock = await start($, on, { songbook }, NOON_IST)
+  await clock.advance(1_500)
+  const ui = await $.ui.mount(BAND)
+
+  await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+  await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
+
+  expect(await ui.find({ type: 'Text', text: /^mama, oooo/ })).toBeTruthy()
+  await ui.unmount()
+})
+
 test('/pet refresh-songs says what Last.fm said when it refuses, such as a bad key', LASTFM, async ($, on) => {
   on('http.fetch', () => ({ value: { ok: false, status: 403, headers: {}, text: '{"error":10,"message":"Invalid API key - You must be granted a valid key by last.fm"}' } }))
   await start($, on, {}, NOON_IST)

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.12
+
+### Fixed
+
+- **A refresh keeps the songbook until the new one is ready.** `/pet refresh-songs` used to throw
+  the songbook away first, so a refresh that failed left only the built-in songs. Now the songbook
+  Clawd has stays until a new one is written, and stays for good if the refresh fails.
+- **A busy Claude API gets a second try.** A refresh that hit a passing API error (overloaded, rate
+  limited, a server error, no response) failed at once. Now it tries again 5 seconds on, and if that
+  fails too, says which error it was and its HTTP status.
+
 ## 0.2.11
 
 ### Fixed
