@@ -71,6 +71,9 @@ const SING_SHARE = 1 / 3
 const PET_SPREE_MS = 10_000
 // A song lasts longer than other emotes, so the whole line gets sung.
 const SING_MS = 7000
+// How long Clawd holds up the outcome of a `/pet refresh-songs`, and at most how long it waits on one.
+const STATUS_MS = 10_000
+const REFRESH_MS = 120_000
 // How often Clawd looks at Last.fm again, rewriting the songbook only when your plays changed it.
 // Vibing with headphones on lasts this long before Clawd breaks into song.
 const VIBE_MS = 5000
@@ -114,6 +117,8 @@ const life = {
   headphonesUntil: 0,
   // The song Clawd is singing, sung to its end: what comes up meanwhile waits for it (songLeft).
   song: { line: '', until: 0 },
+  // A status Clawd holds up, as how `/pet refresh-songs` is going, drawn over whatever comes up meanwhile.
+  status: { line: '', until: 0 },
   // Times Claude has talked to Clawd this turn.
   talks: 0,
   petTimes: [] as number[],
@@ -326,11 +331,11 @@ function say(saying: Saying): string {
   return sayingOf(saying, n)
 }
 
-// Shows a reaction for a few seconds, then Clawd settles back.
 // How long the song Clawd is singing has to go: what else it would do waits that long, and then
 // gets its full time.
 const songLeft = (now: number) => Math.max(0, life.song.until - now)
 
+// Shows a reaction for a few seconds, then Clawd settles back.
 async function react($: EngineInterface, kind: Kind, line: string, ms = REACTION_MS) {
   const now = await $.clock.now()
   await update($, mood, (): Mood => ({
@@ -353,8 +358,9 @@ async function stopWaiting($: EngineInterface) {
 // One pet, from /pet or a click on Clawd. Too many in a row and it has had enough.
 async function petOnce($: EngineInterface) {
   const now = await $.clock.now()
-  // A pet is the person's own doing, and stops a song.
+  // A pet is the person's own doing, and stops a song or a status.
   life.song.until = 0
+  life.status.until = 0
   life.sitting = satAt(life.sitting, now)
   const pets = Number((await $.store.get('pets')) ?? 0) + 1
   await $.store.set('pets', pets)
@@ -433,10 +439,10 @@ async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }
 // once a day, and again when the source or the prompt's style changes (or `/pet refresh-songs`
 // forgets it). Until it is written, and whenever writing fails, the last songbook or the starter
 // songs are sung. Answers what happened, for `/pet refresh-songs` to tell the person.
-async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: string }, effort: SongbookEffort, today: string): Promise<string> {
+async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: string }, effort: SongbookEffort, today: string): Promise<Refreshed> {
   // Without Last.fm, Clawd sings its built-in songs and calls no model.
   if (lastfm.user === '' || lastfm.key === '') {
-    return lastfmUnset(lastfm)
+    return { text: lastfmUnset(lastfm), line: 'no Last.fm: built-in songs' }
   }
   const source = `lastfm:${lastfm.user}`
   type Songbook = { day?: string; source?: string; style?: number; taste?: string; lines?: string[] }
@@ -446,11 +452,11 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
   }
   const isCurrent = kept?.day === today && kept.source === source && kept.style === SONGBOOK_STYLE
   if (isCurrent) {
-    return `Today's songbook is already written: ${kept.lines?.length ?? 0} lines from ${lastfm.user}'s Last.fm.`
+    return { text: `Today's songbook is already written: ${kept.lines?.length ?? 0} lines from ${lastfm.user}'s Last.fm.`, line: 'songbook up to date ♪' }
   }
   const { taste, problem } = await tasteOf($, lastfm)
   if (taste === '') {
-    return `${problem}. Clawd keeps the songs it has.`
+    return { text: `${problem}. Clawd keeps the songs it has.`, line: 'no new songs: Last.fm' }
   }
   // A call the engine refuses to send (a blocked model) rejects; Clawd keeps the songs it has.
   let refused = ''
@@ -462,13 +468,16 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
   const lines = reply?.isAnswered === true ? songbookLines(reply.text) : []
   if (lines.length < 3) {
     const why = reply === undefined ? `the call was refused: ${refused}` : reply.isAnswered ? 'its answer held too few song lines' : `it did not answer (${reply.reason})`
-    return `Last.fm worked, but Claude Haiku wrote no songbook: ${why}. Clawd keeps the songs it has.`
+    return { text: `Last.fm worked, but Claude Haiku wrote no songbook: ${why}. Clawd keeps the songs it has.`, line: 'no new songs: Haiku' }
   }
   life.songs = withStarters(lines)
   await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines })
 
-  return `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, such as "${lines[0]}"`
+  return { text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, such as "${lines[0]}"`, line: `new songbook: ${lines.length} songs ♪` }
 }
+
+// What a songbook refresh came to: in full for the command's answer, and short for Clawd's line.
+type Refreshed = { text: string; line: string }
 
 // How hard Haiku thinks about the songbook, and the reply's cap for each: the cap counts its thinking
 // as well as the lines (at 400, the thinking took the lot and left no text). Tried live, each takes
@@ -816,6 +825,7 @@ export const register: Register = (on, options) => {
     life.sitting = satAt(life.sitting, await $.clock.now())
     // What the person asks for comes at once, song or no song.
     life.song.until = 0
+    life.status.until = 0
     if (asked === 'off' || asked === 'on') {
       await $.store.set('off', asked === 'off')
       await update($, isOff, () => asked === 'off')
@@ -832,9 +842,14 @@ export const register: Register = (on, options) => {
       }
       await $.store.set('songbook', null)
       life.songs = STARTER_SONGS
-      await react($, 'happy', 'new songs coming…')
+      // Clawd holds up how it's going, over whatever else comes up, until it's done and a while after.
+      life.status = { line: 'writing new songs…', until: (await $.clock.now()) + REFRESH_MS }
+      await update($, tick, n => n + 1)
+      const refreshed = await refreshSongbook($, lastfm, songbookEffort, dayOf(localTime(await $.clock.now(), offsetMinutes)))
+      life.status = { line: refreshed.line, until: (await $.clock.now()) + STATUS_MS }
+      await update($, tick, n => n + 1)
 
-      return { text: await refreshSongbook($, lastfm, songbookEffort, dayOf(localTime(await $.clock.now(), offsetMinutes))) }
+      return { text: refreshed.text }
     }
     if (asked === 'guest') {
       // Someone drops by, not whoever came last, with something to say.
@@ -1000,7 +1015,12 @@ export const register: Register = (on, options) => {
         isListening = pastime === 'vibe'
       }
     }
-    if (now < life.song.until) {
+    if (now < life.status.until) {
+      // A status Clawd holds up stays, over whatever came up meanwhile.
+      pose = undefined
+      mode = 'happy'
+      said = life.status.line
+    } else if (now < life.song.until) {
       // The song plays on to its end, over whatever came up meanwhile.
       pose = 'sing'
       mode = e.props.isWorking ? 'think' : 'idle'

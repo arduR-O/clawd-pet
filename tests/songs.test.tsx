@@ -59,6 +59,37 @@ test('the songbook effort setting picks how hard Haiku thinks, and the room it g
   expect(asked).toEqual([{ maxTokens: 16000, effort: 'high' }])
 })
 
+test('while a refresh runs and a while after, Clawd holds up how it is going over everything else', LASTFM, async ($, on) => {
+  let answer = () => {}
+  on('model.complete', async () => {
+    await new Promise<void>(resolve => (answer = resolve))
+
+    return { value: { isAnswered: true, text: 'where do i begiiin\nand so it iiis\nwe will, we will', usage: NO_USAGE } }
+  })
+  lastfmStub(on, [])
+  on('tool.call', { tool: 'Bash' }, () => ({ result: 'boom', isError: true }))
+  const clock = await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  const ran = $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+  await clock.advance(800)
+  // A failed tool would have Clawd wince and say so: the status stays up instead.
+  await $.tool.call({ tool: 'Bash', command: 'make' })
+  expect(await ui.find({ type: 'Text', text: /^writing new songs…$/ })).toBeTruthy()
+
+  answer()
+  expect((await ran).text).toContain('New songbook: 3 lines')
+  await clock.advance(800)
+  expect(await ui.find({ type: 'Text', text: /^new songbook: 3 songs ♪$/ })).toBeTruthy()
+  await clock.advance(8_000)
+  expect(await ui.find({ type: 'Text', text: /^new songbook: 3 songs ♪$/ })).toBeTruthy()
+
+  // Ten seconds on, it gives way.
+  await clock.advance(2_400)
+  expect(await ui.find({ type: 'Text', text: /^new songbook/ })).toBeFalsy()
+  await ui.unmount()
+})
+
 test('/pet refresh-songs says what Last.fm said when it refuses, such as a bad key', LASTFM, async ($, on) => {
   on('http.fetch', () => ({ value: { ok: false, status: 403, headers: {}, text: '{"error":10,"message":"Invalid API key - You must be granted a valid key by last.fm"}' } }))
   await start($, on, {}, NOON_IST)

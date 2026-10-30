@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.11
+
+### Fixed
+
+- **`/pet refresh-songs` keeps its status up.** "new songs coming…" lasted 3 seconds and anything
+  could replace it, though writing a songbook takes longer. Now Clawd shows "writing new songs…"
+  until the songbook is done, then the outcome ("new songbook: 12 songs ♪", or what went wrong) for
+  10 seconds, over whatever else comes up. A pet or another `/pet` command still cuts in.
+
 ## 0.2.10
 
 ### Fixed
