@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.2
+
+### Fixed
+
+- **A busy LRCLIB no longer drops songs.** LRCLIB answers "server busy" (HTTP 503) now and then,
+  and the songbook asked about every song at once, so a busy answer silently left a song out. Now it
+  asks three songs at a time and tries a busy one again 1.5 seconds on. Checked on a real history:
+  LRCLIB has the lyrics of 12 of its 14 songs, the ones Haiku did not know among them.
+
 ## 0.4.1
 
 ### Changed

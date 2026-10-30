@@ -219,6 +219,41 @@ test('with LRCLIB on, the songbook sings the songs\' real lines, looked up by ti
   expect(prompts[0]).toContain('- the kettle hums a lonely tune')
 })
 
+test('a busy LRCLIB gets one more try a moment on, and is asked a few songs at a time', LASTFM, async ($, on) => {
+  let tries = 0
+  let open = 0
+  let most = 0
+  on('http.fetch', async (_, e) => {
+    if (e.url.includes('lrclib.net')) {
+      tries += 1
+      const mine = tries
+      open += 1
+      most = Math.max(most, open)
+      await Promise.resolve()
+      open -= 1
+      // The first ask is turned away busy, the rest answered.
+      if (mine === 1) return { value: { status: 503, ok: false, headers: {}, text: '{"name":"ServerOverloaded"}' } }
+      return { value: { status: 200, ok: true, headers: {}, text: JSON.stringify([{ plainLyrics: `first line of song ${/Song%20(\d)/.exec(e.url)?.[1]}\nand the second` }]) } }
+    }
+    const track = (n: number) => ({ name: `Song ${n}`, artist: { name: 'Band', '#text': 'Band' } })
+    const body = e.url.includes('getrecenttracks')
+      ? { recenttracks: { track: [1, 2, 3, 4, 5].map(track) } }
+      : e.url.includes('gettoptracks')
+        ? { toptracks: { track: [6].map(track) } }
+        : { topartists: { artist: [{ name: 'Band' }] } }
+    return { value: { status: 200, ok: true, headers: {}, text: JSON.stringify(body) } }
+  })
+  modelStub(on, [])
+  const clock = await start($, on, { songbook: LASTFM_SONGBOOK }, NOON_IST)
+
+  const ran = $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+  await clock.advance(1_500)
+
+  expect((await ran).text).toContain('the lyrics of 6 of its 6 songs from LRCLIB')
+  expect(tries).toBe(7)
+  expect(most).toBeLessThanOrEqual(3)
+})
+
 test('with lyrics off, LRCLIB is never asked', { options: { ...LASTFM.options, lyrics: 'off' } }, async ($, on) => {
   const urls: string[] = []
   on('http.fetch', (_, e) => {

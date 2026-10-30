@@ -466,20 +466,32 @@ async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }
 // Real lines of the songs, looked up on LRCLIB, a free lyrics database music players use: a song's
 // first line and its chorus, for up to SUNG_SONGS songs. Only the titles and artists go to it.
 async function lyricLines($: EngineInterface, songs: readonly Song[]): Promise<{ lines: string[]; found: number }> {
-  const found = await Promise.all(
-    songs.map(song =>
-      $.http
-        .fetch(`https://lrclib.net/api/search?track_name=${encodeURIComponent(searchTitle(song.title))}&artist_name=${encodeURIComponent(song.artist)}`, {
-          headers: { 'User-Agent': 'clawd (https://github.com/arduR-O/clawd-pet)' },
-        })
-        .then(reply => {
-          const hits = reply.ok ? (JSON.parse(reply.text) as { plainLyrics?: unknown; instrumental?: unknown }[]) : []
-          const hit = Array.isArray(hits) ? hits.find(one => one.instrumental !== true && typeof one.plainLyrics === 'string' && one.plainLyrics !== '') : undefined
-          return hit === undefined ? [] : linesOfLyrics(hit.plainLyrics as string)
-        })
-        .catch(() => [] as string[]),
-    ),
-  )
+  const search = (song: Song) =>
+    $.http.fetch(`https://lrclib.net/api/search?track_name=${encodeURIComponent(searchTitle(song.title))}&artist_name=${encodeURIComponent(song.artist)}`, {
+      headers: { 'User-Agent': 'clawd (https://github.com/arduR-O/clawd-pet)' },
+    })
+  const linesOf = async (song: Song): Promise<string[]> => {
+    try {
+      let reply = await search(song)
+      // LRCLIB says it's busy now and then (503, or 429): one more try a moment on.
+      if (reply.status === 503 || reply.status === 429) {
+        await new Promise<void>(resolve => $.clock.after(LRCLIB_RETRY_MS, resolve))
+        reply = await search(song)
+      }
+      const hits: unknown = reply.ok ? JSON.parse(reply.text) : []
+      const hit = Array.isArray(hits)
+        ? (hits as { plainLyrics?: unknown; instrumental?: unknown }[]).find(one => one.instrumental !== true && typeof one.plainLyrics === 'string' && one.plainLyrics !== '')
+        : undefined
+      return hit === undefined ? [] : linesOfLyrics(hit.plainLyrics as string)
+    } catch {
+      return []
+    }
+  }
+  // A few at a time, so as not to be the load that makes it busy.
+  const found: string[][] = []
+  for (let at = 0; at < songs.length; at += LRCLIB_AT_ONCE) {
+    found.push(...(await Promise.all(songs.slice(at, at + LRCLIB_AT_ONCE).map(linesOf))))
+  }
   const sung = found.filter(lines => lines.length > 0).slice(0, SUNG_SONGS)
 
   return { lines: [...new Set(sung.flat())], found: sung.length }
@@ -577,6 +589,9 @@ const isPassing = (status: number | null, error: string) =>
 const RETRY_MS = 5_000
 // The songs whose real lines a songbook takes, two lines each at most.
 const SUNG_SONGS = 8
+// LRCLIB is asked about this many songs at a time, and a busy answer tried again this long after.
+const LRCLIB_AT_ONCE = 3
+const LRCLIB_RETRY_MS = 1_500
 // What to try when the API refuses an effort, in order: up to better lines first, then down.
 const EFFORT_FALLBACKS: Readonly<Record<SongbookEffort, readonly SongbookEffort[]>> = { low: [], medium: ['high', 'low'], high: ['low'] }
 
