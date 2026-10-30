@@ -70,7 +70,7 @@ test('a pet hidden in an earlier session stays hidden until /pet on', { options:
 test('typing /pet offers the commands, and a few letters in, the emotes', () => {
   const names = (draft: string) => petSuggestions(draft).map(one => one.text)
 
-  expect(names('/pet ')).toEqual(['treat', 'trick', 'guest', 'refresh-songs', 'off', 'on'])
+  expect(names('/pet ')).toEqual(['treat', 'trick', 'guest', 'scenery', 'refresh-songs', 'off', 'on'])
   expect(names('/pet gu')).toEqual(['guest'])
   expect(names('/pet tr')).toEqual(['treat', 'trick'])
   expect(names('/pet me')).toEqual(['meditate'])

@@ -1135,6 +1135,7 @@ const PET_COMMANDS: readonly [string, string][] = [
   ['treat', 'feed Clawd a treat'],
   ['trick', 'Clawd does a trick'],
   ['guest', 'a random guest drops by'],
+  ['scenery', 'a quiet scene under Clawd: auto, off, sea, koi, blossom, leaves, snow, stars, fireflies, birds'],
   ['refresh-songs', 'forget the songbook and write a new one'],
   ['off', 'hide the pet until /pet on'],
   ['on', 'bring the pet back'],
