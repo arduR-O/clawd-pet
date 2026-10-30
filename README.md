@@ -85,7 +85,9 @@ off by default because it adds tokens to each request. See [Costs and privacy](#
 
 ## Guests
 
-Sometimes a guest comes. Each guest comes for a reason:
+Sometimes a guest comes. Guests are rare, so a guest stays for 10 seconds, and nothing small
+interrupts it: Clawd reacts to what happened meanwhile after the guest goes. A pet, a `/pet` command
+or another guest still comes at once. Each guest comes for a reason:
 
 | Guest | Name to type | When it comes |
 |---|---|---|

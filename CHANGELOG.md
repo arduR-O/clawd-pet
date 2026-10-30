@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.1
+
+### Changed
+
+- **Guests have their gravitas.** A guest stayed 4 seconds, and any small reaction could replace it.
+  Now a guest stays 10 seconds and holds the stage, as a song does: reactions that come up meanwhile
+  wait until it goes and then get their full time, and Clawd's small idle emotes skip the visit. A
+  pet, a `/pet` command or another guest still comes at once, and a guest who comes mid-song walks
+  on when the song ends.
+
 ## 0.4.0
 
 ### New

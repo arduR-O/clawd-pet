@@ -7,6 +7,7 @@ import {
   OPTIONS,
   NOON_IST,
   SUBMITTED,
+  TYPED,
   anyTool,
   start,
   istOn,
@@ -66,7 +67,7 @@ test("Clawd riffs on the spinner's word while Claude works", { options: OPTIONS 
 })
 
 test('Clawd has opinions', { options: OPTIONS }, async ($, on) => {
-  await start($, on, {})
+  const clock = await start($, on, {})
   const ui = await $.ui.mount(BAND)
   const says = async (text: RegExp) => Boolean(await ui.find({ type: 'Text', text }))
 
@@ -85,7 +86,8 @@ test('Clawd has opinions', { options: OPTIONS }, async ($, on) => {
   }
   expect(await says(/search #3\. lost, are we\?/)).toBe(true)
 
-  // A plain command it has no view on is just shown.
+  // Once Sherlock's visit is over, a plain command it has no view on is just shown.
+  await clock.advance(10_000)
   await $.tool.call({ tool: 'Bash', command: 'ls' })
   expect(await says(/^\$ ls$/)).toBe(true)
   await ui.unmount()
@@ -510,9 +512,41 @@ test('some commands bring a guest: a Jedi, Sherlock, a DeLorean, a ninja, the Te
     expect(await ui.find({ type: 'Text', text: saying(name) })).toBeTruthy()
     expect(await ui.find({ type: 'Text', text: prop })).toBeTruthy()
   }
-  // Still a warning first for the ones that can lose work.
+  // Still a warning first for the ones that can lose work, once the whale has gone.
+  await clock.advance(10_000)
   await $.tool.call({ tool: 'Bash', command: 'git reset --hard HEAD~1' })
   expect(await ui.find({ type: 'Text', text: /^reset --hard\. no take-backs\.$/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('a guest has its gravitas: it stays ten seconds, nothing trivial cuts in, and what came up waits its turn', { options: OPTIONS }, async ($, on) => {
+  const clock = await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.tool.call({ tool: 'Bash', command: 'git push --force origin main' })
+  // A file read mid-visit would have Clawd say what it reads: the Jedi stays.
+  await clock.advance(4_000)
+  await $.tool.call({ tool: 'Read', file_path: '/repo/app.py' })
+  await clock.advance(4_000)
+  expect(await ui.find({ type: 'Text', text: saying('jedi') })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /▪/ })).toBeTruthy()
+
+  // The visit over, the read gets its turn.
+  await clock.advance(2_800)
+  expect(await ui.find({ type: 'Text', text: saying('jedi') })).toBeFalsy()
+  expect(await ui.find({ type: 'Text', text: /reading app\.py/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('a pet is the person, and sends a guest off at once', { options: OPTIONS }, async ($, on) => {
+  await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.tool.call({ tool: 'Bash', command: 'git push --force origin main' })
+  await $.command.run({ ...TYPED, command: 'pet', args: '' })
+
+  expect(await ui.find({ type: 'Text', text: saying('jedi') })).toBeFalsy()
+  expect(await ui.find({ type: 'Text', text: /^Clawd ♥$/ })).toBeTruthy()
   await ui.unmount()
 })
 
@@ -530,7 +564,7 @@ test('a third search in a row puts the deerstalker on', { options: OPTIONS }, as
 test('tests going green after going red in a turn earn a 1-UP; green on the first try only a squint', { options: OPTIONS }, async ($, on) => {
   let fails = true
   on('tool.call', { tool: 'Bash' }, () => (fails ? { result: '1 failed', isError: true } : { result: 'all passed' }))
-  await start($, on, {}, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.tool.call({ tool: 'Bash', command: 'npm test' })
@@ -539,6 +573,7 @@ test('tests going green after going red in a turn earn a 1-UP; green on the firs
   expect(await ui.find({ type: 'Text', text: saying('oneup') })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /1UP/ })).toBeTruthy()
 
+  await clock.advance(10_000)
   await $.tool.call({ tool: 'Bash', command: 'npm test' })
   expect(await ui.find({ type: 'Text', text: saying('passed') })).toBeTruthy()
   await ui.unmount()
@@ -547,12 +582,13 @@ test('tests going green after going red in a turn earn a 1-UP; green on the firs
 test("the day's first prompt in the morning comes with coffee, once a day", { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
   // 08:30 in India.
-  await start($, on, {}, istOn(28, 8, 30))
+  const clock = await start($, on, {}, istOn(28, 8, 30))
   const ui = await $.ui.mount(BAND)
 
   await $.prompt.submit({ ...SUBMITTED, text: 'morning! where were we' })
   expect(await ui.find({ type: 'Text', text: saying('coffee') })).toBeTruthy()
 
+  await clock.advance(10_000)
   await $.prompt.submit({ ...SUBMITTED, text: 'next thing' })
   expect(await ui.find({ type: 'Text', text: saying('coffee') })).toBeFalsy()
   await ui.unmount()
@@ -560,7 +596,7 @@ test("the day's first prompt in the morning comes with coffee, once a day", { op
 
 test('a long prompt working through a bug gets a rubber duck to listen; a long plain one does not', { options: OPTIONS }, async ($, on) => {
   on('prompt.submit', (_, e) => ({ text: e.text }))
-  await start($, on, {}, NOON_IST)
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
   const story = 'So the login form submits, the request goes out, the server answers 200, and then the page just sits there. '
 
@@ -568,6 +604,7 @@ test('a long prompt working through a bug gets a rubber duck to listen; a long p
   expect(await ui.find({ type: 'Text', text: saying('duck') })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /▜██▛/ })).toBeTruthy()
 
+  await clock.advance(10_000)
   await $.prompt.submit({ ...SUBMITTED, text: 'Add a settings page with a dark mode toggle, a font size slider and a language picker. '.repeat(4) })
   expect(await ui.find({ type: 'Text', text: saying('duck') })).toBeFalsy()
   await ui.unmount()
