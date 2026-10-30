@@ -40,7 +40,7 @@ test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, asy
 
   expect(ran.text).toBe("New songbook: 3 lines from listener's Last.fm, such as \"where do i begiiin ♪\"")
   // Medium effort by default, with room for Haiku to think and still write the lines.
-  expect(asked).toEqual([{ maxTokens: 8192, effort: 'medium' }])
+  expect(asked).toEqual([{ maxTokens: 16000, effort: 'medium' }])
   expect(prompts.length).toBe(1)
 })
 
@@ -56,7 +56,7 @@ test('the songbook effort setting picks how hard Haiku thinks, and the room it g
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
 
-  expect(asked).toEqual([{ maxTokens: 16000, effort: 'high' }])
+  expect(asked).toEqual([{ maxTokens: 32000, effort: 'high' }])
 })
 
 test('while a refresh runs and a while after, Clawd holds up how it is going over everything else', LASTFM, async ($, on) => {
@@ -132,7 +132,7 @@ test('a request the API refuses as invalid is tried again plain: a cap every Hai
 
   expect(ran.text).toContain('New songbook: 3 lines')
   expect(asked).toEqual([
-    { maxTokens: 16000, effort: 'high' },
+    { maxTokens: 32000, effort: 'high' },
     { maxTokens: 8192, effort: 'low' },
   ])
 })

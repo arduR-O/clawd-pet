@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.2
+
+### Fixed
+
+- **Medium effort writes the songbook again.** On Claude Code 2.1.314, Haiku refused the songbook
+  request at medium effort with an 8,192-token cap (HTTP 400), so it fell back to low effort. Checked
+  on a real install: high and low worked, medium did not. The caps are now 8,192, 16,000 and 32,000
+  for low, medium and high; a cap is a ceiling, not a cost.
+
 ## 0.3.1
 
 ### Removed

@@ -506,10 +506,11 @@ const PLAIN_TOKENS = 8192
 type Refreshed = { text: string; line: string }
 
 // How hard Haiku thinks about the songbook, and the reply's cap for each: the cap counts its thinking
-// as well as the lines (at 400, the thinking took the lot and left no text). Tried live, each takes
-// about half its cap.
+// as well as the lines (at 400, the thinking took the lot and left no text), and an effort may hold
+// back more of it for thinking than it uses: on Claude Code 2.1.314, medium at 8,192 was refused
+// (HTTP 400). A cap is a ceiling, not a cost, so each is well past the 2,000 to 9,000 tokens used.
 type SongbookEffort = 'low' | 'medium' | 'high'
-const SONGBOOK_TOKENS: Readonly<Record<SongbookEffort, number>> = { low: 4096, medium: 8192, high: 16000 }
+const SONGBOOK_TOKENS: Readonly<Record<SongbookEffort, number>> = { low: 8192, medium: 16000, high: 32000 }
 
 // What to tell the person when Last.fm is not set up, naming the part that's missing.
 function lastfmUnset(lastfm: { user: string; key: string }): string {
