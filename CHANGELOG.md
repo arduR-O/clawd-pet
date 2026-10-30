@@ -1,15 +1,10 @@
 # Changelog
 
-## 0.3.0
+## 0.3.1
 
-### New
+### Removed
 
-- **Scenery.** A quiet row under Clawd of things drifting by: shark fins on the sea, koi, cherry
-  blossom, autumn leaves, snow, stars (with the odd shooting star), fireflies or birds. It is made
-  for the edge of your sight: a few things on the row, in muted colors, each moving a cell every few
-  seconds, in glyphs one cell wide everywhere. `auto`, the default, follows the season and the hour;
-  the new **Scenery** setting or `/pet scenery <name>` picks one, and `off` hides it. The README's
-  opening picture shows it.
+- **Scenery.** The row of drifting scenery from 0.3.0 is gone, with its setting and `/pet scenery`.
 
 ## 0.2.13
 

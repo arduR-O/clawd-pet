@@ -6,7 +6,6 @@
 import type { EmoteName, Kind } from '../types'
 
 import { clawdScene, sceneSvg } from '../hooks/clawd'
-import { sceneryOf, sceneryRow } from '../hooks/scenery'
 
 // One act: what Clawd does and says for `frames` frames, at what hour, with what in the prompt
 // and on the spinner line above Clawd.
@@ -39,7 +38,7 @@ const FRAME_S = 0.7
 // One cell of the band.
 const CELL = { width: 10, height: 20 }
 const WIDTH = 660
-const HEIGHT = 244
+const HEIGHT = 220
 const BG = '#17131d'
 const BAR = '#241e2c'
 const RULE = '#3a3346'
@@ -66,21 +65,14 @@ for (const act of ACTS) {
     if (act.spinner !== undefined) frame += `<text x="20" y="54" fill="${ORANGE}">✻ <tspan fill="${DIM}">${escape(act.spinner)}</tspan></text>`
     frame += `<text x="230" y="84" fill="${ORANGE}" font-weight="700">Clawd${act.kind === 'love' ? ' ♥' : ''}</text>`
     if (act.line !== '') frame += `<text x="230" y="104" fill="${DIM}">${escape(act.line)}</text>`
-    // The scenery row under Clawd: on auto, autumn leaves by day and stars by night.
-    const local = { hour: act.hour ?? 12, weekday: 2, month: 10, day: 27 }
-    const scenery = sceneryOf('auto', local)
-    if (scenery !== undefined) {
-      const row = sceneryRow(scenery, 61, Date.UTC(2026, 9, 27, 6, 30) + frames.length * 4000)
-      frame += `<text x="20" y="166" xml:space="preserve">${row.map(part => `<tspan${part.color === undefined ? '' : ` fill="${part.color}"`}>${escape(part.text)}</tspan>`).join('')}</text>`
-    }
-    frame += `<text x="20" y="202" fill="${INK}">❯ ${escape(typed)}<tspan fill="${DIM}">▏</tspan></text>`
+    frame += `<text x="20" y="178" fill="${INK}">❯ ${escape(typed)}<tspan fill="${DIM}">▏</tspan></text>`
     frames.push(frame)
   }
 }
 
 const cycle = frames.length * FRAME_S
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="15">
-<title>Clawd, a crab above the Claude Code prompt: waving, reading, dizzy, watching you type, a Jedi, singing, petted, meditating and celebrating, over a quiet row of falling leaves and stars</title>
+<title>Clawd, a crab above the Claude Code prompt: waving, reading, dizzy, watching you type, a Jedi, singing, petted, meditating and celebrating</title>
 <style>
 .f { opacity: 0; animation: show ${cycle.toFixed(2)}s infinite; animation-timing-function: step-end; }
 @keyframes show { 0% { opacity: 1 } ${(100 / frames.length).toFixed(4)}% { opacity: 0 } 100% { opacity: 0 } }
@@ -89,8 +81,8 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${
 <path d="M0 12a12 12 0 0 1 12-12h${WIDTH - 24}a12 12 0 0 1 12 12v16H0z" fill="${BAR}"/>
 <circle cx="22" cy="14" r="5" fill="#ff5f57"/><circle cx="40" cy="14" r="5" fill="#febc2e"/><circle cx="58" cy="14" r="5" fill="#28c840"/>
 <text x="${WIDTH / 2}" y="18" text-anchor="middle" fill="${DIM}" font-size="12">claude — ~/projects/app</text>
-<rect x="20" y="178" width="${WIDTH - 40}" height="1" fill="${RULE}"/>
-<rect x="20" y="210" width="${WIDTH - 40}" height="1" fill="${RULE}"/>
+<rect x="20" y="154" width="${WIDTH - 40}" height="1" fill="${RULE}"/>
+<rect x="20" y="186" width="${WIDTH - 40}" height="1" fill="${RULE}"/>
 ${frames.map((frame, i) => `<g class="f" style="animation-delay:${(i * FRAME_S).toFixed(2)}s">${frame}</g>`).join('\n')}
 </svg>
 `

@@ -3,8 +3,6 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { Emote, EmoteName, Kind, Mood } from '../types'
 
-import { SCENERIES, sceneryOf, sceneryRow } from './scenery'
-
 import {
   CLAWD,
   EMOTE_NAMES,
@@ -63,9 +61,6 @@ const PROMPT_INDENT = 2
 const BUBBLE_AFTER_MS = 6_000
 const BUBBLE_STEP_MS = 3_000
 const TICK_MS = 800
-// The scenery row is the band's width, from Clawd's own to at most this many cells.
-const SKY_WIDTH = 17
-const SCENERY_MAX = 120
 // The frames one picture plays for the apps, a tick each, before the next picture takes over.
 const FILM_FRAMES = 12
 const EMOTE_MS = 4000
@@ -122,8 +117,6 @@ const life = {
   headphonesUntil: 0,
   // The song Clawd is singing, sung to its end: what comes up meanwhile waits for it (songLeft).
   song: { line: '', until: 0 },
-  // The scenery chosen with `/pet scenery`, over the Scenery setting; undefined for the setting.
-  scenery: undefined as string | undefined,
   // A status Clawd holds up, as how `/pet refresh-songs` is going, drawn over whatever comes up meanwhile.
   status: { line: '', until: 0 },
   // Times Claude has talked to Clawd this turn.
@@ -575,7 +568,6 @@ export const register: Register = (on, options) => {
   const breakEvery = parseMinutes(String(options.break_every ?? '50'))
   // The clawd tool goes into every request Claude makes, so it is there only when asked for.
   const canTalk = String(options.talk ?? 'off') === 'on'
-  const sceneryDefault = String(options.scenery ?? 'auto')
   const lastfm = { user: String(options.lastfm_user ?? '').trim(), key: String(options.lastfm_api_key ?? '').trim() }
   const asked = String(options.songbook_effort ?? 'medium')
   const songbookEffort: SongbookEffort = asked === 'low' || asked === 'high' ? asked : 'medium'
@@ -596,8 +588,6 @@ export const register: Register = (on, options) => {
     await update($, mood, m => ({ ...m, lastActiveAt: now }))
     life.nextEmoteAt = now + EMOTE_GAP_MS / 2
     const wasOff = (await $.store.get('off')) === true
-    const chosen = await $.store.get('scenery')
-    life.scenery = typeof chosen === 'string' ? chosen : undefined
     await update($, isOff, () => wasOff)
     const castle = (await $.store.get('castle')) as { day?: string; turns?: number } | undefined
     life.castleDay = castle?.day ?? ''
@@ -886,20 +876,6 @@ export const register: Register = (on, options) => {
 
       return { text: refreshed.text }
     }
-    if (asked === 'scenery' || asked.startsWith('scenery ')) {
-      // A scene of your choosing, 'auto' to follow the season and the hour, or 'off'; kept for later
-      // sessions, over the Scenery setting.
-      const wanted = asked.slice('scenery'.length).trim()
-      if (wanted !== 'auto' && wanted !== 'off' && !(SCENERIES as readonly string[]).includes(wanted)) {
-        const shown = sceneryOf(life.scenery ?? sceneryDefault, localTime(await $.clock.now(), offsetMinutes))
-        return { text: `Scenery is ${shown ?? 'off'}. Pick one: /pet scenery ${['auto', 'off', ...SCENERIES].join(', ')}.` }
-      }
-      life.scenery = wanted
-      await $.store.set('scenery', wanted)
-      await update($, tick, n => n + 1)
-
-      return { text: wanted === 'off' ? 'Scenery off.' : wanted === 'auto' ? 'Scenery follows the season and the hour.' : `Scenery: ${wanted}.` }
-    }
     if (asked === 'guest') {
       // Someone drops by, not whoever came last, with something to say.
       const [name, saying] = pickGuest(Math.random(), life.lastGuest)
@@ -1160,43 +1136,29 @@ export const register: Register = (on, options) => {
       </Text>
     )
 
-    // The scenery row under Clawd, as wide as the band; the apps keep its spaces as they are.
-    const scenery = sceneryOf(life.scenery ?? sceneryDefault, local)
-    const view = scenery === undefined ? [] : sceneryRow(scenery, Math.min(SCENERY_MAX, Math.max(SKY_WIDTH, e.props.bodyColumns)), now)
-    const keepSpaces = (text: string) => (e.surface === 'terminal' ? text : text.replace(/ /g, '\u00a0'))
-
     return (
-      <Box flexDirection="column">
-        <Box flexDirection="row">
-          {drawing}
-          <Box flexDirection="column" marginLeft={2}>
-            {/* The apps draw every Button as a native one, a filled box, so there the name is text. */}
-            {e.surface === 'terminal' ? (
-              <Button key="name" plain onPress={pet}>
-                {name}
-              </Button>
+      <Box flexDirection="row">
+        {drawing}
+        <Box flexDirection="column" marginLeft={2}>
+          {/* The apps draw every Button as a native one, a filled box, so there the name is text. */}
+          {e.surface === 'terminal' ? (
+            <Button key="name" plain onPress={pet}>
+              {name}
+            </Button>
+          ) : (
+            name
+          )}
+          {said !== '' &&
+            (e.surface === 'terminal' ? (
+              // Cut to the columns beside the drawing.
+              <Text dimColor>{short(said, Math.max(10, e.props.bodyColumns - 16))}</Text>
             ) : (
-              name
-            )}
-            {said !== '' &&
-              (e.surface === 'terminal' ? (
-                // Cut to the columns beside the drawing.
-                <Text dimColor>{short(said, Math.max(10, e.props.bodyColumns - 16))}</Text>
-              ) : (
-                // The apps' columns are not the terminal's: they wrap the line to the room they have.
-                <Text dimColor wrap="wrap">
-                  {said}
-                </Text>
-              ))}
-          </Box>
-        </Box>
-        {view.length > 0 && (
-          <Text mono wrap="truncate">
-            {view.map(part => (
-              <Text color={part.color}>{keepSpaces(part.text)}</Text>
+              // The apps' columns are not the terminal's: they wrap the line to the room they have.
+              <Text dimColor wrap="wrap">
+                {said}
+              </Text>
             ))}
-          </Text>
-        )}
+        </Box>
       </Box>
     )
   })

@@ -70,8 +70,6 @@ If Clawd does not appear, see [Troubleshooting](#troubleshooting).
 **It has a life of its own.**
 
 - A sun or a moon moves over its head with your local time.
-- Under it, a quiet row of scenery drifts by: sharks on the sea, koi, cherry blossom, autumn
-  leaves, snow, stars, fireflies or birds. See [Scenery](#scenery).
 - It sings lines from songs. With Last.fm, it sings the music that you listen to.
 - It builds a sandcastle. Each prompt that Claude finishes adds one level. A new day starts a new
   sandcastle.
@@ -124,7 +122,6 @@ All commands start with `/pet`. When you type `/pet `, Claude Code shows what ca
 | `/pet treat` | Gives Clawd a treat. |
 | `/pet trick` | Makes Clawd do a trick. |
 | `/pet guest` | Brings a random guest. The same guest does not come two times in a row. |
-| `/pet scenery <name>` | Changes the scenery under Clawd. See [Scenery](#scenery). |
 | `/pet <emote>` | Shows an emote now, for example `/pet meditate`. See [All emotes](#all-emotes). |
 | `/pet refresh-songs` | Writes a new songbook now, and tells you if it cannot. See [The songbook](#the-songbook). |
 | `/pet off` | Hides Clawd in all sessions. `/pet on` shows it again. |
@@ -149,32 +146,7 @@ To change a setting, run `/plugin configure clawd@clawd` in Claude Code.
 | Break every | `50` | Sets the minutes of work before Clawd suggests a break. Work means that you send prompts or type, with no gap of 10 minutes or more. `0` or empty turns it off. |
 | Songbook: Last.fm user | Empty | Sets your Last.fm user name. See [The songbook](#the-songbook). |
 | Songbook: Last.fm API key | Empty | Sets your Last.fm API key. See [The songbook](#the-songbook). |
-| Scenery | `auto` | Sets the scenery under Clawd: `auto`, `off`, or a scene. See [Scenery](#scenery). |
 | Songbook: effort | `medium` | Sets how hard Claude Haiku thinks about the songbook: `low`, `medium` or `high`. Higher writes better lines and uses more tokens. |
-
-### Scenery
-
-Under Clawd, one row of scenery drifts by. It is made to stay at the edge of your sight while you
-work: a few things on the row, in muted colors, that move one cell every few seconds.
-
-| Scene | What drifts by |
-|---|---|
-| `sea` | Shark fins and a small fish on the swell |
-| `koi` | Koi fish and ripples in a pond |
-| `blossom` | Cherry blossom petals |
-| `leaves` | Autumn leaves |
-| `snow` | Snowflakes |
-| `stars` | Twinkling stars, and sometimes a shooting star |
-| `fireflies` | Fireflies that glow and fade |
-| `birds` | Birds that glide across |
-
-With `auto`, the scene follows the season and your local time: blossom in spring (birds on some
-mornings), the sea or koi on summer days, leaves in autumn, snow in winter, and stars at night
-(fireflies on summer nights).
-
-To change the scene now, run `/pet scenery` and a name, for example `/pet scenery sea`. Clawd keeps
-your choice for the next sessions. Run `/pet scenery auto` to follow the season again, or
-`/pet scenery off` to hide the row.
 
 ### The songbook
 
@@ -302,7 +274,6 @@ When a user asks you to install this plugin:
    - the songbook: Last.fm, one small Haiku call per day;
    - the leave time;
    - break reminders: on by default, every 50 minutes;
-   - scenery: on by default, following the season (`/pet scenery off` hides it);
    - Claude can talk to Clawd: off by default, about 400 tokens per request when on.
 6. Set only the settings that the user asks for.
 7. Never ask the user to paste an API key into the chat. Tell them to run

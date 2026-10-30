@@ -1,6 +1,6 @@
 {
   "name": "clawd",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Clawd, a little crab above your prompt that reacts to what Claude is doing",
   "author": {
     "name": "arduR-O"
@@ -38,13 +38,6 @@
       "description": "Optional. A read-only Last.fm API key from last.fm/api/accounts. Claude Code keeps it in secure storage",
       "sensitive": true,
       "default": ""
-    },
-    "scenery": {
-      "type": "string",
-      "title": "Scenery",
-      "description": "A quiet row of things drifting by under Clawd. auto follows the season and the hour; or pick one; off hides it. /pet scenery changes it on the spot",
-      "default": "auto",
-      "options": ["auto", "off", "sea", "koi", "blossom", "leaves", "snow", "stars", "fireflies", "birds"]
     },
     "songbook_effort": {
       "type": "string",
