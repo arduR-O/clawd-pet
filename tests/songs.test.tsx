@@ -137,6 +137,26 @@ test('a request the API refuses as invalid is tried again plain: a cap every Hai
   ])
 })
 
+test('an effort the API refuses steps up to a better one first, as Claude Code 2.1.314 refuses medium', LASTFM, async ($, on) => {
+  const asked: unknown[] = []
+  on('model.complete', (_, e) => {
+    asked.push({ maxTokens: e.maxTokens, effort: e.effort })
+    if (e.effort === 'medium') return { value: { isAnswered: false, reason: 'api-error', status: 400, error: 'unknown', usage: NO_USAGE } }
+
+    return { value: { isAnswered: true, text: 'where do i begiiin\nand so it iiis\nwe will, we will', usage: NO_USAGE } }
+  })
+  lastfmStub(on, [])
+  await start($, on, { songbook: LASTFM_SONGBOOK }, NOON_IST)
+
+  const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+
+  expect(ran.text).toContain('New songbook: 3 lines')
+  expect(asked).toEqual([
+    { maxTokens: 16000, effort: 'medium' },
+    { maxTokens: 32000, effort: 'high' },
+  ])
+})
+
 test('a refresh that fails keeps the songbook Clawd has', LASTFM, async ($, on) => {
   on('model.complete', () => ({ value: { isAnswered: false, reason: 'empty-reply', usage: NO_USAGE } }))
   lastfmStub(on, [])
@@ -303,7 +323,7 @@ test("a stale songbook is rewritten once by Claude, in the vibe of this week's p
     {
       day: '10-27',
       source: 'lastfm:listener',
-      style: 8,
+      style: 9,
       taste: LASTFM_SONGBOOK.taste,
       lines: ['ooh, the tests are green ♪', 'another one bites the bug ♪', 'we will, we will lint you ♪'],
     },
@@ -377,6 +397,7 @@ test("the songbook prompt sings only the songs named, never an artist's best-kno
 
   expect(prompt).toContain('Here is what they have been playing: newest plays: Kesariya by Arijit Singh. artists lately: Queen.')
   expect(prompt).toContain('Sing lines only from the songs named there')
+  expect(prompt).toContain('at most two lines from any one song')
   expect(prompt).toContain("not even an artist's")
 })
 

@@ -471,11 +471,14 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
     // A passing API error (busy, rate-limited, a dropped connection) gets one more try, a moment on.
     await new Promise<void>(resolve => $.clock.after(RETRY_MS, resolve))
     reply = await ask()
-  } else if (reply?.isAnswered === false && reply.reason === 'api-error' && reply.status === 400) {
-    // The request itself refused, as a Haiku with a lower output limit (an older one, or through
-    // some providers) refuses a high cap. One more try with what every Haiku takes: low effort,
-    // which the engine drops for a model without it, keeps the thinking well inside the cap.
-    reply = await ask({ model: 'haiku', maxTokens: PLAIN_TOKENS, effort: 'low', prompt: request.prompt })
+  } else {
+    // The request itself refused (HTTP 400): an effort this Haiku won't take, as Claude Code 2.1.314
+    // refuses medium while taking high and low, or a cap past its output limit. Try the other
+    // efforts, the better one first, so a refused medium writes at high before falling to low.
+    for (const other of EFFORT_FALLBACKS[effort]) {
+      if (!(reply?.isAnswered === false && reply.reason === 'api-error' && reply.status === 400)) break
+      reply = await ask({ ...request, effort: other, maxTokens: SONGBOOK_TOKENS[other] })
+    }
   }
   const lines = reply?.isAnswered === true ? songbookLines(reply.text) : []
   if (lines.length < 3) {
@@ -499,16 +502,15 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
 const isPassing = (status: number | null, error: string) =>
   status === null || status === 429 || status >= 500 || ['rate_limit', 'overloaded', 'server_error'].includes(error)
 const RETRY_MS = 5_000
-// A songbook cap within every Haiku's output limit.
-const PLAIN_TOKENS = 8192
+// What to try when the API refuses an effort, in order: up to better lines first, then down.
+const EFFORT_FALLBACKS: Readonly<Record<SongbookEffort, readonly SongbookEffort[]>> = { low: [], medium: ['high', 'low'], high: ['low'] }
 
 // What a songbook refresh came to: in full for the command's answer, and short for Clawd's line.
 type Refreshed = { text: string; line: string }
 
 // How hard Haiku thinks about the songbook, and the reply's cap for each: the cap counts its thinking
-// as well as the lines (at 400, the thinking took the lot and left no text), and an effort may hold
-// back more of it for thinking than it uses: on Claude Code 2.1.314, medium at 8,192 was refused
-// (HTTP 400). A cap is a ceiling, not a cost, so each is well past the 2,000 to 9,000 tokens used.
+// as well as the lines (at 400, the thinking took the lot and left no text). A cap is a ceiling, not
+// a cost, so each is well past the 2,000 to 9,000 tokens used.
 type SongbookEffort = 'low' | 'medium' | 'high'
 const SONGBOOK_TOKENS: Readonly<Record<SongbookEffort, number>> = { low: 8192, medium: 16000, high: 32000 }
 

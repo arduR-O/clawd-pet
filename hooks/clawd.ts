@@ -277,7 +277,7 @@ export function tasteFrom(artists: unknown, weekTracks: unknown, recentPlays: un
 }
 
 // The songbook prompt's version: a songbook written by an older prompt is written again.
-export const SONGBOOK_STYLE = 8
+export const SONGBOOK_STYLE = 9
 
 // What Claude is asked for the songbook: lines actually sung in the songs of `taste`, each from
 // the line's start, most sung as is and about one in four carried on into code.
@@ -285,7 +285,9 @@ export function songbookPrompt(taste: string): string {
   return [
     "Write 12 short lines for Clawd, a tiny crab who lives in a programmer's terminal, to sing.",
     `Here is what they have been playing: ${taste}.`,
-    'Sing lines only from the songs named there, a different song for each line where you can. The',
+    'Sing lines only from the songs named there, spread across as many of them as you know the words',
+    'of: at most two lines from any one song, never two of one song in a row, and fewer than 12 lines',
+    'if you run out of songs you know. The',
     "artists are named for the mood: never sing a song the list doesn't name, not even an artist's",
     'best-known hit. Only if the list names no songs at all, use songs by the artists it names.',
     'Each line is a line of a song, taken from its start, never from the middle: the whole line, never',

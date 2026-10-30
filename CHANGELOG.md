@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.3
+
+### Fixed
+
+- **A refused medium effort writes at high, not low.** Checked on a real install: Claude Code 2.1.314
+  refuses the songbook request at medium effort whatever the cap (8,192 or 16,000), while high and
+  low answer, so 0.3.2's bigger caps did not help medium. A refused effort now tries a better one
+  first (medium → high, then low; high → low).
+- **More songs in a songbook.** A songbook drew 5 of its 12 lines from Piano Man and 4 from
+  Desperado, though the history named 14 songs. Now at most two lines come from one song, never two
+  of one song in a row, spread across as many songs as Haiku knows the words to; fewer than 12
+  lines if it runs out. Songbooks from the old prompt are written again.
+
 ## 0.3.2
 
 ### Fixed
