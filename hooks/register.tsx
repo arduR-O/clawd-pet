@@ -24,7 +24,7 @@ import {
   songsFrom,
   searchTitle,
   linesOfLyrics,
-  isHindiLyrics,
+  isInIndianScript,
   twistPrompt,
   mixSongbook,
   creditOf,
@@ -491,8 +491,9 @@ async function lyricLines($: EngineInterface, songs: readonly Song[], isSkipping
         ? (hits as { plainLyrics?: unknown; instrumental?: unknown }[]).find(one => one.instrumental !== true && typeof one.plainLyrics === 'string' && one.plainLyrics !== '')
         : undefined
       if (hit === undefined) return []
-      // Hindi songs don't carry over into lines about code: left out when the setting says so.
-      if (isSkippingHindi && isHindiLyrics(hit.plainLyrics as string)) {
+      // Lyrics in Devanagari or another Indian script don't carry over into lines about code: left
+      // out when the setting says so.
+      if (isSkippingHindi && isInIndianScript(hit.plainLyrics as string)) {
         skipped += 1
         return []
       }
@@ -561,11 +562,11 @@ async function refreshSongbook(
     await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines, credits })
 
     return {
-      text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, the lyrics of ${sung.found} of its ${songs.length} songs from LRCLIB${sung.skipped > 0 ? ` (${sung.skipped} Hindi left out)` : ''}, such as "${lines[0]}"`,
+      text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, the lyrics of ${sung.found} of its ${songs.length} songs from LRCLIB${sung.skipped > 0 ? ` (${sung.skipped} in Devanagari left out)` : ''}, such as "${lines[0]}"`,
       line: `new songbook: ${lines.length} songs ♪`,
     }
   }
-  const { reply, refused } = await askHaiku($, songbookPrompt(taste, isSkippingHindi), effort)
+  const { reply, refused } = await askHaiku($, songbookPrompt(taste), effort)
   const lines = reply?.isAnswered === true ? songbookLines(reply.text) : []
   if (lines.length < 3) {
     const why =

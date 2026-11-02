@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.5
+
+### Changed
+
+- **Only lyrics in Devanagari are left out.** 0.4.4 also left out romanized Hindi, by counting
+  Hindi words; romanized lyrics turn into lines fine, so only lyrics written in Devanagari or another
+  Indian script are left out now, and Haiku is no longer asked to leave Hindi songs out.
+
 ## 0.4.4
 
 ### Changed
