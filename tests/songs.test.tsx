@@ -286,13 +286,12 @@ test('while Clawd sings, the song the line is from shows under it, and /pet song
   expect(before.text).toBe("Clawd hasn't sung yet. /pet sing gets it going.")
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
-  // The credit a step behind the line: the line full strength, the credit dim, italic and smaller.
+  // The credit a step behind the line, which stays dim like anything Clawd says: the credit in the
+  // theme's subtle color, italic and smaller.
   const credit = await ui.find({ type: 'Text', text: /^— Paper Moon · The Kettles$/ })
-  expect(credit?.props).toMatchObject({ dimColor: true, italic: true, size: 'caption' })
-  const sung = await ui.find({ type: 'Text', text: /^oh paper/ })
-  expect(sung).toBeTruthy()
-  expect(sung?.props.dimColor).not.toBe(true)
-  // Gone with the song, and the line beside Clawd dim again.
+  expect(credit?.props).toMatchObject({ color: 'subtle', italic: true, size: 'caption' })
+  expect((await ui.find({ type: 'Text', text: /^oh paper/ }))?.props.dimColor).toBe(true)
+  // Gone with the song.
   await clock.advance(8_000)
   expect(await ui.find({ type: 'Text', text: /^— Paper Moon/ })).toBeFalsy()
 

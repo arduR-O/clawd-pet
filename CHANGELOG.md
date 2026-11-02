@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.8
+
+### Changed
+
+- **A sung line stays as dim as anything else Clawd says.** 0.4.6 drew it at full strength, which
+  made Clawd's other lines look less important. Now the line stays dim and the song credit under it
+  is fainter still, in the theme's subtle color (`#505050` on the dark theme, `#AFAFAF` on the
+  light one), italic, and smaller in VS Code and the desktop app.
+
 ## 0.4.7
 
 ### Fixed

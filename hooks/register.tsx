@@ -1315,17 +1315,17 @@ export const register: Register = (on, options) => {
           {said !== '' &&
             (e.surface === 'terminal' ? (
               // Cut to the columns beside the drawing.
-              <Text dimColor={credit === undefined}>{short(said, Math.max(10, e.props.bodyColumns - 16))}</Text>
+              <Text dimColor>{short(said, Math.max(10, e.props.bodyColumns - 16))}</Text>
             ) : (
               // The apps' columns are not the terminal's: they wrap the line to the room they have.
-              <Text dimColor={credit === undefined} wrap="wrap">
+              <Text dimColor wrap="wrap">
                 {said}
               </Text>
             ))}
-          {/* The song a sung line is from, a step behind the line: the line full strength over it,
-              the credit dim, and in the apps smaller. */}
+          {/* The song a sung line is from, a step behind the line, which stays as dim as anything
+              Clawd says: in the theme's subtle color, italic, and in the apps smaller. */}
           {credit !== undefined && (
-            <Text dimColor italic size="caption" wrap="truncate">
+            <Text color="subtle" italic size="caption" wrap="truncate">
               {`— ${credit}`}
             </Text>
           )}
