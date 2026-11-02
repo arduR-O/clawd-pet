@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.3
+
+### New
+
+- **26 more things to say while meditating**, from "detach HEAD. detach ego." and "sit with the
+  segfault." to "garbage collecting my thoughts…" and "no thoughts. only claws.": 34 in all.
+
 ## 0.5.2
 
 ### Changed

@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { CLAWD, faceOf, joinRuns, clawdScene, sceneFilm, sceneSvg, EMOTE_NAMES } from '../hooks/clawd'
+import { CALM, CLAWD, faceOf, joinRuns, clawdScene, sceneFilm, sceneSvg, EMOTE_NAMES } from '../hooks/clawd'
 import {
   BAND,
   auraShown,
@@ -201,6 +201,12 @@ test('the bubbles Clawd blows are water blue', () => {
     expect(bubbles.length).toBe(2)
     for (const bubble of bubbles) expect(bubble.color).toBe('#8ab6d6')
   }
+})
+
+test('the meditation lines are many, each its own, and short enough to sit beside Clawd', () => {
+  expect(CALM.length).toBeGreaterThanOrEqual(30)
+  expect(new Set(CALM).size).toBe(CALM.length)
+  for (const line of CALM) expect(line.length).toBeLessThanOrEqual(34)
 })
 
 test('the umbrella stands off to the right of the face, its handle hooked into the right claw', () => {
