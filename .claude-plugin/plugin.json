@@ -1,6 +1,6 @@
 {
   "name": "clawd",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Clawd, a little crab above your prompt that reacts to what Claude is doing",
   "author": {
     "name": "arduR-O"
@@ -45,6 +45,13 @@
       "description": "Where the songbook's real lines come from. lrclib looks your Last.fm songs up on lrclib.net, a free lyrics database (only titles and artists are sent); off has Claude Haiku write from what it knows",
       "default": "lrclib",
       "options": ["lrclib", "off"]
+    },
+    "hindi_songs": {
+      "type": "string",
+      "title": "Songbook: Hindi songs",
+      "description": "skip leaves songs sung in Hindi (or another language of India) out of the songbook, since their lines don't turn into jokes about code well; keep sings them too",
+      "default": "skip",
+      "options": ["skip", "keep"]
     },
     "songbook_effort": {
       "type": "string",

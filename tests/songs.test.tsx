@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { STARTER_SONGS, linesOfLyrics, mixSongbook, twistCredits, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
+import { STARTER_SONGS, isHindiLyrics, linesOfLyrics, mixSongbook, twistCredits, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
 import {
   BAND,
   OPTIONS,
@@ -307,6 +307,47 @@ test('a line from the built-in songs is named as one, and shows no credit', { op
   await ui.unmount()
 })
 
+// Made up for the tests: a romanized Hindi verse, one in Devanagari, and an English one that uses
+// a few words Hindi has too ("main", "ho", "na").
+const HINDI_ROMAN = 'Tera mera dil hai, phir se tum ho\nRaat bhi tha, aaj kya hai\nMain tujhe kabhi nahi bhoolun\nYeh zindagi bas tum ho'
+const HINDI_SCRIPT = 'फिर से तुम हो\nदिल की बात'
+const ENGLISH = 'The main road home is long tonight\nOh ho, the rain comes down\nWe sing along, na na na, until the morning light\nAnd the kettle sings its tune'
+
+test('Hindi lyrics are told apart, romanized or in Devanagari, and English ones are not mistaken for them', () => {
+  expect(isHindiLyrics(HINDI_ROMAN)).toBe(true)
+  expect(isHindiLyrics(HINDI_SCRIPT)).toBe(true)
+  expect(isHindiLyrics(ENGLISH)).toBe(false)
+  expect(isHindiLyrics(MADE_UP)).toBe(false)
+})
+
+for (const setting of ['skip', 'keep'] as const) {
+  test(`with Hindi songs set to ${setting}, a Hindi song is ${setting === 'skip' ? 'left out' : 'sung'}`, { options: { ...LASTFM.options, hindi_songs: setting } }, async ($, on) => {
+    on('http.fetch', (_, e) => {
+      if (e.url.includes('lrclib.net')) {
+        const lyrics = e.url.includes('Phir') ? HINDI_ROMAN : e.url.includes('Paper') ? MADE_UP : ENGLISH
+        return { value: { status: 200, ok: true, headers: {}, text: JSON.stringify([{ plainLyrics: lyrics }]) } }
+      }
+      const track = (name: string) => ({ name, artist: { name: 'Band', '#text': 'Band' } })
+      const body = e.url.includes('getrecenttracks')
+        ? { recenttracks: { track: [track('Phir Se'), track('Paper Moon'), track('Main Road')] } }
+        : e.url.includes('gettoptracks')
+          ? { toptracks: { track: [] } }
+          : { topartists: { artist: [{ name: 'Band' }] } }
+      return { value: { status: 200, ok: true, headers: {}, text: JSON.stringify(body) } }
+    })
+    modelStub(on, [])
+    await start($, on, { songbook: LASTFM_SONGBOOK }, NOON_IST)
+
+    const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
+
+    if (setting === 'skip') {
+      expect(ran.text).toContain('the lyrics of 2 of its 3 songs from LRCLIB (1 Hindi left out)')
+    } else {
+      expect(ran.text).toContain('the lyrics of 3 of its 3 songs from LRCLIB,')
+    }
+  })
+}
+
 test('with lyrics off, LRCLIB is never asked', { options: { ...LASTFM.options, lyrics: 'off' } }, async ($, on) => {
   const urls: string[] = []
   on('http.fetch', (_, e) => {
@@ -562,6 +603,8 @@ test("the songbook prompt sings only the songs named, never an artist's best-kno
   expect(prompt).toContain('Here is what they have been playing: newest plays: Kesariya by Arijit Singh. artists lately: Queen.')
   expect(prompt).toContain('Sing lines only from the songs named there')
   expect(prompt).toContain('at most two lines from any one song')
+  expect(prompt).not.toContain('Hindi')
+  expect(songbookPrompt('x', true)).toContain('Leave out songs sung in Hindi')
   expect(prompt).toContain("not even an artist's")
 })
 

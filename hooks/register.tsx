@@ -24,6 +24,7 @@ import {
   songsFrom,
   searchTitle,
   linesOfLyrics,
+  isHindiLyrics,
   twistPrompt,
   mixSongbook,
   creditOf,
@@ -471,11 +472,12 @@ async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }
 
 // Real lines of the songs, looked up on LRCLIB, a free lyrics database music players use: a song's
 // first line and its chorus, for up to SUNG_SONGS songs. Only the titles and artists go to it.
-async function lyricLines($: EngineInterface, songs: readonly Song[]): Promise<{ lines: string[]; found: number; credits: Record<string, string> }> {
+async function lyricLines($: EngineInterface, songs: readonly Song[], isSkippingHindi: boolean): Promise<{ lines: string[]; found: number; skipped: number; credits: Record<string, string> }> {
   const search = (song: Song) =>
     $.http.fetch(`https://lrclib.net/api/search?track_name=${encodeURIComponent(searchTitle(song.title))}&artist_name=${encodeURIComponent(song.artist)}`, {
       headers: { 'User-Agent': 'clawd (https://github.com/arduR-O/clawd-pet)' },
     })
+  let skipped = 0
   const linesOf = async (song: Song): Promise<string[]> => {
     try {
       let reply = await search(song)
@@ -488,7 +490,13 @@ async function lyricLines($: EngineInterface, songs: readonly Song[]): Promise<{
       const hit = Array.isArray(hits)
         ? (hits as { plainLyrics?: unknown; instrumental?: unknown }[]).find(one => one.instrumental !== true && typeof one.plainLyrics === 'string' && one.plainLyrics !== '')
         : undefined
-      return hit === undefined ? [] : linesOfLyrics(hit.plainLyrics as string)
+      if (hit === undefined) return []
+      // Hindi songs don't carry over into lines about code: left out when the setting says so.
+      if (isSkippingHindi && isHindiLyrics(hit.plainLyrics as string)) {
+        skipped += 1
+        return []
+      }
+      return linesOfLyrics(hit.plainLyrics as string)
     } catch {
       return []
     }
@@ -505,14 +513,22 @@ async function lyricLines($: EngineInterface, songs: readonly Song[]): Promise<{
   const credits: Record<string, string> = {}
   for (const { song, lines } of sung) for (const line of lines) credits[line] ??= creditOf(song)
 
-  return { lines: [...new Set(sung.flatMap(one => one.lines))], found: sung.length, credits }
+  return { lines: [...new Set(sung.flatMap(one => one.lines))], found: sung.length, skipped, credits }
 }
 
 // Loads the songbook, or has Claude write one in the vibe of what you've been playing (tasteOf):
 // once a day, and again when the source or the prompt's style changes, or `/pet refresh-songs`
 // asks (`isAsked`). Until it is written, and whenever writing fails, the last songbook or the starter
 // songs are sung. Answers what happened, for `/pet refresh-songs` to tell the person.
-async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: string }, effort: SongbookEffort, isLyrics: boolean, today: string, isAsked = false): Promise<Refreshed> {
+async function refreshSongbook(
+  $: EngineInterface,
+  lastfm: { user: string; key: string },
+  effort: SongbookEffort,
+  isLyrics: boolean,
+  isSkippingHindi: boolean,
+  today: string,
+  isAsked = false,
+): Promise<Refreshed> {
   // Without Last.fm, Clawd sings its built-in songs and calls no model.
   if (lastfm.user === '' || lastfm.key === '') {
     return { text: lastfmUnset(lastfm), line: 'no Last.fm: built-in songs' }
@@ -534,7 +550,7 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
   }
   // The songs' real lines when LRCLIB has enough of them, with a few of Haiku's twists on them; else
   // Haiku writes the songbook from what it knows of the songs.
-  const sung = isLyrics ? await lyricLines($, songs) : { lines: [], found: 0, credits: {} }
+  const sung = isLyrics ? await lyricLines($, songs, isSkippingHindi) : { lines: [], found: 0, skipped: 0, credits: {} }
   if (sung.lines.length >= 3) {
     const { reply } = await askHaiku($, twistPrompt(sung.lines), effort)
     const twists = reply?.isAnswered === true ? songbookLines(reply.text).slice(0, 4) : []
@@ -545,11 +561,11 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
     await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines, credits })
 
     return {
-      text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, the lyrics of ${sung.found} of its ${songs.length} songs from LRCLIB, such as "${lines[0]}"`,
+      text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, the lyrics of ${sung.found} of its ${songs.length} songs from LRCLIB${sung.skipped > 0 ? ` (${sung.skipped} Hindi left out)` : ''}, such as "${lines[0]}"`,
       line: `new songbook: ${lines.length} songs ♪`,
     }
   }
-  const { reply, refused } = await askHaiku($, songbookPrompt(taste), effort)
+  const { reply, refused } = await askHaiku($, songbookPrompt(taste, isSkippingHindi), effort)
   const lines = reply?.isAnswered === true ? songbookLines(reply.text) : []
   if (lines.length < 3) {
     const why =
@@ -681,6 +697,7 @@ export const register: Register = (on, options) => {
   const asked = String(options.songbook_effort ?? 'medium')
   const songbookEffort: SongbookEffort = asked === 'low' || asked === 'high' ? asked : 'medium'
   const isLyrics = String(options.lyrics ?? 'lrclib') !== 'off'
+  const isSkippingHindi = String(options.hindi_songs ?? 'skip') !== 'keep'
 
   on('session.start', async ($, e, next) => {
     life.prompts = 0
@@ -703,7 +720,7 @@ export const register: Register = (on, options) => {
     life.castleDay = castle?.day ?? ''
     life.castleTurns = Number(castle?.turns ?? 0)
     // Off the session's start, which waits for nothing: the songbook may need a model call.
-    const refresh = async () => refreshSongbook($, lastfm, songbookEffort, isLyrics, dayOf(localTime(await $.clock.now(), offsetMinutes)))
+    const refresh = async () => refreshSongbook($, lastfm, songbookEffort, isLyrics, isSkippingHindi, dayOf(localTime(await $.clock.now(), offsetMinutes)))
     $.clock.after(1000, () => {
       void refresh()
     })
@@ -981,7 +998,7 @@ export const register: Register = (on, options) => {
       // Clawd holds up how it's going, over whatever else comes up, until it's done and a while after.
       life.status = { line: 'writing new songs…', until: (await $.clock.now()) + REFRESH_MS }
       await update($, tick, n => n + 1)
-      const refreshed = await refreshSongbook($, lastfm, songbookEffort, isLyrics, dayOf(localTime(await $.clock.now(), offsetMinutes)), true)
+      const refreshed = await refreshSongbook($, lastfm, songbookEffort, isLyrics, isSkippingHindi, dayOf(localTime(await $.clock.now(), offsetMinutes)), true)
       life.status = { line: refreshed.line, until: (await $.clock.now()) + STATUS_MS }
       await update($, tick, n => n + 1)
 

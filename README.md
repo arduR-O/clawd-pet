@@ -150,6 +150,7 @@ To change a setting, run `/plugin configure clawd@clawd` in Claude Code.
 | Songbook: Last.fm user | Empty | Sets your Last.fm user name. See [The songbook](#the-songbook). |
 | Songbook: Last.fm API key | Empty | Sets your Last.fm API key. See [The songbook](#the-songbook). |
 | Songbook: lyrics | `lrclib` | Sets where the songbook's real lines come from: `lrclib` looks your songs up on LRCLIB, `off` has Claude Haiku write from what it knows. See [The songbook](#the-songbook). |
+| Songbook: Hindi songs | `skip` | `skip` leaves songs sung in Hindi, or another language of India, out of the songbook. `keep` sings them too. |
 | Songbook: effort | `medium` | Sets how hard Claude Haiku thinks about the songbook: `low`, `medium` or `high`. Higher writes better lines and uses more tokens. |
 
 ### The songbook
@@ -169,6 +170,9 @@ lyrics database that music players use. From each song it takes the first line a
 song sings most, which is usually the chorus. Then Claude Haiku turns a few of those lines into jokes
 about code. If LRCLIB has fewer than 3 lines for your songs, Claude Haiku writes the songbook from
 what it knows of the songs. To turn LRCLIB off, set **Songbook: lyrics** to `off`.
+
+By default, Clawd leaves out songs sung in Hindi or another language of India, because their lines
+do not turn into jokes about code well. To sing them too, set **Songbook: Hindi songs** to `keep`.
 
 **Which song is that?** While Clawd sings a line from LRCLIB, the song and the artist show under
 it, for example `♪ Piano Man · Billy Joel`. To ask later, run `/pet song`. A joke line names the

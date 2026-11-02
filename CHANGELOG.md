@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.4
+
+### Changed
+
+- **Hindi songs are left out of the songbook.** Their lines don't turn into jokes about code well.
+  Clawd tells them by their lyrics from LRCLIB: an Indian script such as Devanagari, or romanized
+  Hindi, where common Hindi words make up a good share of the words. When Haiku writes the songbook
+  alone, it is asked to leave them out. `/pet refresh-songs` says how many it left out. The new
+  **Songbook: Hindi songs** setting (`skip` or `keep`) sings them again.
+
 ## 0.4.3
 
 ### New
