@@ -39,11 +39,8 @@ const MUG = '#e8e0d0'
 const DOME = '#9ad6ff'
 const MUSHROOM = '#3cb043'
 const WHALE = '#4a90d9'
-// Round reading glasses: a lens over each eye, a lens catching the light now and then, and the
-// temples hooked back past the head.
-const LENS = '◉'
-const GLINT = '◎'
-const TEMPLES = ['╶', '╴'] as const
+// The reading glasses' frames, either side of each eye.
+const FRAMES = ['(', ')'] as const
 // The pages of the book Clawd reads now and then.
 const PAGE = '#f4f1de'
 const COVER = '#a0522d'
@@ -790,15 +787,15 @@ const FACES: Readonly<Record<Face, (body: string) => Look>> = {
       { text: '▌', color: body },
     ],
   }),
-  // Round reading glasses: a lens over each eye, a bridge between them, and the temples hooked back
-  // past its head. The face keeps its own edges, so the head is no bigger.
+  // Big reading glasses: a frame round each of its own eyes, joined by a bridge. The face keeps
+  // its own edges, so the head is no bigger; the outer rims stick out past them, wider than the face.
   glasses: body => {
-    const lens = (text: string): Segment => ({ text, color: SHADES, backgroundColor: body })
+    const rim = (text: string): Segment => ({ text, color: SHADES, backgroundColor: body })
     return {
-      eyes: [{ text: '▐', color: body }, lens(LENS), lens('───'), lens(LENS), { text: '▌', color: body }],
+      eyes: [{ text: '▐▛', color: body }, rim(FRAMES[1]), rim('─'), rim(FRAMES[0]), { text: '▜▌', color: body }],
       rims: [
-        { text: TEMPLES[0], color: GLASSES },
-        { text: TEMPLES[1], color: GLASSES },
+        { text: FRAMES[0], color: GLASSES },
+        { text: FRAMES[1], color: GLASSES },
       ],
     }
   },
@@ -1030,11 +1027,7 @@ export function clawdScene(input: {
   const { typing } = input
   const gaze: Face | undefined =
     typing === undefined ? undefined : typing.isPet ? 'happy' : typing.caret < x + 1 ? 'left' : typing.caret > x + 7 ? 'right' : undefined
-  const look = FACES[faceOf(kind, emote, frame, isShut, gaze)](body)
-  const { rims } = look
-  // Now and then a lens of the reading glasses catches the light.
-  const glint = frame % 6 === 5 ? look.eyes.findIndex(part => part.text === LENS) : -1
-  const eyes = glint < 0 ? look.eyes : look.eyes.map((part, i) => (i === glint ? { ...part, text: GLINT } : part))
+  const { eyes, rims } = FACES[faceOf(kind, emote, frame, isShut, gaze)](body)
 
   let claws = CLAWS_DOWN
   if (emote === 'wave' || emote === 'sixseven' || emote === 'cousin') claws = frame % 2 === 0 ? WAVE_LEFT : WAVE_RIGHT

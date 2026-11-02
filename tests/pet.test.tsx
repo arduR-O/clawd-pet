@@ -94,11 +94,10 @@ test('/pet glasses puts the reading glasses on', { options: OPTIONS }, async ($,
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'glasses' })
-  // Runs of one style are joined, so count the lenses and temples within the colored runs.
+  // Runs of one style are joined, so count the rims within the colored runs.
   const runs = (await ui.findAll({ type: 'Text' })).filter(one => one.props.color !== undefined).map(one => one.text).join('')
-  expect([...runs].filter(ch => ch === '◉' || ch === '◎')).toHaveLength(2)
-  expect(runs).toContain('╶')
-  expect(runs).toContain('╴')
+  expect([...runs].filter(ch => ch === '(')).toHaveLength(2)
+  expect([...runs].filter(ch => ch === ')')).toHaveLength(2)
   expect(await ui.find({ type: 'Text', text: /\(glasses\)/ })).toBeTruthy()
   await ui.unmount()
 })

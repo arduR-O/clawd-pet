@@ -109,11 +109,13 @@ test('Clawd is drawn in NarutoDark orange', { options: OPTIONS }, async ($, on) 
   await $.tool.call({ tool: 'Read', file_path: '/repo/app.py' })
 
   const ui = await $.ui.mount(BAND)
-  // Round reading glasses: a dark lens over each eye and the bridge between them on the orange face,
-  // and the temples past the face's edges, on no orange of their own.
-  const lenses = await ui.find({ type: 'Text', text: /^[◉◎]───[◉◎]$/ })
-  expect(lenses?.props).toMatchObject({ color: '#1a1a1a', backgroundColor: '#ff8800' })
-  expect((await ui.find({ type: 'Text', text: /^╶$/ }))?.props.backgroundColor).toBeUndefined()
+  // Reading glasses: a dark frame round each of its own eyes, the bridge across the orange face,
+  // and the outer rims past the face's edges, on no orange of their own.
+  const rims = (await ui.findAll({ type: 'Text', text: /\(/ })).map(one => one.props)
+  expect(rims).toContainEqual(expect.objectContaining({ color: '#1a1a1a', backgroundColor: '#ff8800' }))
+  expect(rims.some(one => one.backgroundColor === undefined)).toBe(true)
+  expect(await ui.find({ type: 'Text', text: /^▐▛$/ })).toBeTruthy()
+  expect((await ui.find({ type: 'Text', text: /^\)─\($/ }))?.props.backgroundColor).toBe('#ff8800')
   // Busy reading, its claws go up and down.
   expect((await ui.find({ type: 'Text', text: /^(▝▜█████▛▘|▗▟█████▙▖)$/ }))?.props.color).toBe('#ff8800')
   expect(await ui.find({ type: 'Text', text: /reading app\.py/ })).toBeTruthy()
@@ -225,7 +227,7 @@ test('the umbrella stands off to the right of the face, its handle hooked into t
   }
 })
 
-test('reading glasses hook back past the face, but the head under them stays its own size', () => {
+test('reading glasses stick out past the face, but the head under them stays its own size', () => {
   const local = { hour: 10, weekday: 2, month: 10, day: 27 }
   // The columns Clawd's own orange covers in a row, and the glyphs at its two edges.
   const head = (row: { text: string; color?: string; backgroundColor?: string }[]) => {
@@ -239,11 +241,10 @@ test('reading glasses hook back past the face, but the head under them stays its
     const plain = clawdScene({ kind: 'idle', emote: undefined, frame: 1, nowMs: NOON_IST, local })
     const reading = clawdScene({ ...glasses, frame: 1, nowMs: NOON_IST, local })
     expect(head(reading[1]!)).toMatchObject({ first: head(plain[1]!).first, last: head(plain[1]!).last, edges: '▐▌' })
-    // Round lenses over its eyes, and the temples just outside it, one either side.
+    // The rims sit just outside it, one either side.
     const text = reading[1]!.map(part => part.text).join('')
-    expect(text).toMatch(/▐◉───◉▌/)
-    expect(text[head(plain[1]!).first - 1]).toBe('╶')
-    expect(text[head(plain[1]!).last + 1]).toBe('╴')
+    expect(text[head(plain[1]!).first - 1]).toBe('(')
+    expect(text[head(plain[1]!).last + 1]).toBe(')')
   }
 })
 

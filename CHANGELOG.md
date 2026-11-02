@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.6
+
+### Changed
+
+- **The big reading glasses are back.** 0.5.5's round lenses fit inside the face and came out too
+  small to be cute, so the glasses are the big frames again, their rims past the face's edges and
+  the head its own size under them. The book and the reading lines stay.
+
 ## 0.5.5
 
 ### Changed

@@ -51,7 +51,7 @@ If Clawd does not appear, see [Troubleshooting](#troubleshooting).
 
 **It reacts to Claude.**
 
-- When Claude reads a file, Clawd puts on round reading glasses, or now and then holds up a book.
+- When Claude reads a file, Clawd puts on big reading glasses, or now and then holds up a book.
   What it says changes each time, and it names the site when Claude reads the web.
 - When Claude commits your work, Clawd throws confetti.
 - When a tool fails, Clawd winces. After two failures in a row, it facepalms. After three, it
