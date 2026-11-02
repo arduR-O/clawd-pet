@@ -95,8 +95,8 @@ const EYES_UP = '▐▙███▟▌'
 const CLAWS_DOWN = '▝▜█████▛▘'
 const CLAWS_UP = '▗▟█████▙▖'
 const CLAWS_REST = '▗▄█████▄▖'
-// Claws raised high over its head (drawn in the sky row): the shoulders without them.
-const CLAWS_RAISED_HIGH = ' ▄█████▄ '
+// Claws raised high over its head (drawn in the sky row): nothing at its sides.
+const CLAWS_RAISED_HIGH = '  █████  '
 const WAVE_LEFT = '▗▟█████▛▘'
 const WAVE_RIGHT = '▝▜█████▙▖'
 const LEGS = '  ▘▘ ▝▝ '

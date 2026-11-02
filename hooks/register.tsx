@@ -985,11 +985,14 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: 'pet' }, async ($, e) => {
     const asked = e.args.trim().toLowerCase()
-    life.sitting = satAt(life.sitting, await $.clock.now())
-    // What the person asks for comes at once, song, guest or no.
+    const now = await $.clock.now()
+    life.sitting = satAt(life.sitting, now)
+    // What the person asks for comes at once, song, guest or no, and wakes Clawd from a nap or calls
+    // it back from a pastime: the person is here.
     life.song.until = 0
     life.guest.until = 0
     life.status.until = 0
+    await update($, mood, m => ({ ...m, lastActiveAt: now }))
     if (asked === 'off' || asked === 'on') {
       await $.store.set('off', asked === 'off')
       await update($, isOff, () => asked === 'off')

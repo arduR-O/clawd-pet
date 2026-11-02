@@ -14,6 +14,9 @@ import {
   WATER,
   shows,
   TALK,
+  istOn,
+  LEFT_TO_FISH,
+  AWAY_MS,
 } from './helpers'
 
 test('/pet counts pets across calls, every 25th a milestone', { options: OPTIONS }, async ($, on) => {
@@ -265,6 +268,25 @@ test('from one pose straight into another, Clawd takes a frame in between, a dif
   expect(new Set(between).size).toBe(4)
   await ui.unmount()
 })
+
+for (const [when, at, idle] of [
+  ['asleep at night', istOn(27, 23, 30), /z z z/],
+  ['off at a pastime by day', LEFT_TO_FISH, /^fishing… shh\.$|caught/],
+] as const) {
+  test(`any /pet wakes Clawd when it is ${when}`, { options: OPTIONS }, async ($, on) => {
+    const clock = await start($, on, {}, at)
+    await clock.advance(AWAY_MS)
+    const ui = await $.ui.mount(BAND)
+    expect(await ui.find({ type: 'Text', text: idle })).toBeTruthy()
+
+    await $.command.run({ ...TYPED, command: 'pet', args: 'dance' })
+    await clock.advance(800)
+
+    expect(await ui.find({ type: 'Text', text: idle })).toBeFalsy()
+    expect(await ui.find({ type: 'Text', text: /^\(dance\)$/ })).toBeTruthy()
+    await ui.unmount()
+  })
+}
 
 test('/pet chef, /pet hardhat and /pet cry show those emotes', { options: OPTIONS }, async ($, on) => {
   const clock = await start($, on, {}, NOON_IST)

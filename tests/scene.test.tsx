@@ -367,9 +367,9 @@ test('a stretch reaches both claws up over its head, and a yawn opens wide', () 
   const text = (row: { text: string }[]) => row.map(part => part.text).join('')
   const [sky, , claws] = clawdScene({ kind: 'idle', emote: 'stretch', frame: 0, nowMs: NOON_IST, local }).map(text)
   expect(sky).toMatch(/▟.{5}▙/)
-  // Its claws are up there, so not at its sides too: just its shoulders.
-  expect(claws).toContain(' ▄█████▄ ')
-  expect(claws).not.toMatch(/[▗▖▘▝]/)
+  // Its claws are up there, so nothing at its sides: just its body.
+  expect(claws).toContain('  █████  ')
+  expect(claws).not.toMatch(/[▗▖▘▝▄]/)
 
   const [, face, body] = clawdScene({ kind: 'idle', emote: 'yawn', frame: 0, nowMs: NOON_IST, local }).map(text)
   expect(face).toContain('─███─')

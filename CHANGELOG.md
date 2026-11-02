@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.10
+
+### Fixed
+
+- **Stretching shows two claws, not four.** The shoulders left at its sides in 0.4.9 still read as
+  claws, so reaching up now leaves nothing at its sides.
+- **Any `/pet` wakes Clawd.** A click or a plain `/pet` woke it, but `/pet dance`, `/pet trick`
+  and the rest did not call it back from a pastime: it went on fishing over the emote. Now any
+  `/pet` counts as you being here, so Clawd wakes from a nap or leaves its pastime.
+
 ## 0.4.9
 
 ### Fixed
