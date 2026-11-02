@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.7
+
+### Fixed
+
+- **The song credit shows however Clawd sings.** It showed for `/pet sing` and Clawd's own songs, but
+  not when Clawd sang along while vibing with its headphones on while you were away. Now any songbook
+  line Clawd is singing, by any way, shows the song it is from.
+
 ## 0.4.6
 
 ### Changed

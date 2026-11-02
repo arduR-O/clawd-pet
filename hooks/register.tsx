@@ -348,6 +348,15 @@ function say(saying: Saying): string {
   return sayingOf(saying, n)
 }
 
+// The credit of the songbook line `sung` starts, partway through as karaoke shows it, written as
+// "Piano Man · Billy Joel"; undefined for a line the songbook doesn't credit.
+function creditFor(sung: string): string | undefined {
+  if (sung.length < 6) return undefined
+  const found = Object.entries(life.credits).find(([line]) => line.startsWith(sung))
+
+  return found?.[1].replace(' by ', ' · ')
+}
+
 // How long what holds the stage has to go, a song or a guest: what else Clawd would do waits that
 // long, and then gets its full time.
 const stageLeft = (now: number) => Math.max(0, Math.max(life.song.until, life.guest.until) - now)
@@ -1281,8 +1290,10 @@ export const register: Register = (on, options) => {
       drawing = life.film.count % 2 === 0 ? picture : <Box>{picture}</Box>
     }
 
-    // While Clawd sings a line of the songbook, which song it is from, where that's known.
-    const credit = now < life.song.until ? life.credits[life.song.line]?.replace(' by ', ' · ') : undefined
+    // While Clawd sings a line of the songbook, however it came to (a song, an emote, vibing while
+    // you're away), which song it is from, where that's known: the line it is partway through, by
+    // how it starts.
+    const credit = pose === 'sing' ? creditFor(said) : undefined
     const name = (
       <Text color={CLAWD} bold>
         Clawd{mode === 'love' ? ' ♥' : ''}

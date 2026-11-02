@@ -18,6 +18,7 @@ import {
   LASTFM_SONGBOOK,
   TALK,
   saying,
+  AWAY_MS,
 } from './helpers'
 
 test('/pet refresh-songs forgets the songbook and writes a new one', LASTFM, async ($, on) => {
@@ -297,6 +298,23 @@ test('while Clawd sings, the song the line is from shows under it, and /pet song
 
   const after = await $.command.run({ ...TYPED, command: 'pet', args: 'song' })
   expect(after.text).toBe('Clawd last sang "oh paper moon, come down soon", from Paper Moon by The Kettles.')
+  await ui.unmount()
+})
+
+test('the credit shows however Clawd comes to sing, as when it vibes and sings along while you are away', LASTFM, async ($, on) => {
+  const credits = { 'oh paper moon, come down soon ♪': 'Paper Moon by The Kettles' }
+  const songbook = { ...LASTFM_SONGBOOK, lines: Object.keys(credits), credits }
+  // Left a few seconds past noon, Clawd's pastime away is listening to music.
+  const clock = await start($, on, { songbook }, NOON_IST + 4000)
+  await clock.advance(AWAY_MS)
+  const ui = await $.ui.mount(BAND)
+
+  let shown = false
+  for (let tick = 0; tick < 60 && !shown; tick++) {
+    shown = Boolean(await ui.find({ type: 'Text', text: /^— Paper Moon · The Kettles$/ }))
+    if (!shown) await clock.advance(800)
+  }
+  expect(shown).toBe(true)
   await ui.unmount()
 })
 
