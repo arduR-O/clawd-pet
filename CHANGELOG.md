@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0
+
+### New
+
+- **`/pet add-songs`.** Like `/pet refresh-songs`, but it adds to the songbook instead of starting
+  afresh. It skips the songs the songbook already has and looks further back in what you played
+  (up to about 60 songs from Last.fm), then adds their lines, credits and all, without repeats.
+- **The songbook grows day by day.** The day's own update now adds to the songbook too, so what you
+  add stays; it keeps up to 60 lines, the oldest making room. `/pet refresh-songs` still starts a
+  new one.
+
 ## 0.4.10
 
 ### Fixed

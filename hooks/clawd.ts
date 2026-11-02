@@ -1248,6 +1248,7 @@ const PET_COMMANDS: readonly [string, string][] = [
   ['trick', 'Clawd does a trick'],
   ['guest', 'a random guest drops by'],
   ['song', 'which song the line Clawd sang last is from'],
+  ['add-songs', 'add more songs to the songbook, from further back in what you played'],
   ['refresh-songs', 'forget the songbook and write a new one'],
   ['off', 'hide the pet until /pet on'],
   ['on', 'bring the pet back'],

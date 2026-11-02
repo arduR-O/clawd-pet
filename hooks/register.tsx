@@ -474,7 +474,7 @@ async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }
   ])
 
   const taste = tasteFrom(artists, week, recent, allTime)
-  const songs = songsFrom(week, recent, allTime)
+  const songs = songsFrom(week, recent, allTime, SONGS_HEARD)
 
   return taste === '' ? { taste, songs, problem: problem ?? `Last.fm has no plays for ${lastfm.user} yet` } : { taste, songs }
 }
@@ -538,6 +538,7 @@ async function refreshSongbook(
   isSkippingHindi: boolean,
   today: string,
   isAsked = false,
+  isAdding = false,
 ): Promise<Refreshed> {
   // Without Last.fm, Clawd sings its built-in songs and calls no model.
   if (lastfm.user === '' || lastfm.key === '') {
@@ -551,21 +552,36 @@ async function refreshSongbook(
     life.credits = kept.credits ?? {}
   }
   const isCurrent = kept?.day === today && kept.source === source && kept.style === SONGBOOK_STYLE
-  if (isCurrent && !isAsked) {
+  if (isCurrent && !isAsked && !isAdding) {
     return { text: `Today's songbook is already written: ${kept.lines?.length ?? 0} lines from ${lastfm.user}'s Last.fm.`, line: 'songbook up to date ♪' }
   }
-  const { taste, songs, problem } = await tasteOf($, lastfm)
+  // The day's own update adds to a songbook of the same Last.fm and style, so what was added stays;
+  // only `/pet refresh-songs` starts one afresh.
+  if (!isAsked && kept?.source === source && kept.style === SONGBOOK_STYLE && (kept.lines?.length ?? 0) > 0) {
+    isAdding = true
+  }
+  const { taste, songs: heard, problem } = await tasteOf($, lastfm)
   if (taste === '') {
     return { text: `${problem}. Clawd keeps the songs it has.`, line: 'no new songs: Last.fm' }
+  }
+  // Adding, the songs the songbook doesn't hold yet, further back in what you played; else the
+  // songbook's leading songs.
+  const held = new Set(Object.values(kept?.credits ?? {}))
+  const songs = (isAdding ? heard.filter(song => !held.has(creditOf(song))) : heard).slice(0, SONGS_LOOKED_UP)
+  if (isAdding && songs.length === 0) {
+    return { text: `No new songs to add: the songbook already holds every song ${lastfm.user}'s Last.fm names. It keeps the songs it has.`, line: 'no new songs to add' }
   }
   // The songs' real lines when LRCLIB has enough of them, with a few of Haiku's twists on them; else
   // Haiku writes the songbook from what it knows of the songs.
   const sung = isLyrics ? await lyricLines($, songs, isSkippingHindi) : { lines: [], found: 0, skipped: 0, credits: {} }
-  if (sung.lines.length >= 3) {
+  if (sung.lines.length >= (isAdding ? 1 : 3)) {
     const { reply } = await askHaiku($, twistPrompt(sung.lines), effort)
     const twists = reply?.isAnswered === true ? songbookLines(reply.text).slice(0, 4) : []
-    const lines = mixSongbook(sung.lines, twists)
-    const credits = { ...sung.credits, ...twistCredits(twists, sung.lines, sung.credits) }
+    const written = mixSongbook(sung.lines, twists)
+    const writtenCredits = { ...sung.credits, ...twistCredits(twists, sung.lines, sung.credits) }
+    if (isAdding) return addToSongbook($, kept, written, writtenCredits, { today, source, taste }, `the lyrics of ${sung.found} more of its songs from LRCLIB`)
+    const lines = written
+    const credits = writtenCredits
     life.songs = withStarters(lines)
     life.credits = credits
     await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines, credits })
@@ -588,11 +604,37 @@ async function refreshSongbook(
             : `it did not answer (${reply.reason})`
     return { text: `Last.fm worked, but Claude Haiku wrote no songbook: ${why}. Clawd keeps the songs it has.`, line: 'no new songs: Haiku' }
   }
+  if (isAdding) return addToSongbook($, kept, lines, {}, { today, source, taste }, 'from what Claude Haiku knows of your songs')
   life.songs = withStarters(lines)
   life.credits = {}
   await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines })
 
   return { text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, such as "${lines[0]}"`, line: `new songbook: ${lines.length} songs ♪` }
+}
+
+// Adds `written` lines to the songbook Clawd has, after its own and without repeats, keeping at most
+// SONGBOOK_MAX lines (the oldest make room), and answers what it added.
+async function addToSongbook(
+  $: EngineInterface,
+  kept: { lines?: string[]; credits?: Record<string, string> } | undefined,
+  written: readonly string[],
+  writtenCredits: Readonly<Record<string, string>>,
+  book: { today: string; source: string; taste: string },
+  from: string,
+): Promise<Refreshed> {
+  const had = kept?.lines ?? []
+  const added = written.filter(line => !had.includes(line))
+  if (added.length === 0) {
+    return { text: 'No new songs to add: the songbook already holds what Clawd found. It keeps the songs it has.', line: 'no new songs to add' }
+  }
+  const lines = [...had, ...added].slice(-SONGBOOK_MAX)
+  const all: Record<string, string> = { ...(kept?.credits ?? {}), ...writtenCredits }
+  const credits = Object.fromEntries(lines.filter(line => all[line] !== undefined).map(line => [line, all[line]!]))
+  life.songs = withStarters(lines)
+  life.credits = credits
+  await $.store.set('songbook', { day: book.today, source: book.source, style: SONGBOOK_STYLE, taste: book.taste, lines, credits })
+
+  return { text: `Added ${added.length} lines to the songbook, now ${lines.length}, ${from}, such as "${added[0]}"`, line: `added ${added.length} songs ♪` }
 }
 
 // One songbook request to Haiku at `effort`, seen through what can go wrong: a passing API error
@@ -630,6 +672,11 @@ const isPassing = (status: number | null, error: string) =>
 const RETRY_MS = 5_000
 // The songs whose real lines a songbook takes, two lines each at most.
 const SUNG_SONGS = 8
+// The songs heard from Last.fm, the ones looked up on LRCLIB at a time, and the most a songbook
+// holds when songs are added to it.
+const SONGS_HEARD = 60
+const SONGS_LOOKED_UP = 12
+const SONGBOOK_MAX = 60
 // LRCLIB is asked about this many songs at a time, and a busy answer tried again this long after.
 const LRCLIB_AT_ONCE = 3
 const LRCLIB_RETRY_MS = 1_500
@@ -1001,6 +1048,19 @@ export const register: Register = (on, options) => {
     }
     if (await read($, isOff)) {
       return { text: 'The pet is hidden; /pet on brings it back.' }
+    }
+    if (asked === 'add-songs') {
+      // More songs into the songbook Clawd has, from further back in what you played.
+      if (lastfm.user === '' || lastfm.key === '') {
+        return { text: lastfmUnset(lastfm) }
+      }
+      life.status = { line: 'adding songs…', until: now + REFRESH_MS }
+      await update($, tick, n => n + 1)
+      const added = await refreshSongbook($, lastfm, songbookEffort, isLyrics, isSkippingHindi, dayOf(localTime(await $.clock.now(), offsetMinutes)), true, true)
+      life.status = { line: added.line, until: (await $.clock.now()) + STATUS_MS }
+      await update($, tick, n => n + 1)
+
+      return { text: added.text }
     }
     if (asked === 'refresh-songs') {
       // Forget the songbook and write a new one now, from Last.fm, and say how that went.

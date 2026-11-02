@@ -126,6 +126,7 @@ All commands start with `/pet`. When you type `/pet `, Claude Code shows what ca
 | `/pet guest` | Brings a random guest. The same guest does not come two times in a row. |
 | `/pet <emote>` | Shows an emote now, for example `/pet meditate`. See [All emotes](#all-emotes). |
 | `/pet song` | Tells you which song the line that Clawd sang last is from. |
+| `/pet add-songs` | Adds more songs to the songbook, from further back in what you played. See [The songbook](#the-songbook). |
 | `/pet refresh-songs` | Writes a new songbook now, and tells you if it cannot. See [The songbook](#the-songbook). |
 | `/pet off` | Hides Clawd in all sessions. `/pet on` shows it again. |
 
@@ -180,7 +181,11 @@ under it, for example `— Piano Man · Billy Joel`. To ask later, run `/pet son
 song that it comes from. The built-in songs and the lines that Claude Haiku writes alone show no
 song.
 
-To write a new songbook now, run `/pet refresh-songs`. Clawd keeps its current songbook until the
+Each day, Clawd adds the songs that you played lately to the songbook. The songbook keeps up to 60
+lines; the oldest lines make room for new ones. To add more songs now, from further back in what you
+played, run `/pet add-songs`. It skips the songs that the songbook already has.
+
+To start a new songbook now, run `/pet refresh-songs`. Clawd keeps its current songbook until the
 new one is ready. If the new one fails, Clawd keeps the current one. While Clawd writes it, and for
 10 seconds after, Clawd shows how it is going. If Clawd cannot write one, the command tells you why, for
 example an empty or incorrect API key.

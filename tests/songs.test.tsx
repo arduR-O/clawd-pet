@@ -368,6 +368,85 @@ for (const setting of ['skip', 'keep'] as const) {
   })
 }
 
+// Last.fm and LRCLIB answering for songs `Song 1`…`Song n` by Band, each with lyrics of its own.
+function bandStub(on: Parameters<typeof start>[1], n: number, looked: string[]) {
+  on('http.fetch', (_, e) => {
+    if (e.url.includes('lrclib.net')) {
+      const which = /Song%20(\d+)/.exec(e.url)?.[1]
+      looked.push(`Song ${which}`)
+      return { value: { status: 200, ok: true, headers: {}, text: JSON.stringify([{ plainLyrics: `the first line of song ${which}\nthen another` }]) } }
+    }
+    const track = (i: number) => ({ name: `Song ${i}`, artist: { name: 'Band', '#text': 'Band' } })
+    const body = e.url.includes('getrecenttracks')
+      ? { recenttracks: { track: Array.from({ length: n }, (_, i) => track(i + 1)) } }
+      : e.url.includes('gettoptracks')
+        ? { toptracks: { track: [] } }
+        : { topartists: { artist: [{ name: 'Band' }] } }
+    return { value: { status: 200, ok: true, headers: {}, text: JSON.stringify(body) } }
+  })
+}
+
+test('/pet add-songs adds the lines of songs the songbook lacks, keeping its own', LASTFM, async ($, on) => {
+  const looked: string[] = []
+  bandStub(on, 4, looked)
+  modelStub(on, [])
+  const credits = { 'the first line of song 1 ♪': 'Song 1 by Band', 'the first line of song 2 ♪': 'Song 2 by Band' }
+  const songbook = { ...LASTFM_SONGBOOK, lines: Object.keys(credits), credits }
+  const written: { lines?: string[]; credits?: Record<string, string> }[] = []
+  on('store.set', { key: 'songbook' }, (_, e, next) => {
+    written.push(e.value as { lines?: string[] })
+    return next(e)
+  })
+  await start($, on, { songbook }, NOON_IST)
+
+  const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'add-songs' })
+
+  // Songs 1 and 2 are in it already: only 3 and 4 are looked up.
+  expect(looked).toEqual(['Song 3', 'Song 4'])
+  expect(ran.text).toBe('Added 2 lines to the songbook, now 4, the lyrics of 2 more of its songs from LRCLIB, such as "the first line of song 3 ♪"')
+  expect(written[0]?.lines).toEqual(['the first line of song 1 ♪', 'the first line of song 2 ♪', 'the first line of song 3 ♪', 'the first line of song 4 ♪'])
+  expect(written[0]?.credits?.['the first line of song 4 ♪']).toBe('Song 4 by Band')
+  expect(written[0]?.credits?.['the first line of song 1 ♪']).toBe('Song 1 by Band')
+})
+
+test("the day's own update adds to yesterday's songbook rather than starting afresh", LASTFM, async ($, on) => {
+  const looked: string[] = []
+  bandStub(on, 3, looked)
+  modelStub(on, [])
+  const credits = { 'the first line of song 1 ♪': 'Song 1 by Band' }
+  const written: { day?: string; lines?: string[] }[] = []
+  on('store.set', { key: 'songbook' }, (_, e, next) => {
+    written.push(e.value as { lines?: string[] })
+    return next(e)
+  })
+  const clock = await start($, on, { songbook: { ...LASTFM_SONGBOOK, day: '10-26', lines: Object.keys(credits), credits } }, NOON_IST)
+  await clock.advance(1_500)
+
+  expect(looked).toEqual(['Song 2', 'Song 3'])
+  expect(written[0]?.day).toBe('10-27')
+  expect(written[0]?.lines?.[0]).toBe('the first line of song 1 ♪')
+  expect(written[0]?.lines).toHaveLength(3)
+})
+
+test('/pet add-songs with nothing new says so, and keeps the songbook as it is', LASTFM, async ($, on) => {
+  const looked: string[] = []
+  bandStub(on, 2, looked)
+  modelStub(on, [])
+  const credits = { 'the first line of song 1 ♪': 'Song 1 by Band', 'the first line of song 2 ♪': 'Song 2 by Band' }
+  const writes: unknown[] = []
+  on('store.set', { key: 'songbook' }, (_, e, next) => {
+    writes.push(e.value)
+    return next(e)
+  })
+  await start($, on, { songbook: { ...LASTFM_SONGBOOK, lines: Object.keys(credits), credits } }, NOON_IST)
+
+  const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'add-songs' })
+
+  expect(looked).toEqual([])
+  expect(ran.text).toContain('No new songs to add')
+  expect(writes).toEqual([])
+})
+
 test('with lyrics off, LRCLIB is never asked', { options: { ...LASTFM.options, lyrics: 'off' } }, async ($, on) => {
   const urls: string[] = []
   on('http.fetch', (_, e) => {
@@ -522,7 +601,7 @@ test('a pet is the person asking, and cuts a song short', LASTFM, async ($, on) 
   await ui.unmount()
 })
 
-test("a stale songbook is rewritten once by Claude, in the vibe of this week's plays", LASTFM, async ($, on) => {
+test("a stale songbook gets the day's lines added once, by Claude in the vibe of this week's plays", LASTFM, async ($, on) => {
   const prompts: string[] = []
   on('model.complete', (_, e) => {
     prompts.push(e.prompt)
@@ -550,7 +629,9 @@ test("a stale songbook is rewritten once by Claude, in the vibe of this week's p
       source: 'lastfm:listener',
       style: 10,
       taste: LASTFM_SONGBOOK.taste,
-      lines: ['ooh, the tests are green ♪', 'another one bites the bug ♪', 'we will, we will lint you ♪'],
+      // Yesterday's line kept, the day's added after it.
+      lines: ['yesterday ♪', 'ooh, the tests are green ♪', 'another one bites the bug ♪', 'we will, we will lint you ♪'],
+      credits: {},
     },
   ])
 })
