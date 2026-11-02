@@ -285,10 +285,15 @@ test('while Clawd sings, the song the line is from shows under it, and /pet song
   expect(before.text).toBe("Clawd hasn't sung yet. /pet sing gets it going.")
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
-  expect(await ui.find({ type: 'Text', text: /^♪ Paper Moon · The Kettles$/ })).toBeTruthy()
-  // Gone with the song.
+  // The credit a step behind the line: the line full strength, the credit dim, italic and smaller.
+  const credit = await ui.find({ type: 'Text', text: /^— Paper Moon · The Kettles$/ })
+  expect(credit?.props).toMatchObject({ dimColor: true, italic: true, size: 'caption' })
+  const sung = await ui.find({ type: 'Text', text: /^oh paper/ })
+  expect(sung).toBeTruthy()
+  expect(sung?.props.dimColor).not.toBe(true)
+  // Gone with the song, and the line beside Clawd dim again.
   await clock.advance(8_000)
-  expect(await ui.find({ type: 'Text', text: /^♪ Paper Moon/ })).toBeFalsy()
+  expect(await ui.find({ type: 'Text', text: /^— Paper Moon/ })).toBeFalsy()
 
   const after = await $.command.run({ ...TYPED, command: 'pet', args: 'song' })
   expect(after.text).toBe('Clawd last sang "oh paper moon, come down soon", from Paper Moon by The Kettles.')
@@ -300,7 +305,7 @@ test('a line from the built-in songs is named as one, and shows no credit', { op
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
-  expect(await ui.find({ type: 'Text', text: /^♪ / })).toBeFalsy()
+  expect(await ui.find({ type: 'Text', text: /^— / })).toBeFalsy()
 
   const asked = await $.command.run({ ...TYPED, command: 'pet', args: 'song' })
   expect(asked.text).toMatch(/one of its built-in songs\.$/)

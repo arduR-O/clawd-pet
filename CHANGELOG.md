@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.6
+
+### Changed
+
+- **The song credit steps back behind the line.** It was as prominent as the sung line. Now, while
+  Clawd sings, the line shows at full strength and the credit under it stays dim and italic, smaller
+  in VS Code and the desktop app, and opens with a quiet `—` rather than a second `♪`.
+
 ## 0.4.5
 
 ### Changed

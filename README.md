@@ -175,8 +175,8 @@ By default, Clawd leaves out songs whose lyrics LRCLIB has in Devanagari or anot
 because those lines do not turn into jokes about code well. Romanized lyrics stay in. To sing them
 too, set **Songbook: Hindi songs** to `keep`.
 
-**Which song is that?** While Clawd sings a line from LRCLIB, the song and the artist show under
-it, for example `♪ Piano Man · Billy Joel`. To ask later, run `/pet song`. A joke line names the
+**Which song is that?** While Clawd sings a line from LRCLIB, the song and the artist show quietly
+under it, for example `— Piano Man · Billy Joel`. To ask later, run `/pet song`. A joke line names the
 song that it comes from. The built-in songs and the lines that Claude Haiku writes alone show no
 song.
 
