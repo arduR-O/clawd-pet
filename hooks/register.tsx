@@ -139,6 +139,8 @@ const life = {
   guest: { name: null as EmoteName | null, line: '', from: 0, until: 0 },
   // When Clawd last reminded the person of their leave time, at a prompt or a finished turn.
   leaveNudgedAt: -Infinity,
+  // Files Claude has read, every few of them read from a book.
+  reads: 0,
   // A status Clawd holds up, as how `/pet refresh-songs` is going, drawn over whatever comes up meanwhile.
   status: { line: '', until: 0 },
   // Times Claude has talked to Clawd this turn.
@@ -269,19 +271,29 @@ function askLine(tool: string): string {
   return `psst. ${short(name, 24)} needs your ok.`
 }
 
-// What Clawd does and says when Claude reaches for a tool and has no opinion of its own on it.
-function reaction(e: ToolUse): [Kind, string] {
+// What Clawd does and says when Claude reaches for a tool and has no opinion of its own on it:
+// reading, searching and browsing, which come all the time, a different way each time, and every
+// few reads with a book in its claws rather than its reading glasses on.
+function reaction(e: ToolUse): [Kind, string, EmoteName?] {
   const text = (key: string) => field(e, key)
 
   switch (e.tool) {
-    case 'Read':
-      return ['read', `reading ${basename(text('file_path'))}`]
+    case 'Read': {
+      life.reads += 1
+      const line = say('reading').replace('{file}', basename(text('file_path')))
+      return life.reads % 3 === 0 ? ['read', line, 'book'] : ['read', line]
+    }
     case 'Grep':
     case 'Glob':
-      return ['read', `looking for ${short(text('pattern'), 30)}`]
-    case 'WebFetch':
-    case 'WebSearch':
-      return ['read', 'peeking at the internet']
+      return ['read', say('searching').replace('{pattern}', short(text('pattern'), 30))]
+    case 'WebFetch': {
+      const site = /^[a-z]+:\/\/(?:www\.)?([^/?#:]+)/i.exec(text('url'))?.[1]
+      return ['read', site === undefined ? 'peeking at the internet' : say('browsing').replace('{site}', short(site, 28))]
+    }
+    case 'WebSearch': {
+      const query = text('query')
+      return ['read', query === '' ? 'peeking at the internet' : say('websearch').replace('{query}', short(query, 24))]
+    }
     case 'Bash':
       return ['run', `$ ${short(text('command'), 36)}`]
     case 'Edit':
@@ -329,7 +341,7 @@ function opinion(e: ToolUse, seen: Seen): [Kind, string, EmoteName?] | undefined
   const name = basename(path)
   if (e.tool === 'Read') {
     if (seen.reads.has(path)) {
-      return ['read', `${name} again?`]
+      return ['read', say('reread').replace('{file}', name)]
     }
     seen.reads.add(path)
   }

@@ -70,6 +70,7 @@ export type EmoteName =
   | 'astronaut'
   | 'oneup'
   | 'whale'
+  | 'book'
 
 export type Emote = { name: EmoteName | null; line: string; until: number }
 

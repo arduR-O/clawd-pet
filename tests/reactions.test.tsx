@@ -550,6 +550,48 @@ test('a pet is the person, and sends a guest off at once', { options: OPTIONS },
   await ui.unmount()
 })
 
+test('reading comes a different way each time, and one read in three with a book', { options: OPTIONS }, async ($, on) => {
+  const clock = await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+  // Where the rotation stands depends on what came before, so look at any three reads in a row.
+  const lines: string[] = []
+  let books = 0
+  for (const file of ['app.py', 'util.py', 'main.py']) {
+    await $.tool.call({ tool: 'Read', file_path: `/repo/${file}` })
+    lines.push((await ui.findAll({ type: 'Text' })).map(one => one.text).find(text => text.includes(file)) ?? '')
+    // A book held up beside its face, its pages either side of the spine.
+    if (await ui.find({ type: 'Text', text: /▄▖▗▄/ })) books += 1
+    await clock.advance(4_800)
+  }
+
+  expect(new Set(lines).size).toBe(3)
+  expect(lines.every(line => line !== '')).toBe(true)
+  expect(books).toBe(1)
+  await ui.unmount()
+})
+
+test('reading a file again, and browsing the web, come a different way each time too', { options: OPTIONS }, async ($, on) => {
+  const clock = await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+  const shows = async (text: RegExp) => Boolean(await ui.find({ type: 'Text', text }))
+
+  await $.tool.call({ tool: 'Read', file_path: '/repo/app.py' })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/app.py' })
+  expect(await shows(/^app\.py again\?$/)).toBe(true)
+  await clock.advance(3_200)
+  await $.tool.call({ tool: 'Read', file_path: '/repo/app.py' })
+  expect(await shows(/^back to app\.py$/)).toBe(true)
+
+  // The site a page is on, and what is searched for, in place of the internet at large.
+  await clock.advance(3_200)
+  await $.tool.call(anyTool({ tool: 'WebFetch', url: 'https://www.docs.python.org/3/library/asyncio.html', prompt: 'x' }))
+  expect(await shows(/^peeking at docs\.python\.org$/)).toBe(true)
+  await clock.advance(3_200)
+  await $.tool.call(anyTool({ tool: 'WebSearch', query: 'async rust' }))
+  expect(await shows(/^asking the internet: async rust$/)).toBe(true)
+  await ui.unmount()
+})
+
 test('a third search in a row puts the deerstalker on', { options: OPTIONS }, async ($, on) => {
   await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)

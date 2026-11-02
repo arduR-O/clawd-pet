@@ -51,7 +51,8 @@ If Clawd does not appear, see [Troubleshooting](#troubleshooting).
 
 **It reacts to Claude.**
 
-- When Claude reads a file, Clawd puts on reading glasses.
+- When Claude reads a file, Clawd puts on round reading glasses, or now and then holds up a book.
+  What it says changes each time, and it names the site when Claude reads the web.
 - When Claude commits your work, Clawd throws confetti.
 - When a tool fails, Clawd winces. After two failures in a row, it facepalms. After three, it
   gets dizzy.
@@ -137,7 +138,7 @@ All commands start with `/pet`. When you type `/pet `, Claude Code shows what ca
 `stargaze`, `wish`, `yawn`, `hearts`, `hop`, `wiggle`, `blush`, `shy`, `bow`, `golden`, `enough`,
 `milestone`, `sixseven`, `seagull`, `molt`, `cousin`, `pearl`, `tide`, `party`, `treat`,
 `meditate`, `uwu`, `stretch`, `facepalm`, `squish`, `rain`, `hiccup`, `fish`, `juggle`, `castle`,
-`sing`, `vibe`, `chef`, `hardhat`, `cry`, `spin`, `dizzy`, `tap`, and the twelve guests above.
+`sing`, `vibe`, `chef`, `hardhat`, `cry`, `spin`, `dizzy`, `tap`, `book`, and the twelve guests above.
 
 ## Settings
 

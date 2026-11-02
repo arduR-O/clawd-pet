@@ -39,8 +39,14 @@ const MUG = '#e8e0d0'
 const DOME = '#9ad6ff'
 const MUSHROOM = '#3cb043'
 const WHALE = '#4a90d9'
-// The reading glasses' frames, either side of each eye.
-const FRAMES = ['(', ')'] as const
+// Round reading glasses: a lens over each eye, a lens catching the light now and then, and the
+// temples hooked back past the head.
+const LENS = '◉'
+const GLINT = '◎'
+const TEMPLES = ['╶', '╴'] as const
+// The pages of the book Clawd reads now and then.
+const PAGE = '#f4f1de'
+const COVER = '#a0522d'
 // The reading glasses' outer rims, past the face's edges: a mid tone that shows on dark and light terminals.
 const GLASSES = '#7a7f9a'
 // Heart eyes: a deep red, so they show on the orange face.
@@ -182,7 +188,7 @@ export const EMOTE_NAMES: readonly EmoteName[] = [
   'seagull', 'molt', 'cousin', 'pearl', 'tide', 'party', 'treat', 'meditate', 'uwu',
   'stretch', 'facepalm', 'squish', 'rain', 'hiccup', 'fish', 'juggle', 'castle',
   'sing', 'vibe', 'chef', 'hardhat', 'cry', 'spin', 'dizzy', 'tap',
-  'sherlock', 'jedi', 'gandalf', 'terminator', 'delorean', 'ninja', 'duck', 'neo', 'coffee', 'astronaut', 'oneup', 'whale',
+  'sherlock', 'jedi', 'gandalf', 'terminator', 'delorean', 'ninja', 'duck', 'neo', 'coffee', 'astronaut', 'oneup', 'whale', 'book',
 ]
 
 // Sung until the day's songbook is written, or when it can't be: original parodies.
@@ -784,15 +790,15 @@ const FACES: Readonly<Record<Face, (body: string) => Look>> = {
       { text: '▌', color: body },
     ],
   }),
-  // Big reading glasses: a frame round each of its own eyes, joined by a bridge. The face keeps
-  // its own edges, so the head is no bigger; the outer rims stick out past them, wider than the face.
+  // Round reading glasses: a lens over each eye, a bridge between them, and the temples hooked back
+  // past its head. The face keeps its own edges, so the head is no bigger.
   glasses: body => {
-    const rim = (text: string): Segment => ({ text, color: SHADES, backgroundColor: body })
+    const lens = (text: string): Segment => ({ text, color: SHADES, backgroundColor: body })
     return {
-      eyes: [{ text: '▐▛', color: body }, rim(FRAMES[1]), rim('─'), rim(FRAMES[0]), { text: '▜▌', color: body }],
+      eyes: [{ text: '▐', color: body }, lens(LENS), lens('───'), lens(LENS), { text: '▌', color: body }],
       rims: [
-        { text: FRAMES[0], color: GLASSES },
-        { text: FRAMES[1], color: GLASSES },
+        { text: TEMPLES[0], color: GLASSES },
+        { text: TEMPLES[1], color: GLASSES },
       ],
     }
   },
@@ -817,6 +823,7 @@ const FACES: Readonly<Record<Face, (body: string) => Look>> = {
 
 // Emotes that wear a face of their own; anything not here falls to Clawd's mood.
 const EMOTE_FACES: Partial<Readonly<Record<EmoteName, Face>>> = {
+  book: 'open',
   enough: 'heavy',
   uwu: 'uwu',
   cry: 'cry',
@@ -1023,7 +1030,11 @@ export function clawdScene(input: {
   const { typing } = input
   const gaze: Face | undefined =
     typing === undefined ? undefined : typing.isPet ? 'happy' : typing.caret < x + 1 ? 'left' : typing.caret > x + 7 ? 'right' : undefined
-  const { eyes, rims } = FACES[faceOf(kind, emote, frame, isShut, gaze)](body)
+  const look = FACES[faceOf(kind, emote, frame, isShut, gaze)](body)
+  const { rims } = look
+  // Now and then a lens of the reading glasses catches the light.
+  const glint = frame % 6 === 5 ? look.eyes.findIndex(part => part.text === LENS) : -1
+  const eyes = glint < 0 ? look.eyes : look.eyes.map((part, i) => (i === glint ? { ...part, text: GLINT } : part))
 
   let claws = CLAWS_DOWN
   if (emote === 'wave' || emote === 'sixseven' || emote === 'cousin') claws = frame % 2 === 0 ? WAVE_LEFT : WAVE_RIGHT
@@ -1143,6 +1154,14 @@ export function clawdScene(input: {
     face = face.map(part => (part.text === '▐' || part.text === '▌' ? { ...part, color: NINJA } : part))
     // A puff of smoke beside it, there and gone.
     arms = [...arms, pad(1), { text: frame % 2 === 0 ? '∘°' : '°∘', color: MOON }]
+  } else if (emote === 'book') {
+    // An open book held up beside its face, two pages either side of the spine; now and then the
+    // right page turns over onto the left.
+    const isTurning = frame % 3 === 2
+    face = [...face, pad(2), { text: isTurning ? '▄▖▄▖' : '▄▖▗▄', color: PAGE }]
+    arms = [...arms, pad(1), { text: isTurning ? '█▌█▌' : '█▌▐█', color: PAGE }]
+    // Its cover's edge under the pages.
+    feet = [...feet, pad(2), { text: '▀▀▀▀', color: COVER }]
   } else if (emote === 'duck') {
     // A rubber duck beside Clawd, listening: its head and beak, and its body below.
     arms = [...arms, pad(2), { text: '▗█', color: DUCK }, { text: '▸', color: BEAK }]
@@ -1576,6 +1595,16 @@ export const SAYINGS = {
   thanks: ['thanks!', 'appreciated!', 'you are the best.', 'go go go!'],
   refused: ['fine, not that then.', 'probably for the best.', 'noted. backing off.', 'ok ok, no touching.'],
   crew: ['the crew is back.', 'the gang is all here.', 'welcome back, tiny cousins.'],
+  // Reading, searching and browsing, which Claude does all the time: a different way each time.
+  reading: [
+    'reading {file}', 'skimming {file}…', 'flipping through {file}', 'hm. {file}.', 'studying {file}', 'ooh, {file}',
+    '{file}, page 1 of ∞', 'taking notes on {file}', 'what does {file} say?', 'peering into {file}', '{file}. riveting.',
+    'speed-reading {file}',
+  ],
+  reread: ['{file} again?', 'back to {file}', '{file}, round two', 'still {file}?', '{file} once more, with feeling'],
+  searching: ['looking for {pattern}', 'hunting for {pattern}', 'where is {pattern}…', 'sniffing out {pattern}', 'digging for {pattern}'],
+  browsing: ['peeking at {site}', 'reading {site}', 'off to {site}', 'what does {site} say?', 'a quick trip to {site}'],
+  websearch: ['asking the internet: {query}', 'googling {query}', 'searching the web: {query}', 'the internet knows {query}?'],
   squish: ['*squish* making room.', 'compressing… compressing…', 'packing memories tight.', 'squeezing it all in.'],
   // The guests', each said with its emote.
   sherlock: ['elementary, my dear Watson.', 'the game is afoot!', 'who wrote this? let us see.', 'eliminate the impossible…'],

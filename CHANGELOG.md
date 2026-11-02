@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.5
+
+### Changed
+
+- **Reading comes a different way each time.** Claude reads all the time, and Clawd said "reading
+  app.py" every time. Now it rotates through a dozen ways ("skimming app.py…", "flipping through
+  app.py", "app.py, page 1 of ∞", "app.py. riveting.") and one read in three it holds up an open
+  book instead of its glasses. Reading a file again, searching, and the web rotate too; a web page
+  names its site ("peeking at docs.python.org") and a web search its query.
+- **Cuter reading glasses.** Round lenses over its eyes joined by a bridge (`◉───◉`), the temples
+  hooked back past its head, and now and then a lens catching the light.
+
 ## 0.5.4
 
 ### Changed
