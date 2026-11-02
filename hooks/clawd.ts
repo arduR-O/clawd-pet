@@ -907,7 +907,8 @@ export function clawdScene(input: {
     put(at + 1, '─', MOON)
     put(at + 2, '·', MOON)
   } else if (emote === 'bubbles') {
-    put(x + 9, frame % 2 === 0 ? '°' : 'o', MOON)
+    // Bubbles rising, water blue.
+    put(x + 9, frame % 2 === 0 ? '°' : 'o', WATER)
   } else if (emote === 'seagull') {
     put(((frame * 2) % (SKY + 4)) - 2, frame % 2 === 0 ? 'v' : '‿', GULL)
   } else if (emote === 'pearl') {
@@ -1026,7 +1027,7 @@ export function clawdScene(input: {
   else if (emote === 'tap') mark = frame % 2 === 0 ? { text: '?', color: GOLD } : undefined
   else if (emote === 'enough') mark = { text: '…', color: MOON }
   else if (emote === 'uwu') mark = { text: '♡', color: HEART }
-  else if (emote === 'bubbles') mark = { text: frame % 2 === 0 ? 'o' : '°', color: MOON }
+  else if (emote === 'bubbles') mark = { text: frame % 2 === 0 ? 'o' : '°', color: WATER }
   else if (emote === 'hiccup' && frame % 3 === 0) mark = { text: 'hic!', color: GOLD }
   else if (emote === 'sing') mark = { text: frame % 2 === 0 ? '♪' : '♫', color: HEART }
   else if (emote === 'cry') mark = { text: frame % 2 === 0 ? '‚' : '¸', color: WATER }

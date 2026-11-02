@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1
+
+### Changed
+
+- **Bubbles are water blue.** The bubbles Clawd blows were grey; they're now the blue of the whale's
+  spout, its tears and the tide.
+
 ## 0.5.0
 
 ### New

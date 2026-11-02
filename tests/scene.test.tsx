@@ -194,6 +194,15 @@ test('a meditating Clawd and its aura stay inside the band on every frame, never
   }
 })
 
+test('the bubbles Clawd blows are water blue', () => {
+  for (const frame of [0, 1]) {
+    const rows = clawdScene({ kind: 'idle', emote: 'bubbles', frame, nowMs: NOON_IST, local: { hour: 12, weekday: 2, month: 10, day: 27 } })
+    const bubbles = rows.flatMap(cellsOf).filter(cell => cell.text === 'o' || cell.text === '°')
+    expect(bubbles.length).toBe(2)
+    for (const bubble of bubbles) expect(bubble.color).toBe('#8ab6d6')
+  }
+})
+
 test('the umbrella stands off to the right of the face, its handle hooked into the right claw', () => {
   const local = { hour: 10, weekday: 2, month: 10, day: 27 }
 
