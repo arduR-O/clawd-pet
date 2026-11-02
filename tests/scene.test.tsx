@@ -159,7 +159,7 @@ test('a hopping Clawd springs up with a ! and crouches on the next frame', () =>
   expect(text(down[3]!)).toContain('▝▜█████▛▘')
 })
 
-test('a meditating Clawd starts where it stands and floats half a row a frame, under the sun', () => {
+test('a meditating Clawd starts where it stands and bobs half a row, slowly, under the sun', () => {
   // At noon, the sun right over Clawd.
   const local = { hour: 12, weekday: 2, month: 10, day: 27 }
   const text = (row: { text: string }[]) => row.map(part => part.text).join('')
@@ -179,7 +179,19 @@ test('a meditating Clawd starts where it stands and floats half a row a frame, u
     return depth(rows)
   })
 
-  expect(depths).toEqual([0, 0.5, 1, 0.5, 0, 0.5, 1, 0.5])
+  expect(depths).toEqual([0, 0.5, 0.5, 0, 0, 0.5, 0.5, 0])
+})
+
+test('a meditating Clawd and its aura stay inside the band on every frame, never cut off at the bottom', () => {
+  const quadrants = ' ▗▖▄▝▐▞▟▘▚▌▙▀▜▛█'
+  for (let poseFrame = 0; poseFrame < 8; poseFrame++) {
+    const rows = clawdScene({ kind: 'think', emote: 'meditate', frame: poseFrame, poseFrame, nowMs: NOON_IST, local: { hour: 12, weekday: 2, month: 10, day: 27 } })
+    expect(rows).toHaveLength(4)
+    // Its body never fills the bottom half of the last row, so the aura has a pixel row under it.
+    for (const cell of cellsOf(rows[3]!)) {
+      if (cell.color === CLAWD) expect(quadrants.indexOf(cell.text) & 3).toBe(0)
+    }
+  }
 })
 
 test('the umbrella stands off to the right of the face, its handle hooked into the right claw', () => {
@@ -329,11 +341,12 @@ test('a meditating Clawd sits with its claws raised beside its face, eyes shut, 
   expect(first[1]).toMatch(/▟.*▐─███─▌.*▙/)
   expect(first.join('\n')).not.toMatch(/▘▘ ▝▝|▝▝ ▘▘/)
   expect(first[1]).toContain('ᵒᵐ')
-  // Half a row down a frame: its eyes along the top of the next row, then the middle of it.
+  // Half a row down, held a frame: its eyes along the top of the next row.
   expect(eyesAt(first)).toBe(1)
   expect(second[eyesAt(second)]).toContain('▔███▔')
   expect(eyesAt(second)).toBe(2)
   expect(eyesAt(third)).toBe(2)
+  expect(third[eyesAt(third)]).toContain('▔███▔')
   // A mote of light drifts up its left side, a row a frame.
   expect([moteAt(first), moteAt(second), moteAt(third)]).toEqual([3, 2, 1])
 })
@@ -354,7 +367,9 @@ test('a stretch reaches both claws up over its head, and a yawn opens wide', () 
   const text = (row: { text: string }[]) => row.map(part => part.text).join('')
   const [sky, , claws] = clawdScene({ kind: 'idle', emote: 'stretch', frame: 0, nowMs: NOON_IST, local }).map(text)
   expect(sky).toMatch(/▟.{5}▙/)
-  expect(claws).toContain('▗▄█████▄▖')
+  // Its claws are up there, so not at its sides too: just its shoulders.
+  expect(claws).toContain(' ▄█████▄ ')
+  expect(claws).not.toMatch(/[▗▖▘▝]/)
 
   const [, face, body] = clawdScene({ kind: 'idle', emote: 'yawn', frame: 0, nowMs: NOON_IST, local }).map(text)
   expect(face).toContain('─███─')

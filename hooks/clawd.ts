@@ -66,8 +66,9 @@ const BLINK_EVERY = 20
 const BUSY: readonly Kind[] = ['think', 'read', 'run', 'write']
 const SIDESTEP = [0, 1, 2, 1, 0, -1, -2, -1]
 const WIGGLE = [0, 1, 0, -1]
-// How far down a meditating Clawd floats, in half rows, frame by frame from when it starts.
-const FLOAT = [0, 1, 2, 1]
+// How far down a meditating Clawd floats, in half rows, frame by frame from when it starts: a slow
+// half-row bob, so its aura, a pixel past it all round, stays inside the band's four rows.
+const FLOAT = [0, 1, 1, 0]
 // Its hum stretching out over the same frames, as long as fits beside it.
 const HUM = ['ᵒᵐ', 'ᵒᵐᵐ', 'ᵒᵐᵐᵐ', 'ᵒᵐᵐᵐ']
 // A meditating Clawd as pixels, two across and two down a cell, from its left claw's column:
@@ -94,6 +95,8 @@ const EYES_UP = '▐▙███▟▌'
 const CLAWS_DOWN = '▝▜█████▛▘'
 const CLAWS_UP = '▗▟█████▙▖'
 const CLAWS_REST = '▗▄█████▄▖'
+// Claws raised high over its head (drawn in the sky row): the shoulders without them.
+const CLAWS_RAISED_HIGH = ' ▄█████▄ '
 const WAVE_LEFT = '▗▟█████▛▘'
 const WAVE_RIGHT = '▝▜█████▙▖'
 const LEGS = '  ▘▘ ▝▝ '
@@ -991,7 +994,8 @@ export function clawdScene(input: {
   if (emote === 'wave' || emote === 'sixseven' || emote === 'cousin') claws = frame % 2 === 0 ? WAVE_LEFT : WAVE_RIGHT
   else if (emote === 'facepalm') claws = WAVE_RIGHT
   // Stretching, its claws are up over its head on every other frame.
-  else if (emote === 'stretch') claws = frame % 2 === 0 ? CLAWS_REST : CLAWS_UP
+  // Reaching up, its claws are over its head, so none at its sides.
+  else if (emote === 'stretch') claws = frame % 2 === 0 ? CLAWS_RAISED_HIGH : CLAWS_UP
   // The right claw up, holding a lightsaber, a magnifying glass, a mug; the left up holding a staff.
   else if (emote === 'jedi' || emote === 'sherlock') claws = WAVE_LEFT
   else if (emote === 'gandalf') claws = WAVE_RIGHT

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.9
+
+### Fixed
+
+- **Meditation stays inside the band.** Clawd floated a whole row down, so its body reached the
+  band's bottom edge and the aura under it was cut off. It now bobs half a row, slowly, and its aura
+  stays inside on every frame.
+- **No extra hands when stretching.** Reaching up, Clawd's claws were drawn over its head while the
+  claws at its sides stayed too. Now only its shoulders are left at its sides.
+
 ## 0.4.8
 
 ### Changed
