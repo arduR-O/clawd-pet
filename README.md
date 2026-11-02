@@ -125,6 +125,7 @@ All commands start with `/pet`. When you type `/pet `, Claude Code shows what ca
 | `/pet trick` | Makes Clawd do a trick. |
 | `/pet guest` | Brings a random guest. The same guest does not come two times in a row. |
 | `/pet <emote>` | Shows an emote now, for example `/pet meditate`. See [All emotes](#all-emotes). |
+| `/pet song` | Tells you which song the line that Clawd sang last is from. |
 | `/pet refresh-songs` | Writes a new songbook now, and tells you if it cannot. See [The songbook](#the-songbook). |
 | `/pet off` | Hides Clawd in all sessions. `/pet on` shows it again. |
 
@@ -168,6 +169,11 @@ lyrics database that music players use. From each song it takes the first line a
 song sings most, which is usually the chorus. Then Claude Haiku turns a few of those lines into jokes
 about code. If LRCLIB has fewer than 3 lines for your songs, Claude Haiku writes the songbook from
 what it knows of the songs. To turn LRCLIB off, set **Songbook: lyrics** to `off`.
+
+**Which song is that?** While Clawd sings a line from LRCLIB, the song and the artist show under
+it, for example `♪ Piano Man · Billy Joel`. To ask later, run `/pet song`. A joke line names the
+song that it comes from. The built-in songs and the lines that Claude Haiku writes alone show no
+song.
 
 To write a new songbook now, run `/pet refresh-songs`. Clawd keeps its current songbook until the
 new one is ready. If the new one fails, Clawd keeps the current one. While Clawd writes it, and for

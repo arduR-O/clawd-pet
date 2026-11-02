@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { STARTER_SONGS, linesOfLyrics, mixSongbook, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
+import { STARTER_SONGS, linesOfLyrics, mixSongbook, twistCredits, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
 import {
   BAND,
   OPTIONS,
@@ -206,6 +206,11 @@ test('with LRCLIB on, the songbook sings the songs\' real lines, looked up by ti
     prompts.push(e.prompt)
     return { value: { isAnswered: true, text: 'the kettle hums… and the build is green', usage: NO_USAGE } }
   })
+  const written: { credits?: unknown }[] = []
+  on('store.set', { key: 'songbook' }, (_, e, next) => {
+    written.push(e.value as { credits?: unknown })
+    return next(e)
+  })
   await start($, on, { songbook: LASTFM_SONGBOOK }, NOON_IST)
 
   const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
@@ -217,6 +222,14 @@ test('with LRCLIB on, the songbook sings the songs\' real lines, looked up by ti
   expect(looked[0]?.agent).toContain('clawd')
   // Claude is given the real lines to twist, not asked to remember any.
   expect(prompts[0]).toContain('- the kettle hums a lonely tune')
+  // Each line keeps the song it's from; the twist, the song it riffs on.
+  expect(written[0]?.credits).toEqual({
+    'the kettle hums a lonely tune ♪': 'Paper Moon (From "A Film") by The Kettles',
+    'oh paper moon, come down soon ♪': 'Paper Moon (From "A Film") by The Kettles',
+    'second song, its first line ♪': 'Second Song by The Kettles',
+    'la la la, the chorus here ♪': 'Second Song by The Kettles',
+    'the kettle hums… and the build is green ♪': 'after Paper Moon (From "A Film") by The Kettles',
+  })
 })
 
 test('a busy LRCLIB gets one more try a moment on, and is asked a few songs at a time', LASTFM, async ($, on) => {
@@ -252,6 +265,46 @@ test('a busy LRCLIB gets one more try a moment on, and is asked a few songs at a
   expect((await ran).text).toContain('the lyrics of 6 of its 6 songs from LRCLIB')
   expect(tries).toBe(7)
   expect(most).toBeLessThanOrEqual(3)
+})
+
+test("a twist is credited after the song of the line whose first words it takes", () => {
+  const credits = { 'oh paper moon, come down soon ♪': 'Paper Moon by The Kettles' }
+  expect(twistCredits(['oh paper… the build is green ♪', 'unrelated joke ♪'], Object.keys(credits), credits)).toEqual({
+    'oh paper… the build is green ♪': 'after Paper Moon by The Kettles',
+  })
+})
+
+test('while Clawd sings, the song the line is from shows under it, and /pet song names it after', LASTFM, async ($, on) => {
+  const credits = { 'oh paper moon, come down soon ♪': 'Paper Moon by The Kettles' }
+  const songbook = { ...LASTFM_SONGBOOK, lines: Object.keys(credits), credits }
+  const clock = await start($, on, { songbook }, NOON_IST)
+  await clock.advance(1_500)
+  const ui = await $.ui.mount(BAND)
+
+  const before = await $.command.run({ ...TYPED, command: 'pet', args: 'song' })
+  expect(before.text).toBe("Clawd hasn't sung yet. /pet sing gets it going.")
+
+  await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
+  expect(await ui.find({ type: 'Text', text: /^♪ Paper Moon · The Kettles$/ })).toBeTruthy()
+  // Gone with the song.
+  await clock.advance(8_000)
+  expect(await ui.find({ type: 'Text', text: /^♪ Paper Moon/ })).toBeFalsy()
+
+  const after = await $.command.run({ ...TYPED, command: 'pet', args: 'song' })
+  expect(after.text).toBe('Clawd last sang "oh paper moon, come down soon", from Paper Moon by The Kettles.')
+  await ui.unmount()
+})
+
+test('a line from the built-in songs is named as one, and shows no credit', { options: OPTIONS }, async ($, on) => {
+  await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
+  expect(await ui.find({ type: 'Text', text: /^♪ / })).toBeFalsy()
+
+  const asked = await $.command.run({ ...TYPED, command: 'pet', args: 'song' })
+  expect(asked.text).toMatch(/one of its built-in songs\.$/)
+  await ui.unmount()
 })
 
 test('with lyrics off, LRCLIB is never asked', { options: { ...LASTFM.options, lyrics: 'off' } }, async ($, on) => {

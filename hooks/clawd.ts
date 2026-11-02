@@ -365,6 +365,22 @@ export function linesOfLyrics(lyrics: string): string[] {
   return lines.map(line => `${line.replace(/[,.;:]+$/, '')} ♪`)
 }
 
+// How a line's song is credited: "Piano Man by Billy Joel".
+export const creditOf = (song: Song) => `${song.title} by ${song.artist}`
+
+// Credits for Claude's twists: each after the song of the real line whose first words it takes.
+export function twistCredits(twists: readonly string[], sung: readonly string[], credits: Readonly<Record<string, string>>): Record<string, string> {
+  const opening = (line: string) => line.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, '').split(/\s+/).filter(Boolean).slice(0, 2).join(' ')
+  const found: Record<string, string> = {}
+  for (const twist of twists) {
+    const from = sung.find(line => opening(line) !== '' && opening(line) === opening(twist))
+    const credit = from === undefined ? undefined : credits[from]
+    if (credit !== undefined) found[twist] = `after ${credit}`
+  }
+
+  return found
+}
+
 // What Claude is asked to add to a songbook of real lines: a few that carry a line on into code.
 export function twistPrompt(lines: readonly string[]): string {
   return [
@@ -1223,6 +1239,7 @@ const PET_COMMANDS: readonly [string, string][] = [
   ['treat', 'feed Clawd a treat'],
   ['trick', 'Clawd does a trick'],
   ['guest', 'a random guest drops by'],
+  ['song', 'which song the line Clawd sang last is from'],
   ['refresh-songs', 'forget the songbook and write a new one'],
   ['off', 'hide the pet until /pet on'],
   ['on', 'bring the pet back'],

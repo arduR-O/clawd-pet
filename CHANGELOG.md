@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.3
+
+### New
+
+- **Which song is that?** While Clawd sings a line of the songbook, the song and the artist show dim
+  under it (`♪ Piano Man · Billy Joel`), and `/pet song` tells you which song the line it sang last
+  is from. A twist is named after the song it riffs on. The credits come from the LRCLIB lookups, so
+  the built-in songs, and songbooks Claude Haiku writes on its own, carry none rather than a guess.
+
 ## 0.4.2
 
 ### Fixed

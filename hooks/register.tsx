@@ -26,6 +26,8 @@ import {
   linesOfLyrics,
   twistPrompt,
   mixSongbook,
+  creditOf,
+  twistCredits,
   type Song,
   SONGBOOK_STYLE,
   tasteFrom,
@@ -124,7 +126,10 @@ const life = {
   songs: STARTER_SONGS as readonly string[],
   // Clawd keeps its headphones on until then, through the song it breaks into.
   headphonesUntil: 0,
-  // The song Clawd is singing, sung to its end: what comes up meanwhile waits for it (songLeft).
+  // Which song each line of the songbook is from, where it's known; and the line Clawd sang last.
+  credits: {} as Record<string, string>,
+  lastSung: '',
+  // The song Clawd is singing, sung to its end: what comes up meanwhile waits for it (stageLeft).
   song: { line: '', until: 0 },
   // The guest on stage, from when to when: what comes up meanwhile waits for it (stageLeft).
   guest: { name: null as EmoteName | null, line: '', from: 0, until: 0 },
@@ -405,6 +410,7 @@ async function sing($: EngineInterface): Promise<string> {
   const now = await $.clock.now()
   const line = life.songs[Math.floor(Math.random() * life.songs.length)] ?? STARTER_SONGS[0]!
   life.song = { line, until: now + SING_MS }
+  life.lastSung = line
   await showEmote($, ({ name: 'sing', line, until: now + SING_MS }))
 
   return line
@@ -465,7 +471,7 @@ async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }
 
 // Real lines of the songs, looked up on LRCLIB, a free lyrics database music players use: a song's
 // first line and its chorus, for up to SUNG_SONGS songs. Only the titles and artists go to it.
-async function lyricLines($: EngineInterface, songs: readonly Song[]): Promise<{ lines: string[]; found: number }> {
+async function lyricLines($: EngineInterface, songs: readonly Song[]): Promise<{ lines: string[]; found: number; credits: Record<string, string> }> {
   const search = (song: Song) =>
     $.http.fetch(`https://lrclib.net/api/search?track_name=${encodeURIComponent(searchTitle(song.title))}&artist_name=${encodeURIComponent(song.artist)}`, {
       headers: { 'User-Agent': 'clawd (https://github.com/arduR-O/clawd-pet)' },
@@ -488,13 +494,18 @@ async function lyricLines($: EngineInterface, songs: readonly Song[]): Promise<{
     }
   }
   // A few at a time, so as not to be the load that makes it busy.
-  const found: string[][] = []
+  const found: { song: Song; lines: string[] }[] = []
   for (let at = 0; at < songs.length; at += LRCLIB_AT_ONCE) {
-    found.push(...(await Promise.all(songs.slice(at, at + LRCLIB_AT_ONCE).map(linesOf))))
+    const some = songs.slice(at, at + LRCLIB_AT_ONCE)
+    const lines = await Promise.all(some.map(linesOf))
+    found.push(...some.map((song, i) => ({ song, lines: lines[i]! })))
   }
-  const sung = found.filter(lines => lines.length > 0).slice(0, SUNG_SONGS)
+  const sung = found.filter(one => one.lines.length > 0).slice(0, SUNG_SONGS)
+  // Which song each line is from, for the credit under it and `/pet song`.
+  const credits: Record<string, string> = {}
+  for (const { song, lines } of sung) for (const line of lines) credits[line] ??= creditOf(song)
 
-  return { lines: [...new Set(sung.flat())], found: sung.length }
+  return { lines: [...new Set(sung.flatMap(one => one.lines))], found: sung.length, credits }
 }
 
 // Loads the songbook, or has Claude write one in the vibe of what you've been playing (tasteOf):
@@ -507,10 +518,11 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
     return { text: lastfmUnset(lastfm), line: 'no Last.fm: built-in songs' }
   }
   const source = `lastfm:${lastfm.user}`
-  type Songbook = { day?: string; source?: string; style?: number; taste?: string; lines?: string[] }
+  type Songbook = { day?: string; source?: string; style?: number; taste?: string; lines?: string[]; credits?: Record<string, string> }
   const kept = (await $.store.get('songbook')) as Songbook | undefined
   if (kept?.lines !== undefined && kept.lines.length > 0) {
     life.songs = withStarters(kept.lines)
+    life.credits = kept.credits ?? {}
   }
   const isCurrent = kept?.day === today && kept.source === source && kept.style === SONGBOOK_STYLE
   if (isCurrent && !isAsked) {
@@ -522,13 +534,15 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
   }
   // The songs' real lines when LRCLIB has enough of them, with a few of Haiku's twists on them; else
   // Haiku writes the songbook from what it knows of the songs.
-  const sung = isLyrics ? await lyricLines($, songs) : { lines: [], found: 0 }
+  const sung = isLyrics ? await lyricLines($, songs) : { lines: [], found: 0, credits: {} }
   if (sung.lines.length >= 3) {
     const { reply } = await askHaiku($, twistPrompt(sung.lines), effort)
     const twists = reply?.isAnswered === true ? songbookLines(reply.text).slice(0, 4) : []
     const lines = mixSongbook(sung.lines, twists)
+    const credits = { ...sung.credits, ...twistCredits(twists, sung.lines, sung.credits) }
     life.songs = withStarters(lines)
-    await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines })
+    life.credits = credits
+    await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines, credits })
 
     return {
       text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, the lyrics of ${sung.found} of its ${songs.length} songs from LRCLIB, such as "${lines[0]}"`,
@@ -549,6 +563,7 @@ async function refreshSongbook($: EngineInterface, lastfm: { user: string; key: 
     return { text: `Last.fm worked, but Claude Haiku wrote no songbook: ${why}. Clawd keeps the songs it has.`, line: 'no new songs: Haiku' }
   }
   life.songs = withStarters(lines)
+  life.credits = {}
   await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines })
 
   return { text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, such as "${lines[0]}"`, line: `new songbook: ${lines.length} songs ♪` }
@@ -972,6 +987,23 @@ export const register: Register = (on, options) => {
 
       return { text: refreshed.text }
     }
+    if (asked === 'song') {
+      // Which song the line Clawd sang last is from.
+      const line = life.lastSung
+      if (line === '') return { text: "Clawd hasn't sung yet. /pet sing gets it going." }
+      const credit = life.credits[line]
+      const sung = `"${line.replace(/ ♪$/, '')}"`
+      return {
+        text:
+          credit !== undefined
+            ? credit.startsWith('after ')
+              ? `Clawd last sang ${sung}, its own twist on a line of ${credit.slice('after '.length)}.`
+              : `Clawd last sang ${sung}, from ${credit}.`
+            : STARTER_SONGS.includes(line)
+              ? `Clawd last sang ${sung}, one of its built-in songs.`
+              : `Clawd last sang ${sung}. Its songbook doesn't say which song that's from.`,
+      }
+    }
     if (asked === 'guest') {
       // Someone drops by, not whoever came last, with something to say.
       const [name, saying] = pickGuest(Math.random(), life.lastGuest)
@@ -1231,6 +1263,8 @@ export const register: Register = (on, options) => {
       drawing = life.film.count % 2 === 0 ? picture : <Box>{picture}</Box>
     }
 
+    // While Clawd sings a line of the songbook, which song it is from, where that's known.
+    const credit = now < life.song.until ? life.credits[life.song.line]?.replace(' by ', ' · ') : undefined
     const name = (
       <Text color={CLAWD} bold>
         Clawd{mode === 'love' ? ' ♥' : ''}
@@ -1259,6 +1293,11 @@ export const register: Register = (on, options) => {
                 {said}
               </Text>
             ))}
+          {credit !== undefined && (
+            <Text dimColor italic wrap="truncate">
+              {`♪ ${credit}`}
+            </Text>
+          )}
         </Box>
       </Box>
     )
