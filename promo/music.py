@@ -292,7 +292,7 @@ for b in range(bars):
             arp(at + s * EIGHTH / 2, tones[s % 3] + 12 + (12 if s % 8 >= 6 else 0))
     # The tune: the motif, then up an octave and busier for the second half of the montage.
     if at >= meet['start'] + BAR and at < DURATION - 2:
-        line = HIGH if SHOTS['love']['start'] <= at < listing['end'] else MOTIF
+        line = HIGH if SHOTS['songbook']['start'] <= at < listing['end'] else MOTIF
         notes = line[b % 4]
         for e, m in enumerate(notes):
             if m is None:
@@ -313,8 +313,12 @@ buzz(s['dizzy']['start'] + 0.05)
 buzz(s['dizzy']['start'] + 0.35)
 wobble(s['dizzy']['start'] + 0.6, 1.2)
 typed(s['typing']['start'], len('add a dark mode toggle'), 1.7)
-chime(s['love']['start'] + 0.1, 88)
-chime(s['love']['start'] + 0.32, 92)
+# A page turning: two soft pops. Then a little sung phrase, its last note held long.
+pop(s['book']['start'] + 0.1, 84, 0.07)
+pop(s['book']['start'] + 0.22, 88, 0.06)
+for i, (m, d) in enumerate([(76, 0.18), (79, 0.18), (81, 0.18), (84, 0.8)]):
+    lead(s['songbook']['start'] + 0.3 + i * 0.2, m, d, 0.16, duty=0.5)
+chime(s['songbook']['start'] + 1.2, 96, 0.05)
 for i, m in enumerate([72, 76, 79, 84]):
     blip(s['long']['start'] + 0.05 + i * 0.09, m, 0.09 if i < 3 else 0.35, 0.13, duty=0.25)
 yawn(s['stretch']['start'] + 0.1)

@@ -27,6 +27,7 @@
   .band { position: absolute; left: 36px; top: 222px; display: flex; align-items: flex-start; gap: 34px; }
   .band .who { font: 700 28px 'DejaVu Sans Mono', monospace; color: #ff8800; margin-top: 52px; }
   .band .said { font: 26px 'DejaVu Sans Mono', monospace; color: #a8a2b8; margin-top: 10px; white-space: pre; }
+  .band .credit { font: italic 22px 'DejaVu Sans Mono', monospace; color: #6e667e; margin-top: 8px; white-space: pre; }
   .rule { position: absolute; left: 24px; right: 24px; height: 2px; background: #3a3346; }
   .prompt { position: absolute; left: 36px; top: 526px; font: 28px 'DejaVu Sans Mono', monospace; color: #eeeaf4; white-space: pre; }
   .caret { display: inline-block; width: 14px; height: 30px; background: #eeeaf4; vertical-align: -5px; margin-left: 2px; }
@@ -90,11 +91,13 @@ function windowHtml(shot, t) {
   const said = shot.said || ''
   const sayK = clamp((k - 0.25) / 0.5)
   const shown = said.slice(0, Math.round(said.length * sayK))
+  // A sung line's song, named once the line is sung through, quietly under it.
+  const creditK = shot.credit ? clamp((k - 0.95) / 0.3) : 0
   return `
   <div class="window">
     <div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><div class="name">claude — ~/projects/app</div></div>
     <div class="transcript mono">${lines}</div>
-    <div class="band">${scaled(frameOf(shot.id, t, shot.start), shot.id === 'typing' ? 1.25 : 1)}<div><div class="who">Clawd</div><div class="said">${esc(shown)}</div></div></div>
+    <div class="band">${scaled(frameOf(shot.id, t, shot.start), shot.id === 'typing' ? 1.25 : 1)}<div><div class="who">Clawd</div><div class="said">${esc(shown)}</div>${shot.credit ? `<div class="credit" style="opacity:${creditK}">${esc(shot.credit)}</div>` : ''}</div></div>
     <div class="rule" style="top:506px"></div>
     <div class="prompt">❯ ${esc(typed)}<span class="caret" style="opacity:${Math.floor(t * 4) % 2 ? 0.25 : 1}"></span></div>
     <div class="rule" style="top:576px"></div>
@@ -168,10 +171,10 @@ function render(t) {
   } else if (shot.id === 'list') {
     // Four more of its pastimes, one tile per beat.
     const tiles = [
-      ['sing', 'sings from your Last.fm'],
+      ['vibe', 'vibes along, headphones on'],
       ['fish', 'goes fishing while you are away'],
       ['castle', 'builds a sandcastle all day'],
-      ['meditate', 'meditates through "Pondering…"'],
+      ['stargaze', 'counts the stars at night'],
     ]
     const head = outCubic(clamp(k / 0.35))
     html += `<div class="abs center title" style="top:${110 + (1 - head) * 30}px;font-size:84px;opacity:${head}">and a whole lot <span class="orange">more.</span></div>`

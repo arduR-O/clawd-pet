@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Docs
+
+- The README covers what changed since 0.2: the songbook from LRCLIB, sung and credited, growing day
+  by day with `/pet add-songs`; meditation's many lines; any `/pet` waking Clawd; its moves between
+  poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
+  meditation with opinions.
+
 ## 0.5.6
 
 ### Changed

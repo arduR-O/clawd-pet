@@ -36,17 +36,18 @@ const TYPED = 'add a dark mode toggle'
 const scenes: Record<string, string[]> = {
   meet: [...run({ emote: 'hop' }, 2).reverse(), ...run({ kind: 'happy', emote: 'wave', hour: 9 }, 14)],
   glasses: run({ kind: 'read', hour: 10 }, 8),
+  book: run({ kind: 'read', emote: 'book', hour: 10 }, 8),
   commit: run({ kind: 'happy', emote: 'party', hour: 11 }, 8),
   dizzy: [...run({ kind: 'oops', hour: 13 }, 2), ...run({ kind: 'oops', emote: 'dizzy', hour: 13 }, 6)],
   typing: Array.from({ length: 8 }, (_, i) => svg({ hour: 14, caret: 2 + Math.round((TYPED.length * (i + 1)) / 8) }, i + 1)),
-  love: run({ kind: 'love', emote: 'hearts', hour: 15 }, 8),
+  songbook: run({ kind: 'happy', emote: 'sing', hour: 15 }, 8),
   long: run({ kind: 'happy', emote: 'milestone', hour: 16 }, 8),
   stretch: run({ kind: 'happy', emote: 'stretch', hour: 17 }, 8),
   night: run({ kind: 'think', emote: 'meditate', hour: 23 }, 8),
-  sing: run({ kind: 'happy', emote: 'sing', hour: 12 }, 8, SMALL),
+  vibe: run({ emote: 'vibe', hour: 12 }, 8, SMALL),
   fish: run({ emote: 'fish', hour: 18 }, 8, SMALL),
   castle: run({ emote: 'castle', hour: 12, castle: 10 }, 8, SMALL),
-  meditate: run({ kind: 'think', emote: 'meditate', hour: 21 }, 8, SMALL),
+  stargaze: run({ emote: 'stargaze', hour: 22 }, 8, SMALL),
   end: run({ kind: 'happy', emote: 'wave', hour: 20 }, 16),
 }
 // Each guest, small, for the grid of them.

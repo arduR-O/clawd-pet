@@ -3,7 +3,7 @@
   "fps": 30,
   "width": 1920,
   "height": 1080,
-  "duration": 38,
+  "duration": 40,
   "shots": [
     {
       "id": "cold",
@@ -19,17 +19,28 @@
       "id": "glasses",
       "start": 8,
       "end": 10,
-      "caption": "puts on glasses to read",
-      "said": "reading app.py…",
+      "caption": "puts on big glasses to read",
+      "said": "skimming app.py…",
       "transcript": [
         "⏺ Read(src/app.py)",
         "  ⎿  Read 212 lines"
       ]
     },
     {
-      "id": "commit",
+      "id": "book",
       "start": 10,
       "end": 12,
+      "caption": "curls up with a book",
+      "said": "flipping through utils.py",
+      "transcript": [
+        "⏺ Read(src/utils.py)",
+        "  ⎿  Read 88 lines"
+      ]
+    },
+    {
+      "id": "commit",
+      "start": 12,
+      "end": 14,
       "caption": "throws confetti for a commit",
       "said": "committed! party!",
       "transcript": [
@@ -39,8 +50,8 @@
     },
     {
       "id": "dizzy",
-      "start": 12,
-      "end": 14,
+      "start": 14,
+      "end": 16,
       "caption": "goes dizzy when things break",
       "said": "everything is spinning.",
       "transcript": [
@@ -50,36 +61,37 @@
     },
     {
       "id": "typing",
-      "start": 14,
-      "end": 16,
+      "start": 16,
+      "end": 18,
       "caption": "watches you type",
       "said": "",
       "transcript": []
     },
     {
-      "id": "love",
-      "start": 16,
-      "end": 18,
-      "caption": "blushes at a kind word",
-      "said": "aw, thanks!",
+      "id": "songbook",
+      "start": 18,
+      "end": 20,
+      "caption": "sings the songs you play",
+      "said": "oh paper moon, come down soooon ♪",
+      "credit": "♫ Paper Moon · The Kettles",
       "transcript": [
-        "> thanks clawd, good job"
+        "♪ your Last.fm, sung"
       ]
     },
     {
-      "id": "long",
-      "start": 18,
-      "end": 20,
-      "caption": "cheers the long ones",
-      "said": "done! that took 4 min.",
+      "id": "night",
+      "start": 20,
+      "end": 22,
+      "caption": "meditates, with opinions",
+      "said": "detach HEAD. detach ego.",
       "transcript": [
-        "✻ Worked for 4m 12s"
+        "✻ Pondering…"
       ]
     },
     {
       "id": "stretch",
-      "start": 20,
-      "end": 22,
+      "start": 22,
+      "end": 24,
       "caption": "nags you to stretch",
       "said": "52 min in. stretch break?",
       "transcript": [
@@ -87,29 +99,29 @@
       ]
     },
     {
-      "id": "night",
-      "start": 22,
-      "end": 24,
-      "caption": "and keeps you company at night",
-      "said": "one with the code…",
+      "id": "long",
+      "start": 24,
+      "end": 26,
+      "caption": "cheers the long ones",
+      "said": "done! that took 4 min.",
       "transcript": [
-        "> one more thing before bed"
+        "✻ Worked for 4m 12s"
       ]
     },
     {
       "id": "guests",
-      "start": 24,
-      "end": 28
+      "start": 26,
+      "end": 30
     },
     {
       "id": "list",
-      "start": 28,
-      "end": 32
+      "start": 30,
+      "end": 34
     },
     {
       "id": "end",
-      "start": 32,
-      "end": 38
+      "start": 34,
+      "end": 40
     }
   ]
 }

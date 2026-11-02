@@ -72,11 +72,14 @@ If Clawd does not appear, see [Troubleshooting](#troubleshooting).
 **It has a life of its own.**
 
 - A sun or a moon moves over its head with your local time.
-- It sings lines from songs. With Last.fm, it sings the music that you listen to.
+- It sings lines from songs, and always sings a line to its end. With Last.fm, it sings the music
+  that you listen to. See [The songbook](#the-songbook).
+- It meditates, with more than 30 things to say: *"detach HEAD. detach ego."*
 - It builds a sandcastle. Each prompt that Claude finishes adds one level. A new day starts a new
   sandcastle.
 - When you send no prompt for 5 minutes in the day, Clawd fishes, juggles, builds or listens to
-  music. After 25 minutes, or at night, it takes a nap.
+  music. After 25 minutes, or at night, it takes a nap. Any `/pet` command wakes it.
+- It moves from one pose to the next with a small crouch, rise, blink or lean.
 - While you read Claude's answer, Clawd keeps still.
 
 **Claude can talk to it, if you want.** Turn on the **Claude can talk to Clawd** setting. Then
@@ -122,14 +125,14 @@ All commands start with `/pet`. When you type `/pet `, Claude Code shows what ca
 
 | Command | What it does |
 |---|---|
-| `/pet` | Pets Clawd. If you pet it 6 times in 10 seconds, it gets annoyed. |
+| `/pet` | Pets Clawd. If you pet it 6 times in 10 seconds, it gets annoyed. Any `/pet` command wakes Clawd. |
 | `/pet treat` | Gives Clawd a treat. |
 | `/pet trick` | Makes Clawd do a trick. |
 | `/pet guest` | Brings a random guest. The same guest does not come two times in a row. |
 | `/pet <emote>` | Shows an emote now, for example `/pet meditate`. See [All emotes](#all-emotes). |
 | `/pet song` | Tells you which song the line that Clawd sang last is from. |
 | `/pet add-songs` | Adds more songs to the songbook, from further back in what you played. See [The songbook](#the-songbook). |
-| `/pet refresh-songs` | Writes a new songbook now, and tells you if it cannot. See [The songbook](#the-songbook). |
+| `/pet refresh-songs` | Starts a new songbook now, and tells you if it cannot. See [The songbook](#the-songbook). |
 | `/pet off` | Hides Clawd in all sessions. `/pet on` shows it again. |
 
 ### All emotes
@@ -158,40 +161,44 @@ To change a setting, run `/plugin configure clawd@clawd` in Claude Code.
 
 ### The songbook
 
-Clawd sings the first line of a song. Sometimes it changes the end of the line into a joke about
-code. Clawd always sings the line to its end. If something happens during the song, Clawd reacts
-when the song stops. If you pet Clawd or run a `/pet` command, it stops the song at once.
+Clawd sings a line now and then. It sings the line to its end. If something happens during the
+song, Clawd reacts after the song. If you pet Clawd or run a `/pet` command, the song stops at
+once.
 
-- **Built-in songs:** by default, Clawd sings its 30 built-in lines. This costs nothing.
-- **Last.fm:** if you set your Last.fm user and API key, Clawd writes a new songbook each day
-  from the songs that you played this week. To get a key, go to
-  [last.fm/api/accounts](https://www.last.fm/api/accounts). Claude Code keeps the key in secure
-  storage. If Last.fm has no plays this week, Clawd keeps the songs that it has.
+**Without Last.fm,** Clawd sings its 30 built-in lines. This costs nothing.
 
-**Where the lines come from.** Clawd looks your songs up on [LRCLIB](https://lrclib.net), a free
-lyrics database that music players use. From each song it takes the first line and the line that the
-song sings most, which is usually the chorus, and sings them: it holds the last note, for example
-`come down sooooon`. Then Claude Haiku turns a few of those lines into jokes
-about code. If LRCLIB has fewer than 3 lines for your songs, Claude Haiku writes the songbook from
-what it knows of the songs. To turn LRCLIB off, set **Songbook: lyrics** to `off`.
+**With Last.fm,** Clawd sings the songs that you play:
 
-By default, Clawd leaves out songs whose lyrics LRCLIB has in Devanagari or another Indian script,
-because those lines do not turn into jokes about code well. Romanized lyrics stay in. To sing them
-too, set **Songbook: Hindi songs** to `keep`.
+1. Set your Last.fm user and API key. To get a key, go to
+   [last.fm/api/accounts](https://www.last.fm/api/accounts). Claude Code keeps the key in secure
+   storage.
+2. Clawd looks your songs up on [LRCLIB](https://lrclib.net), a free lyrics database that music
+   players use. From each song, it takes the first line and the line that the song sings most.
+   That line is usually the chorus.
+3. Clawd sings these lines. It holds the last note, for example `come down sooooon`.
+4. Claude Haiku turns a few of the lines into jokes about code.
 
-**Which song is that?** After Clawd sings a line from LRCLIB, the song and the artist show quietly
-under it, for example `♫ Piano Man · Billy Joel`, as a radio names a song after it plays. To ask later, run `/pet song`. A joke line names the
-song that it comes from. The built-in songs and the lines that Claude Haiku writes alone show no
-song.
+If LRCLIB has fewer than 3 lines for your songs, Claude Haiku writes the songbook from what it
+knows of the songs. To turn LRCLIB off, set **Songbook: lyrics** to `off`.
 
-Each day, Clawd adds the songs that you played lately to the songbook. The songbook keeps up to 60
-lines; the oldest lines make room for new ones. To add more songs now, from further back in what you
-played, run `/pet add-songs`. It skips the songs that the songbook already has.
+**Which song is that?** When Clawd finishes a line, the song and the artist show quietly under it,
+for example `♫ Piano Man · Billy Joel`. A radio does the same after a song. To ask later, run
+`/pet song`. A joke line names the song that it comes from. The built-in songs show no song name.
 
-To start a new songbook now, run `/pet refresh-songs`. Clawd keeps its current songbook until the
-new one is ready. If the new one fails, Clawd keeps the current one. While Clawd writes it, and for
-10 seconds after, Clawd shows how it is going. If Clawd cannot write one, the command tells you why, for
-example an empty or incorrect API key.
+**Songs in Devanagari.** By default, Clawd leaves out songs whose lyrics LRCLIB has in Devanagari
+or another Indian script, because those lines do not turn into jokes about code well. Romanized
+lyrics stay in. To sing these songs too, set **Songbook: Hindi songs** to `keep`.
+
+**The songbook grows.** Each day, Clawd adds the songs that you played recently. The songbook keeps
+up to 60 lines. The oldest lines make room for new ones.
+
+- To add more songs now, run `/pet add-songs`. It looks further back in what you played, and it
+  skips the songs that the songbook already has.
+- To start a new songbook, run `/pet refresh-songs`. Clawd keeps its current songbook until the new
+  one is ready, and keeps it if the new one fails.
+
+While Clawd writes, and for 10 seconds after, it shows how it is going. If it cannot write the
+songbook, the command tells you why, for example an empty or incorrect API key.
 
 ## Costs and privacy
 
@@ -201,7 +208,7 @@ nothing to your requests to Claude. Only two optional settings cost tokens:
 | Optional setting | Cost |
 |---|---|
 | Claude can talk to Clawd | About 400 tokens added to each request that Claude makes. Off by default. |
-| Songbook: Last.fm | One call to Claude Haiku per day: about 2,000 output tokens at `low` effort, 4,000 at `medium`, 8,000 at `high`. Empty by default. |
+| Songbook: Last.fm | One call to Claude Haiku per day. At most about 2,000 output tokens at `low` effort, 4,000 at `medium` and 8,000 at `high`. Empty by default. |
 
 **Claude can talk to Clawd.** When you set it to `on`, Claude gets the `clawd` tool, and each
 request carries the tool's description. To remove the cost again, set it to `off`.
@@ -270,9 +277,9 @@ what went wrong:
 - **Last.fm has no plays for this user yet.** Make sure that the user name is correct and that
   Last.fm records what you play.
 - **Claude Haiku wrote no songbook.** If the message names an API error such as `overloaded` or
-  `rate_limit`, the Claude API was busy: Clawd already tried twice, so try again in a minute. If
-  it names HTTP 400, set **Songbook: effort** lower: the Haiku you reach may not take as many
-  tokens. Otherwise, your account or organization may not allow Haiku.
+  `rate_limit`, the Claude API was busy. Clawd already tried two times, so try again in a minute.
+  If it names HTTP 400, Clawd already tried the other effort levels. Set **Songbook: effort** to
+  `low`. Otherwise, your account or organization may not allow Haiku.
 
 ## Turn off or uninstall
 
