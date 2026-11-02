@@ -82,6 +82,8 @@ const SING_SHARE = 1 / 3
 const PET_SPREE_MS = 10_000
 // A song lasts longer than other emotes, so the whole line gets sung.
 const SING_MS = 7000
+// Leave-time reminders at prompts and finished turns come at most this often.
+const LEAVE_GAP_MS = 10 * 60_000
 // A guest's visit: rare, so longer than an emote.
 const GUEST_MS = 10_000
 // How long Clawd holds up the outcome of a `/pet refresh-songs`, and at most how long it waits on one.
@@ -135,6 +137,8 @@ const life = {
   song: { line: '', until: 0 },
   // The guest on stage, from when to when: what comes up meanwhile waits for it (stageLeft).
   guest: { name: null as EmoteName | null, line: '', from: 0, until: 0 },
+  // When Clawd last reminded the person of their leave time, at a prompt or a finished turn.
+  leaveNudgedAt: -Infinity,
   // A status Clawd holds up, as how `/pet refresh-songs` is going, drawn over whatever comes up meanwhile.
   status: { line: '', until: 0 },
   // Times Claude has talked to Clawd this turn.
@@ -354,6 +358,14 @@ function say(saying: Saying): string {
 // line the songbook doesn't credit.
 function creditFor(sung: string): string | undefined {
   return life.credits[sung]?.replace(' by ', ' · ')
+}
+
+// A leave-time reminder at a prompt or a finished turn, if it's been LEAVE_GAP_MS since the last:
+// reminders spaced out, not one at every step.
+function leaveNudge(now: number, line: string | undefined): string | undefined {
+  if (line === undefined || now - life.leaveNudgedAt < LEAVE_GAP_MS) return undefined
+  life.leaveNudgedAt = now
+  return line
 }
 
 // How long what holds the stage has to go, a song or a guest: what else Clawd would do waits that
@@ -825,7 +837,7 @@ export const register: Register = (on, options) => {
     } else {
       line = isLate
         ? 'at this hour?'
-        : (leaveLine(local, leaveAt, 'prompt') ??
+        : (leaveNudge(now, leaveLine(local, leaveAt, 'prompt')) ??
           (life.prompts === 1
             ? 'ooh, what are we making?'
             : (ROUTINE[Math.floor(Math.random() * ROUTINE.length)] ?? 'on it.')))
@@ -993,7 +1005,7 @@ export const register: Register = (on, options) => {
     await $.store.set('castle', { day: today, turns: life.castleTurns })
     const now = await $.clock.now()
     const local = localTime(now, offsetMinutes)
-    const leaving = leaveLine(local, leaveAt, 'done')
+    const leaving = leaveNudge(now, leaveLine(local, leaveAt, 'done'))
     const stretch = leaving === undefined ? breakLine(life.sitting, now, breakEvery) : undefined
     if (stretch !== undefined) {
       // A long stretch of work: Clawd stretches, and suggests the person does too.

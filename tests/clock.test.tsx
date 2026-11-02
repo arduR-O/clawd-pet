@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { breakLine, parseMinutes, satAt } from '../hooks/clawd'
+import { breakLine, leaveLine, parseMinutes, satAt } from '../hooks/clawd'
 import {
   BAND,
   OPTIONS,
@@ -51,6 +51,64 @@ test('a prompt after leave time gets asked if it is the last one', { options: OP
   await $.prompt.submit({ ...SUBMITTED, text: 'fix the flaky test' })
 
   expect(await ui.find({ type: 'Text', text: /^past 5:30\? one more, then home\.$/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('leave-time reminders are spaced out: one at a prompt, then none for ten minutes', { options: OPTIONS }, async ($, on) => {
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  // 17:40 in India, ten minutes past 5:30.
+  const clock = await start($, on, {}, istOn(27, 17, 40))
+  const reminder = /^past 5:30\? one more, then home\.$/
+  // The band mounted only to look, so the minutes between aren't drawn.
+  const shows = async () => {
+    const ui = await $.ui.mount(BAND)
+    const found = Boolean(await ui.find({ type: 'Text', text: reminder }))
+    await ui.unmount()
+    return found
+  }
+
+  // Each turn ends at once, so no song or emote of a turn's comes up in the minutes between.
+  const turn = (n: number) => $.turn.complete({ answer: 'ok.', durationMs: 1000, isAborted: false, turnId: `t${n}`, reason: 'answer' })
+
+  await $.prompt.submit({ ...SUBMITTED, text: 'fix the flaky test' })
+  expect(await shows()).toBe(true)
+  await turn(1)
+
+  // Prompts a few minutes apart (never long enough to count as away): no reminder until ten
+  // minutes have gone by.
+  for (const minutes of [4, 4]) {
+    await clock.advance(minutes * 60_000)
+    await $.prompt.submit({ ...SUBMITTED, text: 'and this one' })
+    expect(await shows()).toBe(false)
+    await turn(minutes)
+  }
+
+  await clock.advance(3 * 60_000)
+  await $.prompt.submit({ ...SUBMITTED, text: 'last one, promise' })
+  expect(await shows()).toBe(true)
+})
+
+test('idle, Clawd mentions leave time only around each ten-minute mark', () => {
+  const at = (hour: number, minute: number) => leaveLine({ hour: hour + minute / 60, weekday: 2, month: 10, day: 27 }, 17 * 60 + 30, 'idle')
+  expect(at(17, 10)).toBe('20 min till 5:30.')
+  expect(at(17, 11)).toBe('19 min till 5:30.')
+  expect(at(17, 14)).toBeUndefined()
+  expect(at(17, 30)).toBe('5:30! shoo, go home.')
+  expect(at(17, 35)).toBeUndefined()
+})
+
+test('half an hour past leave time, Clawd stops telling you to go home', { options: OPTIONS }, async ($, on) => {
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  // 18:01 in India, 31 minutes past 5:30.
+  await start($, on, {}, istOn(27, 18, 1))
+  const ui = await $.ui.mount(BAND)
+  const nagging = /5:30|go home|then home/
+
+  expect(await ui.find({ type: 'Text', text: nagging })).toBeFalsy()
+  await $.prompt.submit({ ...SUBMITTED, text: 'one more thing' })
+  expect(await ui.find({ type: 'Text', text: nagging })).toBeFalsy()
+  await $.turn.complete({ answer: 'done.', durationMs: 1000, isAborted: false, turnId: 't1', reason: 'answer' })
+  expect(await ui.find({ type: 'Text', text: nagging })).toBeFalsy()
   await ui.unmount()
 })
 

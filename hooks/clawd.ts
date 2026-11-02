@@ -631,12 +631,19 @@ export function parseClock(text: string): number | undefined {
   return minutes < 24 * 60 ? minutes : undefined
 }
 
-// What Clawd says about leave time on a workday, from an hour before it to two hours after;
+// How long past the leave time Clawd keeps telling the person to go home, in minutes.
+const LEAVE_NUDGES_FOR = 30
+
+// What Clawd says about leave time on a workday, from an hour before it to LEAVE_NUDGES_FOR after;
 // `moment` is idle muttering, a new prompt, or a finished turn.
 export function leaveLine(local: Local, leaveAt: number | undefined, moment: 'idle' | 'prompt' | 'done'): string | undefined {
   if (leaveAt === undefined || local.weekday === 0 || local.weekday === 6) return undefined
   const left = leaveAt - Math.round(local.hour * 60)
-  if (left > 60 || left <= -120) return undefined
+  // From an hour before to half an hour after; past that, staying late is the person's call.
+  if (left > 60 || left < -LEAVE_NUDGES_FOR) return undefined
+  // Idle, Clawd mentions it only now and then: the minute of each ten-minute mark from it, and the
+  // one after (20 min to go, 10, at it, 10 past), not the whole time.
+  if (moment === 'idle' && ((left % 10) + 10) % 10 !== 0 && ((left % 10) + 10) % 10 !== 9) return undefined
   const at = `${Math.floor(leaveAt / 60) % 12 || 12}:${String(leaveAt % 60).padStart(2, '0')}`
   if (moment === 'prompt') return left <= 0 ? `past ${at}? one more, then home.` : undefined
   if (moment === 'done') return left <= 0 ? 'done. now go home.' : left <= 15 ? `done, with ${left} min to spare.` : undefined

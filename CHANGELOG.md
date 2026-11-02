@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.4
+
+### Changed
+
+- **Leave-time reminders nag less.** They went on for two hours past the leave time, at every prompt,
+  every finished turn and in the idle line. Now they stop half an hour after it; at prompts and
+  finished turns they come at most every 10 minutes; and the idle line mentions it only around each
+  ten-minute mark (20 min to go, 10, at it, 10 past).
+
 ## 0.5.3
 
 ### New

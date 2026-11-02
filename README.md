@@ -65,7 +65,8 @@ If Clawd does not appear, see [Troubleshooting](#troubleshooting).
 - When you type, its eyes follow the cursor.
 - When you allow a permission request, Clawd thanks you. When you refuse one, it shrugs.
 - After 50 minutes of work, Clawd stretches and tells you to take a break.
-- If you set a leave time, Clawd counts down to it and tells you to go home.
+- If you set a leave time, Clawd counts down to it and tells you to go home. It reminds you now and
+  then, at most every 10 minutes, and stops half an hour after the leave time.
 
 **It has a life of its own.**
 
@@ -145,7 +146,7 @@ To change a setting, run `/plugin configure clawd@clawd` in Claude Code.
 | Setting | Default | What it does |
 |---|---|---|
 | UTC offset | `+00:00` | Sets your time zone, for example `+05:30`. Clawd uses it for the sun, the moon and the time of day. Change it when daylight saving time starts or ends. |
-| Leave time | Empty | Sets when you leave work on weekdays, as `HH:MM`. Clawd counts down to it and tells you to go home. Empty turns it off. |
+| Leave time | Empty | Sets when you leave work on weekdays, as `HH:MM`. Clawd counts down to it and tells you to go home, now and then, until half an hour after. Empty turns it off. |
 | Claude can talk to Clawd | `off` | Set it to `on` to give Claude the `clawd` tool. Claude can then make Clawd act, sing or say how it is. It adds about 400 tokens to each request. |
 | Break every | `50` | Sets the minutes of work before Clawd suggests a break. Work means that you send prompts or type, with no gap of 10 minutes or more. `0` or empty turns it off. |
 | Songbook: Last.fm user | Empty | Sets your Last.fm user name. See [The songbook](#the-songbook). |
