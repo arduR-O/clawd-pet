@@ -24,6 +24,7 @@ import {
   songsFrom,
   searchTitle,
   linesOfLyrics,
+  sungAloud,
   isInIndianScript,
   twistPrompt,
   mixSongbook,
@@ -348,13 +349,11 @@ function say(saying: Saying): string {
   return sayingOf(saying, n)
 }
 
-// The credit of the songbook line `sung` starts, partway through as karaoke shows it, written as
-// "Piano Man · Billy Joel"; undefined for a line the songbook doesn't credit.
+// The credit of the songbook line `sung`, written as "Piano Man · Billy Joel", once Clawd has sung
+// it through, as a radio names a song after it plays: none while it is still singing it, nor for a
+// line the songbook doesn't credit.
 function creditFor(sung: string): string | undefined {
-  if (sung.length < 6) return undefined
-  const found = Object.entries(life.credits).find(([line]) => line.startsWith(sung))
-
-  return found?.[1].replace(' by ', ' · ')
+  return life.credits[sung]?.replace(' by ', ' · ')
 }
 
 // How long what holds the stage has to go, a song or a guest: what else Clawd would do waits that
@@ -576,7 +575,10 @@ async function refreshSongbook(
   const sung = isLyrics ? await lyricLines($, songs, isSkippingHindi) : { lines: [], found: 0, skipped: 0, credits: {} }
   if (sung.lines.length >= (isAdding ? 1 : 3)) {
     const { reply } = await askHaiku($, twistPrompt(sung.lines), effort)
-    const twists = reply?.isAnswered === true ? songbookLines(reply.text).slice(0, 4) : []
+    // The twists sung like the lines, their last note held, unless Haiku already stretched one.
+    const twists = (reply?.isAnswered === true ? songbookLines(reply.text).slice(0, 4) : []).map(twist =>
+      /([a-z])\1\1/i.test(twist) ? twist : `${sungAloud(twist.replace(/ ♪$/, ''))} ♪`,
+    )
     const written = mixSongbook(sung.lines, twists)
     const writtenCredits = { ...sung.credits, ...twistCredits(twists, sung.lines, sung.credits) }
     if (isAdding) return addToSongbook($, kept, written, writtenCredits, { today, source, taste }, `the lyrics of ${sung.found} more of its songs from LRCLIB`)
@@ -1385,11 +1387,11 @@ export const register: Register = (on, options) => {
                 {said}
               </Text>
             ))}
-          {/* The song a sung line is from, a step behind the line, which stays as dim as anything
-              Clawd says: in the theme's subtle color, italic, and in the apps smaller. */}
+          {/* The song a sung line is from, once sung through, a step behind the line, which stays as dim
+              as anything Clawd says: in the theme's subtle color, italic, and in the apps smaller. */}
           {credit !== undefined && (
             <Text color="subtle" italic size="caption" wrap="truncate">
-              {`— ${credit}`}
+              {`♫ ${credit}`}
             </Text>
           )}
         </Box>

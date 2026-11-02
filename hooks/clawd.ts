@@ -280,7 +280,7 @@ export function tasteFrom(artists: unknown, weekTracks: unknown, recentPlays: un
 }
 
 // The songbook prompt's version: a songbook written by an older prompt is written again.
-export const SONGBOOK_STYLE = 10
+export const SONGBOOK_STYLE = 11
 
 // What Claude is asked for the songbook: lines actually sung in the songs of `taste`, each from
 // the line's start, most sung as is and about one in four carried on into code.
@@ -350,8 +350,35 @@ export const searchTitle = (title: string) =>
     .replace(/\s+-\s+.*$/, '')
     .trim() || title
 
+// A line as Clawd sings it rather than says it: the held note at the end of the phrase, the last
+// word's vowel stretched ("soon" → "sooooon", "day" → "daaay", "you" → "youuu", "tune" → "tuuune",
+// "my" → "myyy"), a silent e left be.
+export function sungAloud(line: string): string {
+  const words = line.split(' ')
+  let at = words.length - 1
+  while (at >= 0 && !/[a-z]/i.test(words[at]!)) at -= 1
+  if (at < 0) return line
+  const word = words[at]!
+  const groups = [...word.matchAll(/[aeiou]+/gi)]
+  let held = groups[groups.length - 1]
+  // A silent e after a consonant ("tune", "time"): the vowel before it is the one held.
+  if (held !== undefined && groups.length > 1 && /^e$/i.test(held[0]) && /[^aeiouy]e\W*$/i.test(word)) held = groups[groups.length - 2]
+  if (held === undefined) {
+    // No vowel but a y ("my", "sky"): the y is held.
+    const y = word.search(/y/i)
+    if (y < 0) return line
+    words[at] = word.slice(0, y + 1) + 'yy' + word.slice(y + 1)
+    return words.join(' ')
+  }
+  // A pair's first letter is the one sung long ("daaay", "peeeople"), save "ou" ("youuu").
+  const [from, letter] = /^ou$/i.test(held[0]) ? [held.index! + 1, held[0][1]!] : [held.index!, held[0][0]!]
+  words[at] = word.slice(0, from + 1) + letter.repeat(2) + word.slice(from + 1)
+
+  return words.join(' ')
+}
+
 // The lines of a song's lyrics worth singing: its first sung line, and the line it sings most (the
-// chorus, mostly) when that is another; lowercase, as Clawd sings, each with its ♪.
+// chorus, mostly) when that is another; lowercase and sung aloud, each with its ♪.
 export function linesOfLyrics(lyrics: string): string[] {
   const sung = lyrics
     .split(/\r?\n/)
@@ -365,7 +392,7 @@ export function linesOfLyrics(lyrics: string): string[] {
   const [chorus, times] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] ?? ['', 0]
   const lines = [first.toLowerCase(), ...(times >= 2 && chorus !== first.toLowerCase() ? [chorus] : [])]
 
-  return lines.map(line => `${line.replace(/[,.;:]+$/, '')} ♪`)
+  return lines.map(line => `${sungAloud(line.replace(/[,.;:!?]+$/, ''))} ♪`)
 }
 
 // Whether lyrics are written in Devanagari or another Indian script, which don't turn into lines

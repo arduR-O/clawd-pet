@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.2
+
+### Changed
+
+- **Clawd sings the lines, not quotes them.** Lines from LRCLIB came word for word, so they read
+  like quotes. Now each holds its last note, the last word's vowel stretched as a singer would
+  ("come down sooooon", "on a saturdaaay", "rock youuu"), and so do Haiku's twists. Songbooks from
+  before are written again.
+- **The song is named after it is sung.** The credit showed the whole time, under a line still
+  being sung, like a quote's attribution. Now it shows once the line is sung through, as a radio
+  names a song after it plays, and opens with `♫`.
+
 ## 0.5.1
 
 ### Changed

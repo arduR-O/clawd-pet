@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { STARTER_SONGS, isInIndianScript, linesOfLyrics, mixSongbook, twistCredits, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
+import { STARTER_SONGS, sungAloud, isInIndianScript, linesOfLyrics, mixSongbook, twistCredits, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
 import {
   BAND,
   OPTIONS,
@@ -161,8 +161,19 @@ test('an effort the API refuses steps up to a better one first, as Claude Code 2
 // Lyrics made up for the tests: a first line, a chorus sung three times, and section tags.
 const MADE_UP = '[Verse 1]\nThe kettle hums a lonely tune,\nwe dance around the empty room\n\n[Chorus]\nOh paper moon, come down soon\nOh paper moon, come down soon\n\nOh paper moon, come down soon'
 
+test('a line is sung aloud: the last word holds its note, the right vowel stretched', () => {
+  expect(sungAloud('come down soon')).toBe('come down soooon')
+  expect(sungAloud('a lonely tune')).toBe('a lonely tuuune')
+  expect(sungAloud('on a saturday')).toBe('on a saturdaaay')
+  expect(sungAloud('we will rock you')).toBe('we will rock youuu')
+  expect(sungAloud('all the lonely people')).toBe('all the lonely peeeople')
+  expect(sungAloud('my my')).toBe('my myyy')
+  expect(sungAloud('song 3')).toBe('sooong 3')
+})
+
 test("a song's lines worth singing: its first line and its chorus, lowercase, tags dropped", () => {
-  expect(linesOfLyrics(MADE_UP)).toEqual(['the kettle hums a lonely tune ♪', 'oh paper moon, come down soon ♪'])
+  // Lowercase, and the held note at the end of each sung: the last word's vowel stretched.
+  expect(linesOfLyrics(MADE_UP)).toEqual(['the kettle hums a lonely tuuune ♪', 'oh paper moon, come down soooon ♪'])
   expect(linesOfLyrics('[Instrumental]')).toEqual([])
 })
 
@@ -217,19 +228,19 @@ test('with LRCLIB on, the songbook sings the songs\' real lines, looked up by ti
   const ran = await $.command.run({ ...TYPED, command: 'pet', args: 'refresh-songs' })
 
   expect(ran.text).toBe(
-    'New songbook: 5 lines from listener\'s Last.fm, the lyrics of 2 of its 2 songs from LRCLIB, such as "the kettle hums a lonely tune ♪"',
+    'New songbook: 5 lines from listener\'s Last.fm, the lyrics of 2 of its 2 songs from LRCLIB, such as "the kettle hums a lonely tuuune ♪"',
   )
   expect(looked[0]?.url).toContain('track_name=Paper%20Moon&artist_name=The%20Kettles')
   expect(looked[0]?.agent).toContain('clawd')
   // Claude is given the real lines to twist, not asked to remember any.
-  expect(prompts[0]).toContain('- the kettle hums a lonely tune')
+  expect(prompts[0]).toContain('- the kettle hums a lonely tuuune')
   // Each line keeps the song it's from; the twist, the song it riffs on.
   expect(written[0]?.credits).toEqual({
-    'the kettle hums a lonely tune ♪': 'Paper Moon (From "A Film") by The Kettles',
-    'oh paper moon, come down soon ♪': 'Paper Moon (From "A Film") by The Kettles',
-    'second song, its first line ♪': 'Second Song by The Kettles',
-    'la la la, the chorus here ♪': 'Second Song by The Kettles',
-    'the kettle hums… and the build is green ♪': 'after Paper Moon (From "A Film") by The Kettles',
+    'the kettle hums a lonely tuuune ♪': 'Paper Moon (From "A Film") by The Kettles',
+    'oh paper moon, come down soooon ♪': 'Paper Moon (From "A Film") by The Kettles',
+    'second song, its first liiine ♪': 'Second Song by The Kettles',
+    'la la la, the chorus heeere ♪': 'Second Song by The Kettles',
+    'the kettle hums… and the build is greeeen ♪': 'after Paper Moon (From "A Film") by The Kettles',
   })
 })
 
@@ -286,14 +297,18 @@ test('while Clawd sings, the song the line is from shows under it, and /pet song
   expect(before.text).toBe("Clawd hasn't sung yet. /pet sing gets it going.")
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
-  // The credit a step behind the line, which stays dim like anything Clawd says: the credit in the
-  // theme's subtle color, italic and smaller.
-  const credit = await ui.find({ type: 'Text', text: /^— Paper Moon · The Kettles$/ })
+  // While Clawd is still singing the line, no credit: just the singing.
+  expect(await ui.find({ type: 'Text', text: /^oh paper/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^♫ / })).toBeFalsy()
+  // Sung through, the song is named, as a radio names it after it plays: a step behind the line,
+  // which stays dim like anything Clawd says, in the theme's subtle color, italic and smaller.
+  await clock.advance(4_000)
+  const credit = await ui.find({ type: 'Text', text: /^♫ Paper Moon · The Kettles$/ })
   expect(credit?.props).toMatchObject({ color: 'subtle', italic: true, size: 'caption' })
-  expect((await ui.find({ type: 'Text', text: /^oh paper/ }))?.props.dimColor).toBe(true)
+  expect((await ui.find({ type: 'Text', text: /^oh paper moon, come down soon ♪$/ }))?.props.dimColor).toBe(true)
   // Gone with the song.
-  await clock.advance(8_000)
-  expect(await ui.find({ type: 'Text', text: /^— Paper Moon/ })).toBeFalsy()
+  await clock.advance(4_000)
+  expect(await ui.find({ type: 'Text', text: /^♫ Paper Moon/ })).toBeFalsy()
 
   const after = await $.command.run({ ...TYPED, command: 'pet', args: 'song' })
   expect(after.text).toBe('Clawd last sang "oh paper moon, come down soon", from Paper Moon by The Kettles.')
@@ -310,7 +325,7 @@ test('the credit shows however Clawd comes to sing, as when it vibes and sings a
 
   let shown = false
   for (let tick = 0; tick < 60 && !shown; tick++) {
-    shown = Boolean(await ui.find({ type: 'Text', text: /^— Paper Moon · The Kettles$/ }))
+    shown = Boolean(await ui.find({ type: 'Text', text: /^♫ Paper Moon · The Kettles$/ }))
     if (!shown) await clock.advance(800)
   }
   expect(shown).toBe(true)
@@ -322,7 +337,7 @@ test('a line from the built-in songs is named as one, and shows no credit', { op
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
-  expect(await ui.find({ type: 'Text', text: /^— / })).toBeFalsy()
+  expect(await ui.find({ type: 'Text', text: /^♫ / })).toBeFalsy()
 
   const asked = await $.command.run({ ...TYPED, command: 'pet', args: 'song' })
   expect(asked.text).toMatch(/one of its built-in songs\.$/)
@@ -403,9 +418,9 @@ test('/pet add-songs adds the lines of songs the songbook lacks, keeping its own
 
   // Songs 1 and 2 are in it already: only 3 and 4 are looked up.
   expect(looked).toEqual(['Song 3', 'Song 4'])
-  expect(ran.text).toBe('Added 2 lines to the songbook, now 4, the lyrics of 2 more of its songs from LRCLIB, such as "the first line of song 3 ♪"')
-  expect(written[0]?.lines).toEqual(['the first line of song 1 ♪', 'the first line of song 2 ♪', 'the first line of song 3 ♪', 'the first line of song 4 ♪'])
-  expect(written[0]?.credits?.['the first line of song 4 ♪']).toBe('Song 4 by Band')
+  expect(ran.text).toBe('Added 2 lines to the songbook, now 4, the lyrics of 2 more of its songs from LRCLIB, such as "the first line of sooong 3 ♪"')
+  expect(written[0]?.lines).toEqual(['the first line of song 1 ♪', 'the first line of song 2 ♪', 'the first line of sooong 3 ♪', 'the first line of sooong 4 ♪'])
+  expect(written[0]?.credits?.['the first line of sooong 4 ♪']).toBe('Song 4 by Band')
   expect(written[0]?.credits?.['the first line of song 1 ♪']).toBe('Song 1 by Band')
 })
 
@@ -627,7 +642,7 @@ test("a stale songbook gets the day's lines added once, by Claude in the vibe of
     {
       day: '10-27',
       source: 'lastfm:listener',
-      style: 10,
+      style: 11,
       taste: LASTFM_SONGBOOK.taste,
       // Yesterday's line kept, the day's added after it.
       lines: ['yesterday ♪', 'ooh, the tests are green ♪', 'another one bites the bug ♪', 'we will, we will lint you ♪'],

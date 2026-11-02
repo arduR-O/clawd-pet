@@ -168,7 +168,8 @@ when the song stops. If you pet Clawd or run a `/pet` command, it stops the song
 
 **Where the lines come from.** Clawd looks your songs up on [LRCLIB](https://lrclib.net), a free
 lyrics database that music players use. From each song it takes the first line and the line that the
-song sings most, which is usually the chorus. Then Claude Haiku turns a few of those lines into jokes
+song sings most, which is usually the chorus, and sings them: it holds the last note, for example
+`come down sooooon`. Then Claude Haiku turns a few of those lines into jokes
 about code. If LRCLIB has fewer than 3 lines for your songs, Claude Haiku writes the songbook from
 what it knows of the songs. To turn LRCLIB off, set **Songbook: lyrics** to `off`.
 
@@ -176,8 +177,8 @@ By default, Clawd leaves out songs whose lyrics LRCLIB has in Devanagari or anot
 because those lines do not turn into jokes about code well. Romanized lyrics stay in. To sing them
 too, set **Songbook: Hindi songs** to `keep`.
 
-**Which song is that?** While Clawd sings a line from LRCLIB, the song and the artist show quietly
-under it, for example `— Piano Man · Billy Joel`. To ask later, run `/pet song`. A joke line names the
+**Which song is that?** After Clawd sings a line from LRCLIB, the song and the artist show quietly
+under it, for example `♫ Piano Man · Billy Joel`, as a radio names a song after it plays. To ask later, run `/pet song`. A joke line names the
 song that it comes from. The built-in songs and the lines that Claude Haiku writes alone show no
 song.
 
