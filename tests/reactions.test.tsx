@@ -39,7 +39,7 @@ test('Clawd does an emote now and then while Claude works', { options: OPTIONS }
   await clock.advance(24_000)
   // A song shows its first letters so far: one of the starter songs' openings.
   const emotes =
-    /o\/|crab rave|blub|scuttle|did you hear|munch|soaking it in|shades on|six… seven|UwU|\*hic\*|SEAGULL|molts|cousin|pearl|tide's in|rain|vibing|wheee|^(mama|is th|we wi|don't|anoth|under|we met|and we|remem|and so|I can|stones|I beca|I am w|Amie|nothing|I'll f|they wi|those|please|near|every|welcome|you can|there's|in sleep|that voice|sing once)/
+    /o\/|crab rave|blub|scuttle|did you hear|munch|soaking up the sun|shades on|six… seven|UwU|\*hic\*|SEAGULL|molts|cousin|pearl|tide's in|rain|vibing|wheee|^(mama|is th|we wi|don't|anoth|under|we met|and we|remem|and so|I can|stones|I beca|I am w|Amie|nothing|I'll f|they wi|those|please|near|every|welcome|you can|there's|in sleep|that voice|sing once)/
   expect(await ui.find({ type: 'Text', text: emotes })).toBeTruthy()
   await ui.unmount()
 })
@@ -176,7 +176,7 @@ test('two failed tools in a row make Clawd facepalm', { options: OPTIONS }, asyn
 
   await $.tool.call({ tool: 'Bash', command: 'make' })
 
-  expect(await ui.find({ type: 'Text', text: /^…again\.$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^broke again\.$/ })).toBeTruthy()
   // A claw over one eye.
   expect(await ui.find({ type: 'Text', text: /^▟█$/ })).toBeTruthy()
   await ui.unmount()

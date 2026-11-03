@@ -66,7 +66,7 @@ export function clawdStatus(status: {
   return [
     `Clawd is happily watching you work. It's ${time} (${phase}) where the user is.`,
     `It has been petted ${pets} ${pets === 1 ? 'time' : 'times'} and fed ${treats} ${treats === 1 ? 'treat' : 'treats'} so far.`,
-    castle === 0 ? 'No sandcastle yet today.' : `Today's sandcastle is ${castle} ${castle === 1 ? 'turn' : 'turns'} tall.`,
+    castle === 0 ? 'No sandcastle yet today.' : `Today's sandcastle is ${castle} ${castle === 1 ? 'floor' : 'floors'} tall, a floor for each finished turn.`,
     taste === undefined ? '' : `Its songbook follows: ${taste}.`,
   ]
     .filter(part => part !== '')

@@ -9,6 +9,15 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.9
+
+### Changed
+
+- Lines that only made sense with context a newcomer doesn't have now read on their own: "too
+  bright." is "so bright out there.", "soaking it in." is "soaking up the sun.", "oof. red." is "oof.
+  an error.", "…again." is "broke again.", "sending a friend" is "a helper is on it.", the
+  sandcastle is counted in floors rather than turns, and a dozen more like them.
+
 ## 0.5.8
 
 ### Changed

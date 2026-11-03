@@ -135,7 +135,7 @@ test("the sandcastle stands as tall as today's turns, with a flag from 10", { op
   await clock.advance(AWAY_MS)
 
   const ui = await $.ui.mount(BAND)
-  expect(await ui.find({ type: 'Text', text: /^sandcastle: 12 turns tall\.$/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^sandcastle: 12 floors tall\.$/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /^▟██▙$/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /^▐▌▐▌$/ })).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /^⚑$/ })).toBeTruthy()
@@ -254,7 +254,7 @@ test('asking Clawd how it is doing tells Claude its pets, treats, sandcastle and
   expect(status.result).toBe(
     "Clawd is happily watching you work. It's 12:00 (midday) where the user is." +
       ' It has been petted 12 times and fed 1 treat so far.' +
-      " Today's sandcastle is 4 turns tall." +
+      " Today's sandcastle is 4 floors tall, a floor for each finished turn." +
       ` Its songbook follows: ${LASTFM_SONGBOOK.taste}.`,
   )
 })

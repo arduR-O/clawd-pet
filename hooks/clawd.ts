@@ -126,8 +126,8 @@ const IDLE: readonly { name: EmoteName; line: string; when?: readonly Phase[] }[
   { name: 'sidestep', line: '*scuttle scuttle*' },
   { name: 'peek', line: '…did you hear that?' },
   { name: 'snack', line: '*munch* found a crumb.', when: ['dawn', 'morning', 'midday', 'afternoon', 'dusk', 'evening'] },
-  { name: 'sunbathe', line: 'soaking it in.', when: ['midday', 'afternoon'] },
-  { name: 'shades', line: 'too bright. *shades on*', when: ['midday', 'afternoon'] },
+  { name: 'sunbathe', line: 'soaking up the sun.', when: ['midday', 'afternoon'] },
+  { name: 'shades', line: 'bright out there. *shades on*', when: ['midday', 'afternoon'] },
   { name: 'stargaze', line: 'counting stars… 7, 8…', when: ['evening', 'night'] },
   { name: 'wish', line: 'shooting star! make a wish.', when: ['evening', 'night'] },
   { name: 'yawn', line: '*yaaawn*', when: ['night', 'dawn'] },
@@ -518,7 +518,7 @@ export function pastimeLine(pastime: Pastime, frame: number, castle: number, son
     case 'juggle':
       return "juggling. don't distract me."
     case 'castle':
-      return castle === 0 ? 'building a sandcastle.' : `sandcastle: ${castle} ${castle === 1 ? 'turn' : 'turns'} tall.`
+      return castle === 0 ? 'building a sandcastle.' : `sandcastle: ${castle} ${castle === 1 ? 'floor' : 'floors'} tall.`
     default:
       return 'z z z'
   }
@@ -711,10 +711,10 @@ export function ambient(local: Local, nowMs: number, leaveAt: number | undefined
 // What Clawd mutters, idle, by the time of day, the next every AMBIENT_MS.
 const AMBIENT_MS = 15 * 60_000
 export const AMBIENT: Partial<Readonly<Record<Phase, readonly string[]>>> = {
-  night: ["it's late, you know.", 'the moon is out. you too?', 'the night is quiet.', 'sleep is a feature, you know.'],
-  dawn: ['early bird.', 'up before the sun.', 'quiet hours. nice.'],
+  night: ["it's late, you know.", 'just us and the moon.', 'the night is quiet.', 'sleep is a feature, you know.'],
+  dawn: ['up early, huh?', 'up before the sun.', 'so quiet at this hour.'],
   morning: ['gm.', 'morning!', 'fresh day, fresh shell.', 'what a morning.'],
-  midday: ['too bright.', 'lunch soon?', "sun's high. shades?", 'peak crab hours.'],
+  midday: ['so bright out there.', 'lunch soon?', "sun's high. shades?", 'perfect beach weather.'],
   dusk: ['nice sunset.', 'golden hour.', "the sky's on fire.", 'winding down?'],
 }
 
@@ -1555,7 +1555,7 @@ const SPINNER_SPECIALS: Readonly<Record<string, readonly Act[]>> = {
   honking: [['wave', 'honk.'], ['wave', 'HONK.']],
   booping: [['uwu', 'boop.'], ['uwu', 'boop! UwU']],
   herding: [['peek', 'herding what, cats?']],
-  reticulating: [['peek', 'splines, presumably.']],
+  reticulating: [['peek', 'reticulating splines, presumably.']],
   gitifying: [['wave', 'commit early, commit often.'], ['wave', 'git gud.']],
   newspapering: [['wave', 'extra! extra!']],
   spinning: [['spin', 'wheee.'], ['spin', "I'm dizzy."]],
@@ -1587,15 +1587,15 @@ const SPINNER_NODS = [
 // Lines Clawd says again and again, each with a few more to rotate through so it doesn't repeat
 // itself; the first is what it says first.
 export const SAYINGS = {
-  broke: ['pfft. that broke.', 'oof. red.', 'that did not go to plan.', 'welp.', 'it said no.', 'error, but make it fashion.'],
-  again: ['…again.', 'twice now.', 'déjà vu, crab edition.', 'same wall, same face.'],
+  broke: ['pfft. that broke.', 'oof. an error.', 'that did not go to plan.', 'welp.', 'the command said no.', 'error, but make it fashion.'],
+  again: ['broke again.', 'failed twice now.', 'déjà vu, crab edition.', 'same error as before.'],
   dizzy: ['everything is spinning.', 'so many errors… so many stars.', 'which way is up?', 'I need a minute.'],
   done: ['done. not bad.', 'done! nice one.', 'and… done.', 'wrapped up.', 'that worked out.', 'nice. what next?', 'there we go.', 'ta-da.', 'all yours.', 'done and dusted.'],
   passed: ['tests passed. suspicious.', 'green? on the first try?', 'all green. I am shocked.', 'passing. for now.'],
   failed: ['tests failed. called it.', 'the tests have spoken.', 'red, as foretold.', 'a test says no.'],
   committed: ['committed! party!', 'into the history books!', 'commit! woo!', 'saved for posterity.'],
   pushed: ['shipped it! ✦', 'off it goes!', 'pushed. out into the world!', 'shipped! ✦ ✦'],
-  thanks: ['thanks!', 'appreciated!', 'you are the best.', 'go go go!'],
+  thanks: ['thanks!', 'appreciated!', 'you are the best.', 'anytime!'],
   refused: ['fine, not that then.', 'probably for the best.', 'noted. backing off.', 'ok ok, no touching.'],
   crew: ['the crew is back.', 'the gang is all here.', 'welcome back, tiny cousins.'],
   // Reading, searching and browsing, which Claude does all the time: a different way each time.
@@ -1616,11 +1616,11 @@ export const SAYINGS = {
   ],
   writing: ['writing {file}', 'a fresh {file}!', 'new file: {file}', 'putting {file} together', 'from scratch: {file}'],
   // A command Clawd has no view on, every other time: the rest it just shows.
-  running: ['running {cmd}', '{cmd}. here goes.', 'pressing enter on {cmd}', '*clack clack* {cmd}', 'ok: {cmd}', 'and… {cmd}'],
+  running: ['running {cmd}', '{cmd}. here goes.', 'pressing enter on {cmd}', '*clack clack* {cmd}', "let's try {cmd}", 'off it goes: {cmd}'],
   damage: ["let's see the damage.", 'what changed?', 'checking the diff…', 'where were we?', 'the state of things…', 'surveying the scene.'],
   watching: ["tests! I'll watch.", 'claws crossed for green.', 'moment of truth…', 'tests, go!', "I can't look.", 'running the gauntlet.'],
-  commitIt: ['commit it. claws crossed.', 'sealing it in.', 'a commit! good habits.', 'writing history.', 'signing the ledger.'],
-  friend: ['sending a friend', 'calling in backup', 'a helper heads out', 'off you go, little one', 'delegating. smart.'],
+  commitIt: ['commit it. claws crossed.', 'sealing it in.', 'a commit! good habits.', 'writing history.', 'saving our progress.'],
+  friend: ['a helper is on it.', 'calling in backup.', 'a helper heads out.', 'off you go, little one.', 'delegating. smart.'],
   using: ['using {tool}', 'trying {tool}', 'ooh, {tool}', '{tool}, at your service', 'reaching for {tool}'],
   // A prompt: the session's first, a late one, and any other.
   first: ['ooh, what are we making?', "what's the plan?", 'a new adventure!', 'ready when you are.', "let's build something."],
@@ -1636,7 +1636,7 @@ export const SAYINGS = {
   sherlock: ['elementary, my dear Watson.', 'the game is afoot!', 'who wrote this? let us see.', 'eliminate the impossible…'],
   jedi: ['use the --force, Luke.', 'may the --force be with you.', 'I have a bad feeling about this.', "these aren't the commits you're looking for."],
   gandalf: ['you shall not pass!', 'none shall pass!', 'it shall not pass.', 'not on my watch.'],
-  terminator: ['hasta la vista, process.', "I'll be back.", 'terminated.', 'no fate but what we kill.'],
+  terminator: ['hasta la vista, process.', "I'll be back.", 'terminated.', 'no fate but what we kill -9.'],
   delorean: ['great scott!', 'back to the past!', '1.21 gigawatts?!', "where we're going, we don't need roads."],
   ninja: ['*vanishes into the stash*', 'poof. hidden.', 'now you see it…'],
   ninjaBack: ['*reappears from the shadows*', 'ta-da, back again.', "…now you don't. wait, you do."],
