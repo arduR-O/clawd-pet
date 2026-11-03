@@ -9,6 +9,15 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.7
+
+### Fixed
+
+- Clawd no longer holds its act for a spinner word for as long as the word stays up, which can be a
+  whole long turn: it acts the word out for 8 s of every 12 s for its first three acts, then once
+  every 36 s, and nods at the word in between ("prestidigitating! classic.").
+- The magic act ("ooh, magic.", "✦ sparkly ✦", a golden pet) is happy-eyed, not smug.
+
 ## 0.5.6
 
 ### Changed

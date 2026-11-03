@@ -49,6 +49,9 @@ import {
   pickGuest,
   GUESTS,
   spinnerTake,
+  spinnerAct,
+  spinnerNod,
+  SPINNER_CYCLE_MS,
   welcomeOf,
   treatLine,
 } from './clawd'
@@ -56,8 +59,6 @@ import { TALK_SPEC, TALK_TOOL, TALKS_PER_TURN, clawdStatus, talkRequest } from '
 
 const REACTION_MS = 3000
 const SLEEP_AFTER_MS = 5 * 60 * 1000
-// While a spinner word stays up, Clawd moves on to its next act for it this often.
-const SPINNER_CYCLE_MS = 12_000
 // A turn longer than this ends in confetti.
 const LONG_TURN_MS = 120_000
 // After a long turn the person has likely looked away: its "done" stays up this long to greet them.
@@ -1266,10 +1267,17 @@ export const register: Register = (on, options) => {
     let pose = act.name !== null && now < act.until ? act.name : undefined
     let said = pose !== undefined && now >= m.until ? act.line : line
     if (e.props.isWorking && now >= m.until && pose === undefined) {
-      const step = Math.floor((now - life.spinnerSince) / SPINNER_CYCLE_MS)
-      const take = spinnerTake(life.spinnerWord, life.spinnerSeed, step)
-      pose = take.pose
-      said = take.line
+      // Acts the word out now and then, and nods at it in between, rather than holding an act (and
+      // its face) for as long as the word stays up.
+      const since = now - life.spinnerSince
+      const which = spinnerAct(since)
+      if (which === undefined) {
+        said = spinnerNod(life.spinnerWord, life.spinnerSeed, Math.floor(since / SPINNER_CYCLE_MS))
+      } else {
+        const take = spinnerTake(life.spinnerWord, life.spinnerSeed, which)
+        pose = take.pose
+        said = take.line
+      }
     }
     const castle = life.castleDay === dayOf(local) ? life.castleTurns : 0
     let mode = kind

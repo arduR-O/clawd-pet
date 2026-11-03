@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { spinnerTake, SAYINGS, sayingOf, type Saying } from '../hooks/clawd'
+import { faceOf, spinnerActAt, spinnerTake, SAYINGS, sayingOf, type Saying } from '../hooks/clawd'
 import {
   BAND,
   auraShown,
@@ -316,17 +316,44 @@ test('a compaction computed ahead of time leaves Clawd alone', { options: OPTION
   await ui.unmount()
 })
 
-test("while the spinner's word stays up, Clawd moves on to its next act every 12s", { options: OPTIONS }, async ($, on) => {
+test("while the spinner's word stays up, Clawd moves on to its next act", { options: OPTIONS }, async ($, on) => {
   const { clock, spinner, ui } = await thinkAbout($, on, 'Pondering')
   const seen = [await actShown(ui)]
   for (let step = 1; step < 3; step++) {
-    await clock.advance(12_000)
+    await clock.advance(spinnerActAt(step) - spinnerActAt(step - 1))
     seen.push(await actShown(ui))
   }
 
   expect(followsPondering(seen)).toBe(true)
   await ui.unmount()
   await spinner.unmount()
+})
+
+test("a word that stays up all turn gets acted out now and then, not held, and nodded at between", { options: OPTIONS }, async ($, on) => {
+  // Starts 3.2s after the word came up: its first act.
+  const { clock, spinner, ui } = await thinkAbout($, on, 'Pondering')
+  expect(await actShown(ui)).toBeDefined()
+
+  // 9s in: the act is over for this cycle; Clawd nods at the word, no pose.
+  await clock.advance(5800)
+  expect(await actShown(ui)).toBeUndefined()
+  expect(await auraShown(ui)).toBe(false)
+  expect(await ui.find({ type: 'Text', text: /pondering/ })).toBeTruthy()
+
+  // 27s in, the third act. After the fourth, at 36s, they spread out: 50s in is a nod, and the
+  // fifth comes at 72s.
+  await clock.advance(18_000)
+  expect(await actShown(ui)).toBeDefined()
+  await clock.advance(23_000)
+  expect(await actShown(ui)).toBeUndefined()
+  await clock.advance(24_000)
+  expect(await actShown(ui)).toBeDefined()
+  await ui.unmount()
+  await spinner.unmount()
+})
+
+test('a magic act is happy-eyed, not smug', () => {
+  expect(faceOf('think', 'golden', 1)).toBe('happy')
 })
 
 test('a meditating line always comes with the hover, any other never, and the two lines differ', { options: OPTIONS }, async ($, on) => {
@@ -339,7 +366,7 @@ test('a meditating line always comes with the hover, any other never, and the tw
     expect(await auraShown(ui)).toBe(act === 'calm')
     const line = await calmShown(ui)
     if (line !== undefined) calm.push(line)
-    await clock.advance(12_000)
+    await clock.advance(spinnerActAt(step + 1) - spinnerActAt(step))
   }
   expect(calm.length).toBe(2)
   expect(calm[0]).not.toBe(calm[1])
@@ -402,7 +429,7 @@ test('a cooking word puts the chef hat on for every chef line, and a crumb by ev
     said.add(line!)
     expect(await shows(ui, /▀/, TOQUE)).toBe(CHEF_LINES.includes(line!))
     expect(await shows(ui, /^·$/, GOLD)).toBe(SNACK_LINES.includes(line!))
-    await clock.advance(12_000)
+    await clock.advance(spinnerActAt(step + 1) - spinnerActAt(step))
   }
   // Every act came round once.
   expect(said.size).toBe(CHEF_LINES.length + SNACK_LINES.length)

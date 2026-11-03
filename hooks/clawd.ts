@@ -830,7 +830,6 @@ const EMOTE_FACES: Partial<Readonly<Record<EmoteName, Face>>> = {
   shades: 'shades',
   hearts: 'love',
   bow: 'smug',
-  golden: 'smug',
   seagull: 'surprised',
   tide: 'surprised',
   dizzy: 'dizzy',
@@ -1626,6 +1625,29 @@ export const sayingOf = (saying: Saying, n: number): string => SAYINGS[saying][n
 // Clawd's pose and line for the spinner's word. `seed` in [0, 1) is drawn when the word
 // appears and picks where to start; each `step` (a stretch of time the word stays up) moves on to
 // the next act.
+// One spinner word can stay up for a whole long turn, so Clawd doesn't hold its act for it: it acts
+// the word out for SPINNER_ACT_MS of every SPINNER_CYCLE_MS for its first SPINNER_EAGER acts, then
+// only once every SPINNER_EAGER cycles, and just nods at the word in between. Which act is on
+// `sinceMs` after the word came up, counting from 0, or undefined while it nods.
+export const SPINNER_CYCLE_MS = 12_000
+export const SPINNER_ACT_MS = 8_000
+const SPINNER_EAGER = 3
+export function spinnerAct(sinceMs: number): number | undefined {
+  const step = Math.floor(sinceMs / SPINNER_CYCLE_MS)
+  if (sinceMs % SPINNER_CYCLE_MS >= SPINNER_ACT_MS) return undefined
+  if (step < SPINNER_EAGER) return step
+  return step % SPINNER_EAGER === 0 ? SPINNER_EAGER - 1 + step / SPINNER_EAGER : undefined
+}
+// When act `n` comes on, after the word came up.
+export const spinnerActAt = (n: number) => (n < SPINNER_EAGER ? n : (n - SPINNER_EAGER + 1) * SPINNER_EAGER) * SPINNER_CYCLE_MS
+
+// A nod at the word between its acts, no pose.
+export function spinnerNod(word: string, seed: number, step = 0): string {
+  const key = word.trim().toLowerCase()
+  if (key === '') return 'hmm…'
+  return SPINNER_NODS[(Math.floor(seed * SPINNER_NODS.length) + step) % SPINNER_NODS.length]!.replaceAll('{word}', key)
+}
+
 export function spinnerTake(
   word: string,
   seed: number,
