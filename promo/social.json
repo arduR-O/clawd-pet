@@ -3,7 +3,7 @@
   "fps": 30,
   "width": 1080,
   "height": 1350,
-  "duration": 23,
+  "duration": 24,
   "page": "social.html",
   "frames": "social-frames",
   "music": "social-music.wav",
@@ -85,25 +85,17 @@
     {
       "id": "real",
       "start": 16,
-      "end": 19,
+      "end": 20,
       "label": "AND",
       "title": "it lives right above\nyour prompt",
-      "scene": "glassesTerm",
-      "said": "skimming app.py…",
-      "transcript": [
-        "> add a dark mode toggle",
-        "⏺ Read(src/app.py)",
-        "  ⎿  Read 212 lines",
-        "⏺ Read(src/theme.css)",
-        "  ⎿  Read 64 lines"
-      ],
-      "typed": "and make it remember the choice"
+      "play": [[0, 8.2], [0.45, 8.4], [1.35, 10.8], [1.55, 11.3], [1.75, 11.95], [2.75, 13.4], [2.8, 15.3], [3.55, 17.45], [3.75, 17.55], [4, 17.9]]
     },
     {
       "id": "end",
-      "start": 19,
-      "end": 23,
+      "start": 20,
+      "end": 24,
       "scene": "meet"
     }
-  ]
+  ],
+  "take": "real.json"
 }

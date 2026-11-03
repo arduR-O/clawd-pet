@@ -346,7 +346,8 @@ at('gandalf', lambda t: (kick(t + 0.05, 0.7), crash(t + 0.05, 0.22), [lead(t + 0
 at('songbook', sung)
 at('long', lambda t: [blip(t + 0.05 + i * 0.09, m, 0.09 if i < 3 else 0.35, 0.13, duty=0.25) for i, m in enumerate([72, 76, 79, 84])])
 at('stretch', lambda t: yawn(t + 0.1))
-at('real', lambda t: (riser(t, 0.9, 0.12), typed(t + 1.4, len('and make it remember the choice'), 1.2)))
+# The real take's follow-up is typed 0.45-1.35 s into the shot (its `play` in social.json).
+at('real', lambda t: (riser(t, 0.9, 0.12), typed(t + 0.45, len('and make it remember the choice'), 0.9)))
 at('night', lambda t: [chime(t + 0.2 + i * 0.45, m, 0.05) for i, m in enumerate([93, 96, 100, 98])])
 if listing:
     for i in range(4):

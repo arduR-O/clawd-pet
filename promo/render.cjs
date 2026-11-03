@@ -14,6 +14,8 @@ const { chromium } = require('playwright')
 const here = __dirname
 const timeline = JSON.parse(fs.readFileSync(path.join(here, process.env.PROMO || 'timeline.json'), 'utf8'))
 const data = JSON.parse(fs.readFileSync(path.join(here, 'build', 'scenes.json'), 'utf8'))
+// A cut with a real take (promo/record.py) gets it too.
+if (timeline.take) data.take = JSON.parse(fs.readFileSync(path.join(here, timeline.take), 'utf8'))
 const out = path.join(here, 'build', timeline.frames || 'frames')
 fs.mkdirSync(out, { recursive: true })
 

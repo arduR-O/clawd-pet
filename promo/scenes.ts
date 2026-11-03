@@ -12,9 +12,6 @@ type Spec = { kind?: Kind; emote?: EmoteName; hour?: number; castle?: number; ca
 
 const CELL = { width: 24, height: 48 }
 const SMALL = { width: 14, height: 28 }
-// One character of the social cut's terminal window (22px DejaVu Sans Mono on 28px lines): Clawd
-// drawn there sits on the text's own grid, as it does in a real terminal.
-const TERM = { width: 13, height: 28 }
 
 const svg = (spec: Spec, frame: number, cell = CELL) =>
   sceneSvg(
@@ -39,7 +36,6 @@ const TYPED = 'add a dark mode toggle'
 const scenes: Record<string, string[]> = {
   meet: [...run({ emote: 'hop', hour: 9 }, 2).reverse(), ...run({ kind: 'happy', emote: 'wave', hour: 9 }, 14)],
   glasses: run({ kind: 'read', hour: 10 }, 8),
-  glassesTerm: run({ kind: 'read', hour: 10 }, 8, TERM),
   book: run({ kind: 'read', emote: 'book', hour: 10 }, 8),
   commit: run({ kind: 'happy', emote: 'party', hour: 11 }, 8),
   dizzy: [...run({ kind: 'oops', hour: 13 }, 2), ...run({ kind: 'oops', emote: 'dizzy', hour: 13 }, 6)],
