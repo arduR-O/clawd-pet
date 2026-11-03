@@ -9,6 +9,20 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.8
+
+### Changed
+
+- The book is held up in front of Clawd, its claws gripping the covers and its eyes over the top:
+  two pages of text either side of the spine, the cover's edge underneath, and now and then a
+  page's corner folding over. It used to sit off to the side, cut off at the band's edge.
+- More ways to say what comes up all the time, each taken in turn: editing a file (it was always
+  "scribbling on"), writing a new one, a search, a subagent, any other tool, `git status`/`diff`/
+  `log`, tests, a commit, the end of a turn, the first prompt, a late one, any other prompt. A plain
+  command is shown as itself every other time, and said Clawd's way in between.
+- Idle, Clawd's line for the time of day changes every 15 minutes instead of staying "gm." or "too
+  bright." all morning or noon.
+
 ## 0.5.7
 
 ### Fixed

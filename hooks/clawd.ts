@@ -44,6 +44,9 @@ const FRAMES = ['(', ')'] as const
 // The pages of the book Clawd reads now and then.
 const PAGE = '#f4f1de'
 const COVER = '#a0522d'
+// The lines of text on a page, and the underside of a page's corner as it turns.
+const BOOK_INK = '#8a7f72'
+const PAGE_SHADOW = '#c9c2a8'
 // The reading glasses' outer rims, past the face's edges: a mid tone that shows on dark and light terminals.
 const GLASSES = '#7a7f9a'
 // Heart eyes: a deep red, so they show on the orange face.
@@ -700,20 +703,19 @@ export function ambient(local: Local, nowMs: number, leaveAt: number | undefined
   if (weekday === 1 && phase === 'morning') return 'monday. ugh.'
   if (weekday === 5 && (phase === 'afternoon' || phase === 'dusk')) return "it's friday. no deploys."
 
-  switch (phase) {
-    case 'night':
-      return "it's late, you know."
-    case 'dawn':
-      return 'early bird.'
-    case 'morning':
-      return 'gm.'
-    case 'midday':
-      return 'too bright.'
-    case 'dusk':
-      return 'nice sunset.'
-    default:
-      return ''
-  }
+  // Idle, the line stays a while before Clawd says the next of its time of day's.
+  const lines = AMBIENT[phase] ?? ['']
+  return lines[Math.floor(nowMs / AMBIENT_MS) % lines.length]!
+}
+
+// What Clawd mutters, idle, by the time of day, the next every AMBIENT_MS.
+const AMBIENT_MS = 15 * 60_000
+export const AMBIENT: Partial<Readonly<Record<Phase, readonly string[]>>> = {
+  night: ["it's late, you know.", 'the moon is out. you too?', 'the night is quiet.', 'sleep is a feature, you know.'],
+  dawn: ['early bird.', 'up before the sun.', 'quiet hours. nice.'],
+  morning: ['gm.', 'morning!', 'fresh day, fresh shell.', 'what a morning.'],
+  midday: ['too bright.', 'lunch soon?', "sun's high. shades?", 'peak crab hours.'],
+  dusk: ['nice sunset.', 'golden hour.', "the sky's on fire.", 'winding down?'],
 }
 
 // Clawd's faces: its eyes along the face row, and anything either side of it past its edges.
@@ -1147,13 +1149,22 @@ export function clawdScene(input: {
     // A puff of smoke beside it, there and gone.
     arms = [...arms, pad(1), { text: frame % 2 === 0 ? '∘°' : '°∘', color: MOON }]
   } else if (emote === 'book') {
-    // An open book held up beside its face, two pages either side of the spine; now and then the
-    // right page turns over onto the left.
+    // An open book held up in front of it, its claws gripping the covers either side and its eyes
+    // over the top: two pages of text either side of the spine, and the cover's edge under them.
+    // Now and then a page's corner folds over as it turns.
+    const page = (text: string): Segment => ({ text, color: BOOK_INK, backgroundColor: PAGE })
     const isTurning = frame % 3 === 2
-    face = [...face, pad(2), { text: isTurning ? '▄▖▄▖' : '▄▖▗▄', color: PAGE }]
-    arms = [...arms, pad(1), { text: isTurning ? '█▌█▌' : '█▌▐█', color: PAGE }]
-    // Its cover's edge under the pages.
-    feet = [...feet, pad(2), { text: '▀▀▀▀', color: COVER }]
+    arms = [
+      pad(x),
+      { text: '▐', color: body },
+      { text: '▌', color: COVER, backgroundColor: PAGE },
+      page('≡≡'),
+      { text: '│', color: COVER, backgroundColor: PAGE },
+      ...(isTurning ? [{ text: '◥', color: PAGE_SHADOW, backgroundColor: PAGE }, page('≡')] : [page('≡≡')]),
+      { text: '▐', color: COVER, backgroundColor: PAGE },
+      { text: '▌', color: body },
+    ]
+    feet = [pad(x + 1), { text: '▀▀▀▀▀▀▀', color: COVER }]
   } else if (emote === 'duck') {
     // A rubber duck beside Clawd, listening: its head and beak, and its body below.
     arms = [...arms, pad(2), { text: '▗█', color: DUCK }, { text: '▸', color: BEAK }]
@@ -1579,7 +1590,7 @@ export const SAYINGS = {
   broke: ['pfft. that broke.', 'oof. red.', 'that did not go to plan.', 'welp.', 'it said no.', 'error, but make it fashion.'],
   again: ['…again.', 'twice now.', 'déjà vu, crab edition.', 'same wall, same face.'],
   dizzy: ['everything is spinning.', 'so many errors… so many stars.', 'which way is up?', 'I need a minute.'],
-  done: ['done. not bad.', 'done! nice one.', 'and… done.', 'wrapped up.', 'that worked out.', 'nice. what next?'],
+  done: ['done. not bad.', 'done! nice one.', 'and… done.', 'wrapped up.', 'that worked out.', 'nice. what next?', 'there we go.', 'ta-da.', 'all yours.', 'done and dusted.'],
   passed: ['tests passed. suspicious.', 'green? on the first try?', 'all green. I am shocked.', 'passing. for now.'],
   failed: ['tests failed. called it.', 'the tests have spoken.', 'red, as foretold.', 'a test says no.'],
   committed: ['committed! party!', 'into the history books!', 'commit! woo!', 'saved for posterity.'],
@@ -1594,7 +1605,30 @@ export const SAYINGS = {
     'speed-reading {file}',
   ],
   reread: ['{file} again?', 'back to {file}', '{file}, round two', 'still {file}?', '{file} once more, with feeling'],
-  searching: ['looking for {pattern}', 'hunting for {pattern}', 'where is {pattern}…', 'sniffing out {pattern}', 'digging for {pattern}'],
+  searching: [
+    'looking for {pattern}', 'hunting for {pattern}', 'where is {pattern}…', 'sniffing out {pattern}', 'digging for {pattern}',
+    'on the trail of {pattern}', 'any {pattern} around?', '{pattern}, come out!', 'scanning for {pattern}',
+  ],
+  // Editing a file and writing a new one, which come all the time too.
+  editing: [
+    'scribbling on {file}', 'editing {file}', 'tweaking {file}', 'a little surgery on {file}', 'fixing up {file}', 'pen out for {file}',
+    'patching {file}', 'tidying {file}', 'rewriting bits of {file}', '{file}, revised', 'nudging {file}',
+  ],
+  writing: ['writing {file}', 'a fresh {file}!', 'new file: {file}', 'putting {file} together', 'from scratch: {file}'],
+  // A command Clawd has no view on, every other time: the rest it just shows.
+  running: ['running {cmd}', '{cmd}. here goes.', 'pressing enter on {cmd}', '*clack clack* {cmd}', 'ok: {cmd}', 'and… {cmd}'],
+  damage: ["let's see the damage.", 'what changed?', 'checking the diff…', 'where were we?', 'the state of things…', 'surveying the scene.'],
+  watching: ["tests! I'll watch.", 'claws crossed for green.', 'moment of truth…', 'tests, go!', "I can't look.", 'running the gauntlet.'],
+  commitIt: ['commit it. claws crossed.', 'sealing it in.', 'a commit! good habits.', 'writing history.', 'signing the ledger.'],
+  friend: ['sending a friend', 'calling in backup', 'a helper heads out', 'off you go, little one', 'delegating. smart.'],
+  using: ['using {tool}', 'trying {tool}', 'ooh, {tool}', '{tool}, at your service', 'reaching for {tool}'],
+  // A prompt: the session's first, a late one, and any other.
+  first: ['ooh, what are we making?', "what's the plan?", 'a new adventure!', 'ready when you are.', "let's build something."],
+  late: ['at this hour?', 'still up?', 'burning the midnight oil?', 'one more, then bed?', 'the night shift, huh.'],
+  routine: [
+    'go on…', 'listening.', 'mhm, mhm.', 'another one!', 'on it.', 'ok, next.', 'say less.', 'noted.', 'here we go.', 'yes chef.',
+    'righto.', 'on the case.', 'alright, alright.', 'ooh, ok.',
+  ],
   browsing: ['peeking at {site}', 'reading {site}', 'off to {site}', 'what does {site} say?', 'a quick trip to {site}'],
   websearch: ['asking the internet: {query}', 'googling {query}', 'searching the web: {query}', 'the internet knows {query}?'],
   squish: ['*squish* making room.', 'compressing… compressing…', 'packing memories tight.', 'squeezing it all in.'],
@@ -1622,9 +1656,6 @@ export const isSaying = (text: string): text is Saying => Object.hasOwn(SAYINGS,
 // The `n`th time Clawd says one of its sayings, counting from 0.
 export const sayingOf = (saying: Saying, n: number): string => SAYINGS[saying][n % SAYINGS[saying].length]!
 
-// Clawd's pose and line for the spinner's word. `seed` in [0, 1) is drawn when the word
-// appears and picks where to start; each `step` (a stretch of time the word stays up) moves on to
-// the next act.
 // One spinner word can stay up for a whole long turn, so Clawd doesn't hold its act for it: it acts
 // the word out for SPINNER_ACT_MS of every SPINNER_CYCLE_MS for its first SPINNER_EAGER acts, then
 // only once every SPINNER_EAGER cycles, and just nods at the word in between. Which act is on
@@ -1648,6 +1679,8 @@ export function spinnerNod(word: string, seed: number, step = 0): string {
   return SPINNER_NODS[(Math.floor(seed * SPINNER_NODS.length) + step) % SPINNER_NODS.length]!.replaceAll('{word}', key)
 }
 
+// Clawd's pose and line for the spinner's word. `seed` in [0, 1) is drawn when the word
+// appears and picks where to start; each `step` moves on to the next act.
 export function spinnerTake(
   word: string,
   seed: number,

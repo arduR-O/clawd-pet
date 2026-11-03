@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import type { Mounted } from 'claude-code/testing'
 
+import { AMBIENT } from '../hooks/clawd'
 import {
   BAND,
   OPTIONS,
@@ -33,12 +34,14 @@ test('at night, Clawd falls asleep after a quiet while', { options: OPTIONS }, a
 test('Clawd keeps still while Claude is idle, for reading', { options: OPTIONS }, async ($, on) => {
   const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
-  expect(await ui.find({ type: 'Text', text: /too bright\./ })).toBeTruthy()
+  const said = async () => (await ui.findAll({ type: 'Text' })).map(one => one.text).find(text => AMBIENT.midday!.includes(text))
+  const first = await said()
+  expect(first).toBeDefined()
 
-  // Past where the first idle emote used to come, 22-90s in.
+  // Past where the first idle emote used to come, 22-90s in: still the same line, no emote.
   for (let wait = 0; wait < 3; wait++) {
     await clock.advance(30_000)
-    expect(await ui.find({ type: 'Text', text: /too bright\./ })).toBeTruthy()
+    expect(await said()).toBe(first)
   }
   await ui.unmount()
 })

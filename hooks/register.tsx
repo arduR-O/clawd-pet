@@ -142,6 +142,8 @@ const life = {
   leaveNudgedAt: -Infinity,
   // Files Claude has read, every few of them read from a book.
   reads: 0,
+  // Commands Clawd had no view on: every other one it just shows, the rest it says its way.
+  runs: 0,
   // A status Clawd holds up, as how `/pet refresh-songs` is going, drawn over whatever comes up meanwhile.
   status: { line: '', until: 0 },
   // Times Claude has talked to Clawd this turn.
@@ -193,9 +195,9 @@ const ON_COMMANDS: readonly [RegExp, Kind, string, EmoteName?][] = [
   [/git\s+stash\b/, 'run', 'ninja', 'ninja'],
   [/\b(kill|pkill|killall)\b/, 'run', 'terminator', 'terminator'],
   [/\b(docker|podman)\b/, 'run', 'whale', 'whale'],
-  [/git\s+commit/, 'happy', 'commit it. claws crossed.'],
-  [/git\s+(status|diff|log)/, 'read', "let's see the damage.", 'peek'],
-  [TESTS, 'run', "tests! I'll watch."],
+  [/git\s+commit/, 'happy', 'commitIt'],
+  [/git\s+(status|diff|log)/, 'read', 'damage', 'peek'],
+  [TESTS, 'run', 'watching'],
   [/\b(pip|npm|pnpm|yarn|uv) (install|add)\b/, 'run', 'more dependencies? sigh.', 'enough'],
   [/\b(curl|wget)\b/, 'run', 'fetching snacks?', 'snack'],
 ]
@@ -230,9 +232,6 @@ const SKILL_POSES: Readonly<Record<string, EmoteName>> = {
 }
 
 const skillPose = (name: string): EmoteName | undefined => SKILL_POSES[name.split(':').pop() ?? name]
-
-// What Clawd says to a prompt that is neither the session's first nor a command.
-const ROUTINE = ['go on…', 'listening.', 'mhm, mhm.', 'another one!', 'on it.', 'ok, next.']
 
 // A prompt that names Clawd, and one that also thanks or praises it.
 const NAMES_CLAWD = /\bclawd\b/i
@@ -295,16 +294,20 @@ function reaction(e: ToolUse): [Kind, string, EmoteName?] {
       const query = text('query')
       return ['read', query === '' ? 'peeking at the internet' : say('websearch').replace('{query}', short(query, 24))]
     }
-    case 'Bash':
-      return ['run', `$ ${short(text('command'), 36)}`]
+    case 'Bash': {
+      life.runs += 1
+      const command = short(text('command'), 36)
+      return ['run', life.runs % 2 === 1 ? `$ ${command}` : say('running').replace('{cmd}', command)]
+    }
     case 'Edit':
-    case 'Write':
     case 'NotebookEdit':
-      return ['write', `scribbling on ${basename(text('file_path'))}`]
+      return ['write', say('editing').replace('{file}', basename(text('file_path') || text('notebook_path')))]
+    case 'Write':
+      return ['write', say('writing').replace('{file}', basename(text('file_path')))]
     case 'Agent':
-      return ['think', 'sending a friend']
+      return ['think', say('friend')]
     default:
-      return ['think', `using ${short(e.tool, 30)}`]
+      return ['think', say('using').replace('{tool}', short(e.tool, 30))]
   }
 }
 
@@ -848,12 +851,7 @@ export const register: Register = (on, options) => {
         await showEmote($, ({ name: pose, line, until: now + stageLeft(now) + EMOTE_MS }))
       }
     } else {
-      line = isLate
-        ? 'at this hour?'
-        : (leaveNudge(now, leaveLine(local, leaveAt, 'prompt')) ??
-          (life.prompts === 1
-            ? 'ooh, what are we making?'
-            : (ROUTINE[Math.floor(Math.random() * ROUTINE.length)] ?? 'on it.')))
+      line = isLate ? say('late') : (leaveNudge(now, leaveLine(local, leaveAt, 'prompt')) ?? say(life.prompts === 1 ? 'first' : 'routine'))
       if (isLate) {
         await showEmote($, ({ name: 'yawn', line, until: now + stageLeft(now) + EMOTE_MS }))
       }

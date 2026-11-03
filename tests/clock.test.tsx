@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { breakLine, leaveLine, parseMinutes, satAt } from '../hooks/clawd'
+import { AMBIENT, breakLine, leaveLine, parseMinutes, satAt } from '../hooks/clawd'
 import {
   BAND,
   OPTIONS,
@@ -212,7 +212,7 @@ test('on a weekend Clawd says nothing about leave time', { options: OPTIONS }, a
   const ui = await $.ui.mount(BAND)
 
   expect(await ui.find({ type: 'Text', text: /5:30/ })).toBeFalsy()
-  expect(await ui.find({ type: 'Text', text: /^nice sunset\.$/ })).toBeTruthy()
+  expect((await ui.findAll({ type: 'Text' })).some(one => AMBIENT.dusk!.includes(one.text))).toBe(true)
   await ui.unmount()
 })
 

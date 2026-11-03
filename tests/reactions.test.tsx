@@ -86,10 +86,16 @@ test('Clawd has opinions', { options: OPTIONS }, async ($, on) => {
   }
   expect(await says(/search #3\. lost, are we\?/)).toBe(true)
 
-  // Once Sherlock's visit is over, a plain command it has no view on is just shown.
+  // Once Sherlock's visit is over, a plain command it has no view on: every other one is just
+  // shown, the rest said Clawd's way.
   await clock.advance(10_000)
-  await $.tool.call({ tool: 'Bash', command: 'ls' })
-  expect(await says(/^\$ ls$/)).toBe(true)
+  const plain: boolean[] = []
+  for (const command of ['ls', 'pwd']) {
+    await $.tool.call({ tool: 'Bash', command })
+    expect(await says(new RegExp(command))).toBe(true)
+    plain.push(await says(new RegExp(`^\\$ ${command}$`)))
+  }
+  expect(plain.filter(Boolean).length).toBe(1)
   await ui.unmount()
 })
 
@@ -586,8 +592,8 @@ test('reading comes a different way each time, and one read in three with a book
   for (const file of ['app.py', 'util.py', 'main.py']) {
     await $.tool.call({ tool: 'Read', file_path: `/repo/${file}` })
     lines.push((await ui.findAll({ type: 'Text' })).map(one => one.text).find(text => text.includes(file)) ?? '')
-    // A book held up beside its face, its pages either side of the spine.
-    if (await ui.find({ type: 'Text', text: /▄▖▗▄/ })) books += 1
+    // A book held up in front of it, lines of text on its pages.
+    if (await ui.find({ type: 'Text', text: /^≡≡$/ })) books += 1
     await clock.advance(4_800)
   }
 
