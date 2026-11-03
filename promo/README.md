@@ -17,7 +17,7 @@ Both need bun, Node with Playwright and Chromium, Python 3 with numpy, and ffmpe
 | Cut | Made for | Shape | Length | Writes |
 |---|---|---|---|---|
 | `promo/build.sh` | the README, YouTube: watched with sound, on purpose | 16:9, 1920×1080 | 40 s | `promo/build/clawd-promo.mp4` |
-| `promo/build.sh social` | LinkedIn and other feeds | 4:5, 1080×1350 | 20 s | `promo/build/clawd-social.mp4` |
+| `promo/build.sh social` | LinkedIn and other feeds | 4:5, 1080×1350 | 23 s | `promo/build/clawd-social.mp4` |
 
 ## The social cut
 
@@ -29,7 +29,9 @@ A feed plays a video muted, in the middle of a scroll, so the social cut is made
 - **Every beat has a big caption,** so it reads with the sound off: what happened ("git push
   --force"), then Clawd's answer. The music is there for whoever turns the sound on.
 - **Portrait, 4:5,** fills far more of a phone's feed than 16:9.
-- **20 seconds,** a beat every 2: shorter means more people see it to the end.
+- **23 seconds,** a beat every 2: shorter means more people see it to the end.
+- **Then the real thing:** the camera pulls back from Clawd to the terminal it lives in, small, right
+  above the prompt, while Claude works. It answers "would this get in my way?" before the install.
 - **It loops without a seam:** the end card's words clear and the opening frame comes back, so a feed
   that replays it runs straight on.
 - **The end card says why and how:** zero tokens, runs locally, and the one line that installs it.
