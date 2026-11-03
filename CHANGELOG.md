@@ -9,6 +9,12 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.12
+
+### Removed
+
+- "lunch soon?" from Clawd's midday lines.
+
 ## 0.5.11
 
 ### Changed

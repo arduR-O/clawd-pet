@@ -714,7 +714,7 @@ export const AMBIENT: Partial<Readonly<Record<Phase, readonly string[]>>> = {
   night: ["it's late, you know.", 'just us and the moon.', 'the night is quiet.', 'sleep is a feature, you know.'],
   dawn: ['up early, huh?', 'up before the sun.', 'so quiet at this hour.'],
   morning: ['gm.', 'morning!', 'fresh day, fresh shell.', 'what a morning.'],
-  midday: ['so bright out there.', 'lunch soon?', "sun's high. shades?", 'perfect beach weather.'],
+  midday: ['so bright out there.', "sun's high. shades?", 'perfect beach weather.'],
   dusk: ['nice sunset.', 'golden hour.', "the sky's on fire.", 'winding down?'],
 }
 
