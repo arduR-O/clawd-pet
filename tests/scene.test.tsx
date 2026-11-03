@@ -70,7 +70,7 @@ test('the apps get a picture that plays a dozen frames, and a new one only when 
 })
 
 test('a film shows its first frame without SMIL, and the heaviest pose stays within what the engine takes', () => {
-  const at = (frame: number) => clawdScene({ kind: 'think', emote: 'meditate', frame, poseFrame: frame, nowMs: NOON_IST, local: { hour: 3, weekday: 2, month: 10, day: 27 }, bubble: 3, crew: 3, castle: 9 })
+  const at = (frame: number) => clawdScene({ kind: 'think', emote: 'meditate', frame, poseFrame: frame, nowMs: NOON_IST, local: { hour: 3, weekday: 2, month: 10, day: 27 }, crew: 3, castle: 9 })
   const film = sceneFilm(Array.from({ length: 12 }, (_, i) => at(i)), 800)
 
   expect(film).toContain('<g><animate attributeName="opacity" calcMode="discrete" values="1;0;0;0;0;0;0;0;0;0;0;0"')

@@ -380,18 +380,6 @@ test('a meditating line always comes with the hover, any other never, and the tw
   await spinner.unmount()
 })
 
-test('long thinking grows a thought bubble over Clawd', { options: OPTIONS }, async ($, on) => {
-  const { clock, spinner, ui } = await thinkAbout($, on, 'Wobbling')
-  expect(await ui.find({ type: 'Text', text: /^∘$/ })).toBeFalsy()
-
-  // Starts 6s in and grows a step every 3s: full at 12s.
-  await clock.advance(9200)
-
-  expect(await ui.find({ type: 'Text', text: /·∘○/ })).toBeTruthy()
-  await ui.unmount()
-  await spinner.unmount()
-})
-
 test('a tiny cousin marches by while a subagent is out, and the crew is welcomed back', { options: OPTIONS }, async ($, on) => {
   let release = () => {}
   on('tool.call', { tool: 'Agent' }, async () => {

@@ -69,9 +69,6 @@ const WAIT_MS = 10 * 60_000
 const TYPING_MS = 1_500
 // Where the prompt's text starts, past its `> `.
 const PROMPT_INDENT = 2
-// After this much thinking a thought bubble starts to grow, a step every BUBBLE_STEP_MS.
-const BUBBLE_AFTER_MS = 6_000
-const BUBBLE_STEP_MS = 3_000
 const TICK_MS = 800
 // The frames one picture plays for the apps, a tick each, before the next picture takes over.
 const FILM_FRAMES = 12
@@ -119,7 +116,6 @@ const life = {
   spinnerSeed: 0,
   // When the spinner's word last changed, and when its thinking began (0 while not thinking).
   spinnerSince: 0,
-  thinkingSince: 0,
   // Failed tools in a row.
   failStreak: 0,
   // Subagents out on a task.
@@ -1006,7 +1002,6 @@ export const register: Register = (on, options) => {
     await stopWaiting($)
     life.isBusy = false
     life.spinnerWord = ''
-    life.thinkingSince = 0
     // Each finished turn adds to today's sandcastle; a new day starts a new one.
     // Read fresh, so sessions open side by side add to one castle.
     const today = dayOf(localTime(await $.clock.now(), offsetMinutes))
@@ -1238,11 +1233,6 @@ export const register: Register = (on, options) => {
       life.spinnerSeed = Math.random()
       life.spinnerSince = now
     }
-    if (e.props.mode !== 'thinking') {
-      life.thinkingSince = 0
-    } else if (life.thinkingSince === 0) {
-      life.thinkingSince = now
-    }
     life.spinnerWord = e.props.word
 
     return next(e)
@@ -1318,7 +1308,6 @@ export const register: Register = (on, options) => {
       life.poseSince = now
       life.poseTick = frame
     }
-    const thinking = e.props.isWorking && life.thinkingSince > 0 ? now - life.thinkingSince - BUBBLE_AFTER_MS : -1
     const poseFrame = Math.floor((now - life.poseSince) / TICK_MS)
     const sceneAt = (at: number) => {
       // Going straight from one pose to another, Clawd takes a frame of TURNS in between.
@@ -1333,7 +1322,6 @@ export const register: Register = (on, options) => {
         nowMs: now,
         local,
         crew: life.agentsOut,
-        bubble: thinking < 0 ? 0 : Math.min(3, Math.floor(thinking / BUBBLE_STEP_MS) + 1),
         castle,
         hasHeadphones: isListening,
         ...(now - life.typed.at < TYPING_MS && {

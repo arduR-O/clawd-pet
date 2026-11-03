@@ -887,8 +887,6 @@ export function clawdScene(input: {
   crew?: number
   // Wearing headphones, as while vibing and singing along after.
   hasHeadphones?: boolean
-  // How far a thought bubble has grown during long thinking, 0 to 3.
-  bubble?: number
   // Today's finished turns, the height of the sandcastle.
   castle?: number
   // Frames since the current pose began, so a pose with moves of its own starts from the top.
@@ -898,7 +896,7 @@ export function clawdScene(input: {
   // The in-between frame from one pose to the next (TURNS).
   turn?: Turn
 }): Row[] {
-  const { kind, emote, frame, nowMs, local, crew = 0, bubble = 0, castle = 0, hasHeadphones = false } = input
+  const { kind, emote, frame, nowMs, local, crew = 0, castle = 0, hasHeadphones = false } = input
   const poseFrame = input.poseFrame ?? frame
   const phase = phaseOf(local.hour)
   const isBusy = BUSY.includes(kind)
@@ -1020,7 +1018,6 @@ export function clawdScene(input: {
   } else if (emote === 'oneup') {
     for (const [i, text] of [...'1UP'].entries()) put(x + 10 + i, text, frame % 2 === 0 ? GOLD : PEARL)
   }
-  for (const [i, text] of ['·', '∘', '○'].slice(0, bubble).entries()) put(x + 9 + i, text, MOON)
 
   const isShut =
     isAsleep || input.turn === 'blink' || emote === 'meditate' || emote === 'vibe' || ((emote === 'yawn' || emote === 'stretch') && frame % 4 < 2)

@@ -9,6 +9,13 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.10
+
+### Removed
+
+- The thought bubble (· ∘ ○) that grew beside the sun during long thinking: on its own it read as
+  stray dots.
+
 ## 0.5.9
 
 ### Changed
