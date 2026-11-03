@@ -4,22 +4,23 @@
 //
 //   node promo/render.cjs [only-these-seconds, e.g. 5,12.5]
 //
-// Frames land in promo/build/frames/; promo/build.sh turns them into the video.
+// Frames land in promo/build/frames/; promo/build.sh turns them into the video. PROMO=social.json
+// renders the social cut instead, with the page and frames folder its timeline names.
 
 const fs = require('fs')
 const path = require('path')
 const { chromium } = require('playwright')
 
 const here = __dirname
-const timeline = JSON.parse(fs.readFileSync(path.join(here, 'timeline.json'), 'utf8'))
+const timeline = JSON.parse(fs.readFileSync(path.join(here, process.env.PROMO || 'timeline.json'), 'utf8'))
 const data = JSON.parse(fs.readFileSync(path.join(here, 'build', 'scenes.json'), 'utf8'))
-const out = path.join(here, 'build', 'frames')
+const out = path.join(here, 'build', timeline.frames || 'frames')
 fs.mkdirSync(out, { recursive: true })
 
 ;(async () => {
   const browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: timeline.width, height: timeline.height } })
-  await page.goto('file://' + path.join(here, 'page.html'))
+  await page.goto('file://' + path.join(here, timeline.page || 'page.html'))
   await page.evaluate(([tl, d]) => setup(tl, d), [timeline, data])
   const only = process.argv[2]
   const times = only

@@ -1,0 +1,92 @@
+{
+  "bpm": 120,
+  "fps": 30,
+  "width": 1080,
+  "height": 1350,
+  "duration": 20,
+  "page": "social.html",
+  "frames": "social-frames",
+  "music": "social-music.wav",
+  "video": "clawd-social.mp4",
+  "shots": [
+    {
+      "id": "hook",
+      "start": 0,
+      "end": 2,
+      "title": "I gave Claude Code\na pet.",
+      "scene": "meet",
+      "said": "o/"
+    },
+    {
+      "id": "glasses",
+      "start": 2,
+      "end": 4,
+      "caption": "Claude reads a file",
+      "scene": "glasses",
+      "said": "skimming app.py…",
+      "cause": "⏺ Read(src/app.py)"
+    },
+    {
+      "id": "commit",
+      "start": 4,
+      "end": 6,
+      "caption": "a commit lands",
+      "scene": "commit",
+      "said": "committed! party!",
+      "cause": "⏺ Bash(git commit -m \"fix\")"
+    },
+    {
+      "id": "dizzy",
+      "start": 6,
+      "end": 8,
+      "caption": "the tests fail. again.",
+      "scene": "dizzy",
+      "said": "everything is spinning.",
+      "cause": "⎿ 3 failed, 41 passed"
+    },
+    {
+      "id": "jedi",
+      "start": 8,
+      "end": 10,
+      "caption": "git push --force",
+      "scene": "jedi",
+      "said": "use the --force, Luke.",
+      "cause": "⏺ Bash(git push --force)"
+    },
+    {
+      "id": "gandalf",
+      "start": 10,
+      "end": 12,
+      "caption": "you refuse an rm -rf",
+      "scene": "gandalf",
+      "said": "you shall not pass!",
+      "cause": "✗ Denied: rm -rf build"
+    },
+    {
+      "id": "songbook",
+      "start": 12,
+      "end": 14,
+      "caption": "it sings your Last.fm",
+      "scene": "songbook",
+      "said": "oh paper moon, come down soooon ♪",
+      "credit": "♫ Paper Moon · The Kettles",
+      "label": "AND"
+    },
+    {
+      "id": "night",
+      "start": 14,
+      "end": 16,
+      "caption": "it has deep thoughts",
+      "scene": "night",
+      "said": "detach HEAD. detach ego.",
+      "cause": "✻ Pondering…",
+      "label": "AND"
+    },
+    {
+      "id": "end",
+      "start": 16,
+      "end": 20,
+      "scene": "meet"
+    }
+  ]
+}

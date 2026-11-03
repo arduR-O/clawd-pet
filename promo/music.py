@@ -1,20 +1,24 @@
 """The promo video's soundtrack: an original chiptune and its sound effects, synthesized from
-nothing but numpy, timed to promo/timeline.json. Run from the repository's root:
+nothing but numpy, timed to a timeline of shots. Run from the repository's root:
 
-    python3 promo/music.py
+    python3 promo/music.py [timeline.json] [music.wav]
 
-It writes promo/build/music.wav. No samples and no one else's music: every sound is made here.
+It reads promo/timeline.json and writes promo/build/music.wav unless told other ones (the social cut
+is promo/social.json). No samples and no one else's music: every sound is made here. Each shot's
+sound plays only if the timeline has that shot.
 """
 
 import json
 import math
 import os
+import sys
 import wave
 
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TL = json.load(open(os.path.join(HERE, 'timeline.json')))
+TL = json.load(open(os.path.join(HERE, sys.argv[1] if len(sys.argv) > 1 else 'timeline.json')))
+OUT = sys.argv[2] if len(sys.argv) > 2 else 'music.wav'
 SR = 44100
 BPM = TL['bpm']
 BEAT = 60 / BPM
@@ -245,54 +249,69 @@ HIGH = [
     [74, None, 79, None, 83, None, 86, None],
 ]
 
-cold, meet, night, listing, end = SHOTS['cold'], SHOTS['meet'], SHOTS['night'], SHOTS['list'], SHOTS['end']
+# The shots the song turns on; a timeline without one of them goes without its part.
+cold, meet, night, listing, guests, end = (SHOTS.get(name) for name in ('cold', 'meet', 'night', 'list', 'guests', 'end'))
+# Where the groove starts: after the cold open and the meet, or at once for a cut that opens on Clawd.
+first = next((s for s in TL['shots'] if s.get('caption') or s['id'] not in ('cold', 'meet')), TL['shots'][0])
+groove = first['start']
+# Where the tune climbs an octave, and the drums drop out.
+climb = SHOTS.get('songbook', {'start': DURATION})['start']
+calm = night or {'start': -1, 'end': -1}
+outro = (end['start'] + BAR) if end else DURATION
 
-# Cold open: a soft chord under the typing, rising into the flash.
-pad(0, [57, 64, 69, 72], 4.0, 0.06)
-typed(0.0, len('your terminal does a lot of work.'), 1.4)
-typed(2.0, len('it could use a friend.'), 1.0)
-riser(3.0, 1.0, 0.22)
+if cold:
+    # Cold open: a soft chord under the typing, rising into the flash.
+    pad(0, [57, 64, 69, 72], 4.0, 0.06)
+    typed(0.0, len('your terminal does a lot of work.'), 1.4)
+    typed(2.0, len('it could use a friend.'), 1.0)
+    riser(3.0, 1.0, 0.22)
+else:
+    # Opening on Clawd: a hit on the very first frame, so a viewer who turns the sound on hears it start.
+    crash(0, 0.3)
+    kick(0)
 
-# Meet Clawd: it lands with a boing, its name pops with a stab.
-kick(meet['start'])
-crash(meet['start'], 0.35)
-boing(meet['start'] + 0.22)
-boing(meet['start'] + 0.45, 0.16)
-for m in [69, 72, 76, 81]:
-    blip(meet['start'] + 1.0, m, 0.25, 0.07, duty=0.25)
-blip(meet['start'] + 2.0, 88, 0.06, 0.1)
+if meet:
+    # Meet Clawd: it lands with a boing, its name pops with a stab.
+    kick(meet['start'])
+    crash(meet['start'], 0.35)
+    boing(meet['start'] + 0.22)
+    boing(meet['start'] + 0.45, 0.16)
+    for m in [69, 72, 76, 81]:
+        blip(meet['start'] + 1.0, m, 0.25, 0.07, duty=0.25)
+    blip(meet['start'] + 2.0, 88, 0.06, 0.1)
 
+start_at = meet['start'] if meet else 0
 bars = int(DURATION // BAR)
 for b in range(bars):
     at = b * BAR
-    if at < meet['start']:
+    if at < start_at:
         continue
     root, tones = CHORDS[b % 4]
-    is_night = night['start'] <= at < night['end']
-    is_outro = at >= end['start'] + 2 * BAR / 2
+    is_night = calm['start'] <= at < calm['end']
+    is_outro = at >= outro
     # Bass: eighths on the root, an octave jump on the off beats.
     if at < DURATION - 2:
         for e in range(8):
             if is_outro and e > 0:
                 break
             bass(at + e * EIGHTH, root - 12 + (12 if e % 2 else 0), EIGHTH * (0.9 if not is_outro else 7.5))
-    # Drums: four on the floor from the montage on, half time in the meet, hats only at night.
+    # Drums: four on the floor from the groove on, half time before it, hats only at night.
     if not is_outro:
         for beat in range(4):
             t = at + beat * BEAT
-            if not is_night and (at >= SHOTS['glasses']['start'] or beat % 2 == 0):
+            if not is_night and (at >= groove or beat % 2 == 0):
                 kick(t)
             if not is_night and beat % 2 == 1:
                 snare(t)
             hat(t + EIGHTH, open_=beat == 3)
             hat(t, 0.07)
-    # Arpeggio on sixteenths from the montage on.
-    if at >= SHOTS['glasses']['start'] and not is_outro:
+    # Arpeggio on sixteenths from the groove on.
+    if at >= groove and not is_outro:
         for s in range(16):
             arp(at + s * EIGHTH / 2, tones[s % 3] + 12 + (12 if s % 8 >= 6 else 0))
-    # The tune: the motif, then up an octave and busier for the second half of the montage.
-    if at >= meet['start'] + BAR and at < DURATION - 2:
-        line = HIGH if SHOTS['songbook']['start'] <= at < listing['end'] else MOTIF
+    # The tune: the motif, then up an octave and busier from the songbook on.
+    if at >= start_at + (BAR if meet else 0) and at < DURATION - 2:
+        line = HIGH if climb <= at < (listing or end or {'end': DURATION})['end'] else MOTIF
         notes = line[b % 4]
         for e, m in enumerate(notes):
             if m is None:
@@ -303,45 +322,51 @@ for b in range(bars):
     if is_night:
         pad(at, [t + 12 for t in tones], BAR, 0.05)
 
-# Each trick gets its sound, on its cut.
-s = SHOTS
-blip(s['glasses']['start'] + 0.05, 84)
-blip(s['glasses']['start'] + 0.14, 91)
-sparkle(s['commit']['start'] + 0.1)
-crash(s['commit']['start'], 0.18)
-buzz(s['dizzy']['start'] + 0.05)
-buzz(s['dizzy']['start'] + 0.35)
-wobble(s['dizzy']['start'] + 0.6, 1.2)
-typed(s['typing']['start'], len('add a dark mode toggle'), 1.7)
-# A page turning: two soft pops. Then a little sung phrase, its last note held long.
-pop(s['book']['start'] + 0.1, 84, 0.07)
-pop(s['book']['start'] + 0.22, 88, 0.06)
-for i, (m, d) in enumerate([(76, 0.18), (79, 0.18), (81, 0.18), (84, 0.8)]):
-    lead(s['songbook']['start'] + 0.3 + i * 0.2, m, d, 0.16, duty=0.5)
-chime(s['songbook']['start'] + 1.2, 96, 0.05)
-for i, m in enumerate([72, 76, 79, 84]):
-    blip(s['long']['start'] + 0.05 + i * 0.09, m, 0.09 if i < 3 else 0.35, 0.13, duty=0.25)
-yawn(s['stretch']['start'] + 0.1)
-for i, m in enumerate([93, 96, 100, 98]):
-    chime(s['night']['start'] + 0.2 + i * 0.45, m, 0.05)
-for i in range(4):
-    pop(listing['start'] + i * BEAT, 76 + i * 3)
-crash(listing['start'], 0.2)
-# The guests pop in on every half beat, climbing a pentatonic scale.
-guests = SHOTS['guests']
-crash(guests['start'], 0.25)
-for i, m in enumerate([69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96]):
-    pop(guests['start'] + 0.3 + i * EIGHTH, m, 0.13)
 
-# The end: a stab, the theme once more, and the final chord rings out.
-crash(end['start'], 0.4)
-kick(end['start'])
-for m in [57, 64, 69, 72, 76]:
-    lead(end['start'], m, 0.35, 0.06, duty=0.5)
-final = DURATION - 3.0
-for m in [57, 64, 69, 72, 76, 81]:
-    add(final, (triangle(hz(m), 3.0) + 0.5 * pulse(hz(m), 3.0, 0.5) * 0.3) * env(int(3.0 * SR), attack=0.01, decay=1.2, sustain=0.2, release=1.0), 0.05)
-chime(final, 93, 0.08)
+# Each trick gets its sound, on its cut, if the timeline has it.
+def at(name, then):
+    if name in SHOTS:
+        then(SHOTS[name]['start'])
+
+
+def sung(t):
+    for i, (m, d) in enumerate([(76, 0.18), (79, 0.18), (81, 0.18), (84, 0.8)]):
+        lead(t + 0.3 + i * 0.2, m, d, 0.16, duty=0.5)
+    chime(t + 1.2, 96, 0.05)
+
+
+at('hook', lambda t: (boing(t + 0.1), boing(t + 0.35, 0.16), [blip(t + 0.8, m, 0.25, 0.06, duty=0.25) for m in [69, 72, 76, 81]]))
+at('glasses', lambda t: (blip(t + 0.05, 84), blip(t + 0.14, 91)))
+at('book', lambda t: (pop(t + 0.1, 84, 0.07), pop(t + 0.22, 88, 0.06)))
+at('commit', lambda t: (sparkle(t + 0.1), crash(t, 0.18)))
+at('dizzy', lambda t: (buzz(t + 0.05), buzz(t + 0.35), wobble(t + 0.6, 1.2)))
+at('typing', lambda t: typed(t, len('add a dark mode toggle'), 1.7))
+at('jedi', lambda t: (riser(t, 0.35, 0.16), buzz(t + 0.35, 0.1), sparkle(t + 0.4, 0.06)))
+at('gandalf', lambda t: (kick(t + 0.05, 0.7), crash(t + 0.05, 0.22), [lead(t + 0.3, m, 0.6, 0.06, duty=0.5) for m in [45, 52, 57]]))
+at('songbook', sung)
+at('long', lambda t: [blip(t + 0.05 + i * 0.09, m, 0.09 if i < 3 else 0.35, 0.13, duty=0.25) for i, m in enumerate([72, 76, 79, 84])])
+at('stretch', lambda t: yawn(t + 0.1))
+at('night', lambda t: [chime(t + 0.2 + i * 0.45, m, 0.05) for i, m in enumerate([93, 96, 100, 98])])
+if listing:
+    for i in range(4):
+        pop(listing['start'] + i * BEAT, 76 + i * 3)
+    crash(listing['start'], 0.2)
+if guests:
+    # The guests pop in on every half beat, climbing a pentatonic scale.
+    crash(guests['start'], 0.25)
+    for i, m in enumerate([69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96]):
+        pop(guests['start'] + 0.3 + i * EIGHTH, m, 0.13)
+
+if end:
+    # The end: a stab, the theme once more, and the final chord rings out.
+    crash(end['start'], 0.4)
+    kick(end['start'])
+    for m in [57, 64, 69, 72, 76]:
+        lead(end['start'], m, 0.35, 0.06, duty=0.5)
+    final = DURATION - 3.0
+    for m in [57, 64, 69, 72, 76, 81]:
+        add(final, (triangle(hz(m), 3.0) + 0.5 * pulse(hz(m), 3.0, 0.5) * 0.3) * env(int(3.0 * SR), attack=0.01, decay=1.2, sustain=0.2, release=1.0), 0.05)
+    chime(final, 93, 0.08)
 
 # --- master ----------------------------------------------------------------------------------
 
@@ -353,7 +378,7 @@ fade = int(0.8 * SR)
 mix[-fade:] *= np.linspace(1, 0, fade)[:, None]
 
 os.makedirs(os.path.join(HERE, 'build'), exist_ok=True)
-out = os.path.join(HERE, 'build', 'music.wav')
+out = os.path.join(HERE, 'build', OUT)
 with wave.open(out, 'wb') as w:
     w.setnchannels(2)
     w.setsampwidth(2)

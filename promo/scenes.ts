@@ -34,7 +34,7 @@ const run = (spec: Spec, n: number, cell = CELL) => Array.from({ length: n }, (_
 const TYPED = 'add a dark mode toggle'
 
 const scenes: Record<string, string[]> = {
-  meet: [...run({ emote: 'hop' }, 2).reverse(), ...run({ kind: 'happy', emote: 'wave', hour: 9 }, 14)],
+  meet: [...run({ emote: 'hop', hour: 9 }, 2).reverse(), ...run({ kind: 'happy', emote: 'wave', hour: 9 }, 14)],
   glasses: run({ kind: 'read', hour: 10 }, 8),
   book: run({ kind: 'read', emote: 'book', hour: 10 }, 8),
   commit: run({ kind: 'happy', emote: 'party', hour: 11 }, 8),
@@ -49,6 +49,9 @@ const scenes: Record<string, string[]> = {
   castle: run({ emote: 'castle', hour: 12, castle: 10 }, 8, SMALL),
   stargaze: run({ emote: 'stargaze', hour: 22 }, 8, SMALL),
   end: run({ kind: 'happy', emote: 'wave', hour: 20 }, 16),
+  // Guests full size, for the social cut.
+  jedi: run({ kind: 'run', emote: 'jedi', hour: 14 }, 8),
+  gandalf: run({ kind: 'idle', emote: 'gandalf', hour: 14 }, 8),
 }
 // Each guest, small, for the grid of them.
 const GUESTS: [EmoteName, Kind?][] = [

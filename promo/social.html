@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- One frame of the social cut at a time (promo/social.json): portrait, for a phone's feed. It is
+     made to be watched without sound, as a feed plays it: a big caption on every beat, Clawd from
+     the first frame (the thumbnail), quick cuts, and a last frame that leads back into the first so
+     the loop has no seam. promo/render.cjs calls render(t) and screenshots it for every frame. -->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1350px; overflow: hidden; background: #120e18; }
+  body { font-family: 'Inter Display', 'Inter', sans-serif; color: #f4eefc; }
+  .layer { position: absolute; inset: 0; }
+  #bg { background: radial-gradient(ellipse at 50% 52%, #2a1d33 0%, #160f1d 58%, #0c080f 100%); }
+  #grid { background-image: linear-gradient(#ffffff08 1px, transparent 1px), linear-gradient(90deg, #ffffff08 1px, transparent 1px); background-size: 48px 48px; }
+  #glow { background: radial-gradient(circle at 50% 50%, #ff880060 0%, transparent 42%); }
+  #vignette { background: radial-gradient(ellipse at center, transparent 60%, #000000aa 100%); }
+  .abs { position: absolute; }
+  .row { position: absolute; left: 0; right: 0; text-align: center; }
+  .mono { font-family: 'DejaVu Sans Mono', monospace; }
+  .title { font-weight: 900; letter-spacing: -0.025em; line-height: 1.02; white-space: pre; }
+  .orange { color: #ff8800; }
+  .dim { color: #a8a2b8; }
+  .chip { display: inline-block; font: 30px 'DejaVu Sans Mono', monospace; background: #1d1725; border: 1px solid #3a3346; border-radius: 14px; padding: 14px 26px; color: #d8d2e4; white-space: nowrap; }
+  .said { font: 40px 'DejaVu Sans Mono', monospace; color: #eeeaf4; white-space: pre; }
+  .credit { font: italic 30px 'DejaVu Sans Mono', monospace; color: #8a8298; white-space: pre; }
+  .clawd { position: absolute; left: 0; right: 0; display: flex; justify-content: center; }
+  #flash { background: #fff; opacity: 0; }
+  svg rect { shape-rendering: crispEdges; }
+</style>
+</head>
+<body>
+<div id="bg" class="layer"></div>
+<div id="grid" class="layer"></div>
+<div id="glow" class="layer"></div>
+<div id="stage" class="layer"></div>
+<div id="vignette" class="layer"></div>
+<div id="flash" class="layer"></div>
+<script>
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const outCubic = k => 1 - Math.pow(1 - clamp(k), 3)
+const outBack = k => { k = clamp(k); const c = 1.7; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2) }
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+let TL, SCENES
+function setup(timeline, data) { TL = timeline; SCENES = data.scenes }
+
+const BEAT = () => 60 / TL.bpm
+const STEP = () => BEAT() / 2
+const frameOf = (id, t, start) => { const f = SCENES[id]; return f[Math.floor(Math.max(0, t - start) / STEP()) % f.length] }
+const pulse = t => Math.exp(-((t % BEAT()) / BEAT()) * 5)
+
+// Clawd, big and centred on its body, `top` px down; its sky reaches past its body to the right.
+function clawd(scene, t, start, top, scale = 2.3) {
+  return `<div class="clawd" style="top:${top}px"><div style="transform:translateX(${44 * scale}px) scale(${scale});transform-origin:top center">${frameOf(scene, t, start)}</div></div>`
+}
+
+// The opening frame, the thumbnail too: drawn whole from its first frame, nothing fading in.
+function hook(shot, t) {
+  const [first, second] = shot.title.split('\n')
+  const k = t - shot.start
+  const bob = Math.sin(k * Math.PI * 2) * 6
+  return `
+    <div class="row title" style="top:120px;font-size:106px">${esc(first)}</div>
+    <div class="row title orange" style="top:236px;font-size:150px">${esc(second)}</div>
+    ${clawd(shot.scene, t, shot.start, 520 + bob)}
+    <div class="row said" style="top:990px">${esc(shot.said)}</div>`
+}
+
+// A trick: what happened, big, then Clawd's answer to it.
+function trick(shot, t, index, count) {
+  const k = t - shot.start
+  const slide = outCubic(clamp(k / 0.18))
+  const isCode = /^(git|rm|npm)\b/.test(shot.caption)
+  const said = shot.said.slice(0, Math.round(shot.said.length * clamp((k - 0.15) / 0.45)))
+  const credit = shot.credit ? clamp((k - 0.75) / 0.25) : 0
+  return `
+    <div class="row dim" style="top:110px;font-size:40px;font-weight:700;letter-spacing:0.02em;opacity:${slide}">${esc(shot.label || 'WHEN')}</div>
+    <div class="row title ${isCode ? 'mono' : ''}" style="top:${170 + (1 - slide) * 24}px;font-size:${isCode ? 78 : 92}px;opacity:${slide}">${esc(shot.caption)}</div>
+    ${shot.cause ? `<div class="row" style="top:330px;opacity:${slide}"><span class="chip"><span style="color:#56c271">${esc(shot.cause.slice(0, 1))}</span>${esc(shot.cause.slice(1))}</span></div>` : ''}
+    ${clawd(shot.scene, t, shot.start, 470)}
+    <div class="row orange" style="top:928px;font: 700 34px 'DejaVu Sans Mono', monospace">Clawd</div>
+    <div class="row said" style="top:982px">${esc(said)}</div>
+    ${shot.credit ? `<div class="row credit" style="top:1046px;opacity:${credit}">${esc(shot.credit)}</div>` : ''}
+    <div class="abs" style="left:0;right:0;top:1180px;display:flex;justify-content:center;gap:18px">${Array.from({ length: count }, (_, i) => `<div style="width:14px;height:14px;border-radius:50%;background:${i === index ? '#ff8800' : '#3a3346'}"></div>`).join('')}</div>`
+}
+
+// The end card: why it's worth it, and the one line that installs it. Its text clears in its last
+// moments, so it can hand over to the opening frame.
+function endCard(shot, t, clear = 1) {
+  const k = t - shot.start
+  const a = outBack(clamp(k / 0.35))
+  const b = outCubic(clamp((k - 0.3) / 0.35))
+  const c = outCubic(clamp((k - 0.7) / 0.35))
+  // Clawd stays put through the hand-off; only the words clear.
+  return `${clawd(shot.scene, t, shot.start, 520, 2.3)}<div class="layer" style="opacity:${clear}">
+    <div class="row title" style="top:110px;font-size:${104 * a}px;opacity:${clamp(a * 2)}">Zero tokens.</div>
+    <div class="row title orange" style="top:226px;font-size:${104 * a}px;opacity:${clamp(a * 2)}">Runs locally.</div>
+    <div class="row dim" style="top:${1000 + (1 - b) * 16}px;font-size:36px;opacity:${b}">Ask Claude Code:</div>
+    <div class="row" style="top:${1056 + (1 - b) * 16}px;opacity:${b}"><span class="chip" style="font-size:31px">“Install the Clawd mod from <span class="orange">arduR-O/clawd-pet</span>”</span></div>
+    <div class="row mono orange" style="top:1176px;font-size:32px;opacity:${c}">github.com/arduR-O/clawd-pet</div>
+    <div class="row dim" style="top:1290px;font-size:22px;opacity:${c * 0.7}">An unofficial fan mod. Not made or endorsed by Anthropic.</div></div>`
+}
+
+function render(t) {
+  const shot = TL.shots.find(s => t >= s.start && t < s.end) || TL.shots[TL.shots.length - 1]
+  const tricks = TL.shots.filter(s => s.caption)
+  const k = t - shot.start
+  // In its last moments the end card's words clear, then the opening frame comes back, so the loop
+  // comes round without a seam: never two lots of words over each other.
+  const clear = 1 - clamp((t - (TL.duration - 0.8)) / 0.35)
+  const back = clamp((t - (TL.duration - 0.4)) / 0.4)
+  let html = shot.id === 'hook' ? hook(shot, t) : shot.id === 'end' ? endCard(shot, t, clear) : trick(shot, t, tricks.indexOf(shot), tricks.length)
+  if (back > 0) {
+    const open = TL.shots[0]
+    html = `<div class="layer" style="opacity:${1 - back}">${html}</div><div class="layer" style="opacity:${back}">${hook(open, open.start)}</div>`
+  }
+  document.getElementById('stage').innerHTML = html
+  document.getElementById('glow').style.opacity = 0.4 + 0.4 * pulse(t)
+  document.getElementById('grid').style.backgroundPosition = `0 ${(t * 24) % 48}px`
+  // A quick flash on every cut but the first frame's, which has to read on its own.
+  document.getElementById('flash').style.opacity = t < 0.05 ? 0 : (1 - clamp(k / 0.1)) * 0.22
+}
+</script>
+</body>
+</html>
