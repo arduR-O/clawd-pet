@@ -88,12 +88,14 @@
       "end": 19,
       "label": "AND",
       "title": "it lives right above\nyour prompt",
-      "scene": "glasses",
+      "scene": "glassesTerm",
       "said": "skimming app.py…",
       "transcript": [
         "> add a dark mode toggle",
         "⏺ Read(src/app.py)",
-        "  ⎿  Read 212 lines"
+        "  ⎿  Read 212 lines",
+        "⏺ Read(src/theme.css)",
+        "  ⎿  Read 64 lines"
       ],
       "typed": "and make it remember the choice"
     },
