@@ -1516,7 +1516,7 @@ const SPINNER_FAMILIES: readonly Family[] = [
       ['golden', 'ooh, magic.'],
       ['golden', '✦ sparkly ✦'],
       ['golden', 'abracadabra.'],
-      ['golden', 'how did you do that?'],
+      ['golden', 'pick a card, any card.'],
       ['golden', "I'm not even surprised."],
     ],
     words: ['crystallizing', 'enchanting', 'ionizing', 'manifesting', 'metamorphosing', 'prestidigitating', 'quantumizing', 'razzle-dazzling', 'razzmatazzing', 'sublimating', 'transfiguring', 'transmogrifying', 'transmuting'],

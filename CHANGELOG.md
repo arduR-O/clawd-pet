@@ -9,6 +9,14 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.11
+
+### Changed
+
+- Two more lines that didn't read on their own: during a magic spinner word, "how did you do that?"
+  is "pick a card, any card."; a turn that used no tools ends with "a quick answer, no tools
+  needed." instead of "just a chat this time."
+
 ## 0.5.10
 
 ### Removed

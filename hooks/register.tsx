@@ -1039,7 +1039,7 @@ export const register: Register = (on, options) => {
         : seen.tools >= 15
           ? `finally. ${seen.tools} tools, that was a lot.`
           : seen.tools === 0
-            ? 'just a chat this time.'
+            ? 'a quick answer, no tools needed.'
             : say('done'))
     if (isLong && stretch === undefined) {
       // A long turn's end: a burst of confetti, and the line stays up a while so the person sees it when they look back.
