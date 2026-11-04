@@ -839,13 +839,14 @@ const FACES: Readonly<Record<Face, (body: string) => Look>> = {
   shut: body => marks(body, '─', '─'),
   // Unimpressed: heavy lids.
   heavy: body => marks(body, '▀', '▀'),
-  // Lids half down, looking off to the side.
-  smug: body => marks(body, '¬', '¬'),
+  // Pleased with itself: eyes curved shut in contentment.
+  smug: body => marks(body, '◡', '◡'),
   // Squeezed shut: > <.
   wince: body => marks(body, '>', '<'),
   // Shut, tears streaming down from under each lid.
   cry: body => marks(body, '╥', '╥'),
-  surprised: body => marks(body, 'O', 'O'),
+  // Wide-eyed: round, dark pupils.
+  surprised: body => marks(body, '●', '●'),
   love: body => marks(body, '♥', '♥', HEART_EYES),
   // Seeing stars.
   dizzy: body => marks(body, '×', '×'),

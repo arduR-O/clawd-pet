@@ -9,6 +9,13 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.23
+
+### Changed
+
+- Cuter faces: wide-eyed Clawd has round, dark pupils (● ●) instead of empty rings, and smug Clawd
+  is pleased with itself, eyes curved shut (◡ ◡), instead of ¬ ¬.
+
 ## 0.5.22
 
 ### Changed
