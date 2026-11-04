@@ -1108,8 +1108,9 @@ export function clawdScene(input: {
     // A deerstalker over Clawd's head.
     for (const [i, text] of [...'▗▆▆▆▖'].entries()) put(x + 2 + i, text, DEERSTALKER)
   } else if (emote === 'gandalf') {
-    // A grey wizard's hat, and the glowing tip of the staff in its left claw.
-    for (const [i, text] of [...'▗▟█▙▖'].entries()) put(x + 2 + i, text, WIZARD)
+    // A wide grey wizard's hat, its brim past its head, and the glowing tip of the staff in its left
+    // claw.
+    for (const [i, text] of [...'▄▄▟███▙▄▄'].entries()) put(x + i, text, WIZARD)
     put(x - 1, frame % 2 === 0 ? '✦' : '✧', PEARL)
   } else if (emote === 'jedi') {
     // The top of the lightsaber, humming.

@@ -222,6 +222,12 @@ songbook, the command tells you why, for example an empty or incorrect API key.
 
 ## Costs and privacy
 
+**It's light on your computer.** Clawd draws a new frame only when it has something to show: at
+full speed while Claude works or you type, slower when things are quiet, and hardly at all while
+it sleeps. Measured with Claude Code sitting idle for a minute, Claude Code used about 2.5% of one
+CPU core with Clawd, against about 0.6% with a plugin that does nothing, and about 16 MB more
+memory. `/pet off` hides Clawd and stops its drawing altogether.
+
 **By default, Clawd costs no tokens.** Everything that Clawd does runs on your computer. It adds
 nothing to your requests to Claude. Only two optional settings cost tokens:
 

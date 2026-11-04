@@ -74,6 +74,14 @@ const TYPING_MS = 1_500
 // Where the prompt's text starts, past its `> `.
 const PROMPT_INDENT = 2
 const TICK_MS = 800
+// Each frame makes Claude Code draw its screen again, so Clawd moves at full speed only while
+// something is going on; idle, half as often; away or asleep, a quarter as often.
+const IDLE_TICK_MS = 2 * TICK_MS
+const AWAY_TICK_MS = 4 * TICK_MS
+// Idle this long, Clawd settles to the slower frames.
+const SETTLED_MS = 30_000
+// Typing this recently, the person is here and Clawd's eyes follow at full speed.
+const TYPING_TICK_MS = 3000
 // The frames one picture plays for the apps, a tick each, before the next picture takes over.
 const FILM_FRAMES = 12
 const EMOTE_MS = 4000
@@ -108,6 +116,29 @@ const emote = atom(
   { name: null, line: '', until: 0 },
   { shape: 'emote-1' },
 )
+
+// The mood, act and hiding as Clawd last set them, kept here too: the tick looks at these every
+// 0.8 s, and asking the engine for them that often costs more than drawing Clawd does.
+const kept: { mood: Mood; emote: Emote; isOff: boolean } = {
+  mood: { kind: 'idle', line: '', until: 0, lastActiveAt: 0 },
+  emote: { name: null, line: '', until: 0 },
+  isOff: false,
+}
+async function setMood($: EngineInterface, change: (m: Mood) => Mood) {
+  kept.mood = change(kept.mood)
+  await update($, mood, () => kept.mood)
+  await life.wake()
+}
+async function setEmote($: EngineInterface, shown: Emote) {
+  kept.emote = shown
+  await update($, emote, () => shown)
+  await life.wake()
+}
+async function setOff($: EngineInterface, off: boolean) {
+  kept.isOff = off
+  await update($, isOff, () => off)
+  await life.wake()
+}
 
 // What the module keeps between events; a reload starts it over.
 const life = {
@@ -144,6 +175,8 @@ const life = {
   reads: 0,
   // Commands Clawd had no view on: every other one it just shows, the rest it says its way.
   runs: 0,
+  // Brings Clawd's next frame forward when something happens; set when the session starts.
+  wake: async () => {},
   // The model and effort Claude's requests last named, to notice a change.
   model: '',
   effort: '',
@@ -207,6 +240,26 @@ const CLAUDE_TICS: readonly [Saying, (answer: string) => boolean][] = [
   ['strawberry', answer => /\bstrawberr(y|ies)\b/i.test(answer)],
   ['emDashes', answer => (answer.match(/—/g) ?? []).length >= 4],
 ]
+// The remark for /effort or /model with the level or model typed after it, noting the choice so the
+// next request doesn't remark on it again; undefined for any other command, or either one bare.
+function commandRemark(name: string, args: string): Saying | undefined {
+  const asked = args.trim().toLowerCase()
+  if (asked === '') return undefined
+  if (name === 'effort') {
+    const remark = `${asked}Effort`
+    if (!isSaying(remark)) return undefined
+    life.effort = asked
+    return remark
+  }
+  if (name === 'model') {
+    const { family } = stepRemark({ family: '', effort: '' }, asked, '')
+    if (family === '') return undefined
+    life.model = family
+    return family as Saying
+  }
+  return undefined
+}
+
 // Notes the model and effort a request names, and has Clawd remark on a change (or a session that
 // starts on Fable, or on any effort but the default).
 async function noticeStep($: EngineInterface, model: string, effort: string) {
@@ -216,7 +269,7 @@ async function noticeStep($: EngineInterface, model: string, effort: string) {
   if (remark === undefined) return
   const line = say(remark)
   const now = await $.clock.now()
-  await showEmote($, { name: remark === 'maxEffort' ? 'stretch' : 'peek', line, until: now + stageLeft(now) + EMOTE_MS })
+  await showEmote($, { name: remark === 'maxEffort' ? 'stretch' : 'peek', line, until: now + stageLeft(now) + EMOTE_MS }, true)
 }
 
 // Clawd's opinions on commands, with the emote it acts out when it has one; the first match speaks.
@@ -436,21 +489,23 @@ const GUEST_NAMES: readonly (EmoteName | null)[] = GUESTS.map(([name]) => name)
 
 // Shows an emote. A guest is rare, so it gets its gravitas: it walks on once any song ends, holds the
 // stage GUEST_MS, and only another guest, or the person, takes it from it.
-async function showEmote($: EngineInterface, shown: Emote) {
-  if (GUEST_NAMES.includes(shown.name)) {
+// Shows an act. A guest, or an act that asks to (`holds`), keeps the stage for GUEST_MS over whatever
+// smaller comes up meanwhile, such as the reactions to Claude's first tools in a turn.
+async function showEmote($: EngineInterface, shown: Emote, holds = false) {
+  if (holds || GUEST_NAMES.includes(shown.name)) {
     const now = await $.clock.now()
     const from = now + Math.max(0, life.song.until - now)
     life.guest = { name: shown.name, line: shown.line, from, until: from + GUEST_MS }
-    await update($, emote, (): Emote => ({ ...shown, until: from + GUEST_MS }))
+    await setEmote($, { ...shown, until: from + GUEST_MS })
     return
   }
-  await update($, emote, (): Emote => shown)
+  await setEmote($, shown)
 }
 
 // Shows a reaction for a few seconds, then Clawd settles back.
 async function react($: EngineInterface, kind: Kind, line: string, ms = REACTION_MS) {
   const now = await $.clock.now()
-  await update($, mood, (): Mood => ({
+  await setMood($, (): Mood => ({
     kind,
     line,
     until: now + stageLeft(now) + ms,
@@ -781,6 +836,28 @@ function lastfmUnset(lastfm: { user: string; key: string }): string {
 
 // Now and then while Claude works, Clawd does a little something: then the person is waiting,
 // not reading Claude's answer.
+// How often Clawd moves on a frame now: every tick while Claude works, a song, a guest, an act or a
+// mood is on, or the person is typing; idle or at a pastime, every other, and every fourth once
+// nothing has happened for a while; asleep, every fourth.
+async function frameEvery($: EngineInterface, now: number, offsetMinutes: number): Promise<number> {
+  const m = kept.mood
+  const act = kept.emote
+  // Something that ended in the last couple of ticks still counts, so the frame that clears it comes on time.
+  const lately = now - 2 * TICK_MS
+  const isOn =
+    life.isBusy ||
+    life.waitingOn !== undefined ||
+    [act.until, m.until, life.song.until, life.guest.until, life.status.until].some(until => until > lately) ||
+    now - life.typed.at < TYPING_TICK_MS
+  if (isOn) return TICK_MS
+
+  const quiet = now - Math.max(m.lastActiveAt, m.until, act.until, life.typed.at)
+  const isAsleep = now - m.lastActiveAt > SLEEP_AFTER_MS && pastimeOf(m.lastActiveAt, now, localTime(now, offsetMinutes)) === 'sleep'
+  const isPastime = now - m.lastActiveAt > SLEEP_AFTER_MS && !isAsleep
+
+  return isAsleep || (!isPastime && quiet > SETTLED_MS) ? AWAY_TICK_MS : IDLE_TICK_MS
+}
+
 async function maybeEmote($: EngineInterface, offsetMinutes: number) {
   // Runs every tick: the cheap checks first.
   if (!life.isBusy || life.waitingOn !== undefined) {
@@ -846,10 +923,10 @@ export const register: Register = (on, options) => {
       await $.tool.register(TALK_SPEC)
     }
     const now = await $.clock.now()
-    await update($, mood, m => ({ ...m, lastActiveAt: now }))
+    await setMood($, m => ({ ...m, lastActiveAt: now }))
     life.nextEmoteAt = now + EMOTE_GAP_MS / 2
     const wasOff = (await $.store.get('off')) === true
-    await update($, isOff, () => wasOff)
+    await setOff($, wasOff)
     const castle = (await $.store.get('castle')) as { day?: string; turns?: number } | undefined
     life.castleDay = castle?.day ?? ''
     life.castleTurns = Number(castle?.turns ?? 0)
@@ -858,14 +935,30 @@ export const register: Register = (on, options) => {
     $.clock.after(1000, () => {
       void refresh()
     })
-    $.clock.every(TICK_MS, () => {
-      void (async () => {
-        // Hidden, nothing moves: no redraws until /pet on.
-        if (await read($, isOff)) return
-        await update($, tick, n => n + 1)
-        await maybeEmote($, offsetMinutes)
-      })()
-    })
+    // Each frame schedules the next, when it is due; anything that happens wakes Clawd sooner. Hidden,
+    // nothing is scheduled at all until /pet on wakes it.
+    let due = Infinity
+    let chain = 0
+    const schedule = (delay: number, now: number) => {
+      const mine = (chain += 1)
+      due = now + delay
+      $.clock.after(delay, () => {
+        if (mine === chain) void frameOn()
+      })
+    }
+    const frameOn = async () => {
+      due = Infinity
+      if (kept.isOff) return
+      const now = await $.clock.now()
+      await update($, tick, n => n + 1)
+      await maybeEmote($, offsetMinutes)
+      schedule(await frameEvery($, now, offsetMinutes), now)
+    }
+    life.wake = async () => {
+      const now = await $.clock.now()
+      if (!kept.isOff && due - now > TICK_MS) schedule(TICK_MS, now)
+    }
+    schedule(TICK_MS, await $.clock.now())
 
     return next(e)
   })
@@ -891,7 +984,12 @@ export const register: Register = (on, options) => {
     const m = await read($, mood)
     const wasAway = now - m.lastActiveAt > SLEEP_AFTER_MS && now >= m.until
     let line: string
-    if (e.command !== undefined) {
+    const choice = e.command === undefined ? undefined : commandRemark(e.command.name, e.command.args)
+    if (choice !== undefined) {
+      // /effort max, /model fable: remarked on at once, and held, rather than at the next request.
+      line = say(choice)
+      await showEmote($, { name: choice === 'maxEffort' ? 'stretch' : 'peek', line, until: now + stageLeft(now) + EMOTE_MS }, true)
+    } else if (e.command !== undefined) {
       line = onSkill(e.command.name, `/${short(e.command.name, 30)}? sure.`)
       const pose = skillPose(e.command.name)
       if (pose !== undefined) {
@@ -913,7 +1011,7 @@ export const register: Register = (on, options) => {
         // Someone is whining: call the wambulance. Not too often.
         life.quipped.wambulance = now
         line = say('wambulance')
-        await showEmote($, ({ name: 'wambulance', line, until: now + stageLeft(now) + EMOTE_MS }))
+        await showEmote($, ({ name: 'wambulance', line, until: now + stageLeft(now) + EMOTE_MS }), true)
       } else if (/\bstrawberr(y|ies)\b/i.test(e.text)) {
         // The famous count: Clawd has done it.
         line = say('strawberry')
@@ -921,7 +1019,7 @@ export const register: Register = (on, options) => {
       } else if (/\bultracode\b/i.test(e.text)) {
         // Ultracode: a whole crew of agents is about to set off.
         line = say('ultracode')
-        await showEmote($, ({ name: 'ultracode', line, until: now + stageLeft(now) + EMOTE_MS }))
+        await showEmote($, ({ name: 'ultracode', line, until: now + stageLeft(now) + EMOTE_MS }), true)
       } else if (e.text.length >= DUCK_PROMPT && DEBUGGING.test(e.text)) {
         // A long prompt working through a bug: a rubber duck turns up to listen.
         line = say('duck')
@@ -950,6 +1048,7 @@ export const register: Register = (on, options) => {
   on('prompt.edit', async ($, e, next) => {
     const now = await $.clock.now()
     life.typed = { at: now, draft: e.text.slice(0, e.start) + e.inputText + e.text.slice(e.end), caret: e.start + e.inputText.length }
+    void life.wake()
     life.sitting = satAt(life.sitting, now)
 
     return next(e)
@@ -1152,10 +1251,10 @@ export const register: Register = (on, options) => {
     life.song.until = 0
     life.guest.until = 0
     life.status.until = 0
-    await update($, mood, m => ({ ...m, lastActiveAt: now }))
+    await setMood($, m => ({ ...m, lastActiveAt: now }))
     if (asked === 'off' || asked === 'on') {
       await $.store.set('off', asked === 'off')
-      await update($, isOff, () => asked === 'off')
+      await setOff($, asked === 'off')
 
       return { text: asked === 'off' ? 'Pet hidden until /pet on.' : 'Pet back.' }
     }
@@ -1169,9 +1268,11 @@ export const register: Register = (on, options) => {
       }
       life.status = { line: 'adding songs…', until: now + REFRESH_MS }
       await update($, tick, n => n + 1)
+      await life.wake()
       const added = await refreshSongbook($, lastfm, songbookEffort, isLyrics, isSkippingHindi, dayOf(localTime(await $.clock.now(), offsetMinutes)), true, true)
       life.status = { line: added.line, until: (await $.clock.now()) + STATUS_MS }
       await update($, tick, n => n + 1)
+      await life.wake()
 
       return { text: added.text }
     }
@@ -1184,9 +1285,11 @@ export const register: Register = (on, options) => {
       // Clawd holds up how it's going, over whatever else comes up, until it's done and a while after.
       life.status = { line: 'writing new songs…', until: (await $.clock.now()) + REFRESH_MS }
       await update($, tick, n => n + 1)
+      await life.wake()
       const refreshed = await refreshSongbook($, lastfm, songbookEffort, isLyrics, isSkippingHindi, dayOf(localTime(await $.clock.now(), offsetMinutes)), true)
       life.status = { line: refreshed.line, until: (await $.clock.now()) + STATUS_MS }
       await update($, tick, n => n + 1)
+      await life.wake()
 
       return { text: refreshed.text }
     }

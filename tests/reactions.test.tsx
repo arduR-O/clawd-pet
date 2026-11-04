@@ -243,7 +243,7 @@ test('turning down something destructive brings out the wizard', { options: OPTI
 
   expect(await ui.find({ type: 'Text', text: /^you shall not pass!$/ })).toBeTruthy()
   // The grey hat, and the staff's glowing tip.
-  expect(await ui.find({ type: 'Text', text: /▗▟█▙▖/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /▟███▙/ })).toBeTruthy()
   await ui.unmount()
 })
 
@@ -754,4 +754,32 @@ test('a change of effort or model gets a remark; a session starting on the defau
   expect(stepRemark({ family: 'opus', effort: 'medium' }, 'claude-opus-x', 'medium').remark).toBeUndefined()
   expect(stepRemark({ family: 'opus', effort: 'medium' }, 'claude-opus-x', 'low').remark).toBe('lowEffort')
   expect(stepRemark({ family: 'opus', effort: 'medium' }, 'claude-sonnet-x', 'medium').remark).toBe('sonnet')
+})
+
+test("the wambulance isn't talked over by the turn's first tools", { options: OPTIONS }, async ($, on) => {
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  const clock = await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.prompt.submit({ ...SUBMITTED, text: 'ugh, still broken' })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/app.py' })
+  await clock.advance(2_000)
+
+  const texts = (await ui.findAll({ type: 'Text' })).map(one => one.text)
+  expect(texts.some(text => (SAYINGS.wambulance as readonly string[]).includes(text))).toBe(true)
+  await ui.unmount()
+})
+
+test('/effort max is remarked on at once, and the remark holds over the next tools', { options: OPTIONS }, async ($, on) => {
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  const clock = await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.prompt.submit({ ...SUBMITTED, text: '/effort max', command: { name: 'effort', args: 'max' } })
+  await $.tool.call({ tool: 'Read', file_path: '/repo/app.py' })
+  await clock.advance(2_000)
+
+  const texts = (await ui.findAll({ type: 'Text' })).map(one => one.text)
+  expect(texts.some(text => (SAYINGS.maxEffort as readonly string[]).includes(text))).toBe(true)
+  await ui.unmount()
 })

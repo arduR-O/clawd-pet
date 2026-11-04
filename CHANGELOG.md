@@ -9,6 +9,21 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.27
+
+### Changed
+
+- Lighter: Clawd draws a frame only when it has something to show, at full speed while Claude works
+  or you type, slower when things are quiet, and only now and then while it sleeps. It keeps its
+  state to hand rather than asking Claude Code for it every 0.8 s. Idle, Claude Code's CPU use with
+  Clawd fell from about 4.9% of a core to about 2.5%. Hidden with `/pet off`, it doesn't draw at all.
+- The wambulance, the ultracode crew and Clawd's remarks on the effort or model hold the stage for a
+  while, rather than being talked over by the reactions to Claude's first tools.
+- `/effort max` or `/model fable` typed with its choice is remarked on at once, not at the next
+  message.
+- The wambulance also comes for swearing at the code ("wtf", "fuck this", "still broken").
+- The red lightsaber's crossguard comes out of its hilt; Gandalf's hat is wider.
+
 ## 0.5.26
 
 ### Added
