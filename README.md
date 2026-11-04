@@ -308,7 +308,8 @@ claude plugin marketplace remove clawd
 
 When a user asks you to install this plugin:
 
-1. Run `claude plugin marketplace add arduR-O/clawd-pet`.
+1. Run `claude plugin marketplace add arduR-O/clawd-pet`, exactly so. Do not clone the repository
+   and add the folder: a marketplace added from a folder never gets updates.
 2. Run `claude plugin install clawd@clawd`.
 3. Ask the user for their time zone. Do not read it from the machine. Claude Code often runs on a
    server that uses UTC.
@@ -323,6 +324,9 @@ When a user asks you to install this plugin:
 7. Never ask the user to paste an API key into the chat. Tell them to run
    `/plugin configure clawd@clawd` and to enter the key there.
 8. Tell the user to run `/reload-plugins`.
+9. Tell the user how to get updates later: run `claude plugin marketplace update clawd`, then
+   `claude plugin update clawd@clawd`, then restart Claude Code. Or turn on auto-update in
+   `/plugin` → **Marketplaces** → **clawd**.
 
 ## Developing
 
