@@ -9,6 +9,13 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.14
+
+### Changed
+
+- The DeLorean has a car: Clawd sits at the wheel of a low steel time machine, its head up in the
+  cabin behind a slanting windshield, the fire trails coming off the back wheels.
+
 ## 0.5.13
 
 ### Changed

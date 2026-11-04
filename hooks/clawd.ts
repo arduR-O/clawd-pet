@@ -30,6 +30,10 @@ const RED_EYE = '#ff2a2a'
 const FLAME = '#ff6a3d'
 // A bolt of lightning.
 const BOLT = '#9fd8ff'
+// The time machine: its brushed steel, its glass, its wheels.
+const STEEL = '#b8bcc6'
+const GLASS = '#7fa8c9'
+const WHEEL = '#4a4552'
 // Near black, a shade off the dark terminals' own so the ninja is stealthy but still there.
 const NINJA = '#3a3a46'
 const NINJA_TAILS = '#5a5a68'
@@ -913,7 +917,7 @@ export function clawdScene(input: {
   // Nodding along, a beat every two frames.
   else if (emote === 'vibe') dx = Math.floor(frame / 2) % 2
   // Off to the right at 88 miles an hour, shuddering, its fire trails streaming out behind it.
-  else if (emote === 'delorean') dx = 4 + (frame % 2)
+  else if (emote === 'delorean') dx = 2 + (frame % 2)
   const x = BASE + dx
 
   const sky: Segment[] = Array.from({ length: SKY }, () => ({ text: ' ' }))
@@ -1143,11 +1147,22 @@ export function clawdScene(input: {
     arms = [pad(x - 1), { text: '│', color: ROD }, { text: claws, color: body }]
     feet = [pad(x - 1), { text: '│', color: ROD }, { text: legs, color: body }]
   } else if (emote === 'delorean') {
-    // Speed streaks behind its claws, and fire trails flickering along the ground behind it, at 88
-    // miles an hour.
-    arms = [{ text: (frame % 2 === 0 ? '─ ' : ' ─').repeat(x).slice(0, x), color: MOON }, { text: claws, color: body }]
-    const trail = Array.from({ length: x }, (_, at): Segment => ({ text: '═', color: (at + frame) % 2 === 0 ? FLAME : GOLD }))
-    feet = [...trail, { text: legs, color: body }]
+    // At the wheel of a low steel time machine, facing right: its head up in the cabin with the
+    // windshield slanting down in front of it, the car's wedge of a body below, the wheels under
+    // that. Speed streaks and fire trails run out behind it, at 88 miles an hour.
+    const behind = x - 1
+    const streaks = { text: (frame % 2 === 0 ? '─ ' : ' ─').repeat(behind).slice(0, behind), color: MOON }
+    face = [pad(x), { text: '▐', color: STEEL }, ...eyes.slice(1, -1), { text: '█', color: body }, { text: '◣', color: GLASS }]
+    arms = [streaks, { text: '▐█████████▄▖', color: STEEL }]
+    const wheel = { text: '▀▀', color: STEEL, backgroundColor: WHEEL }
+    feet = [
+      ...Array.from({ length: behind }, (_, at): Segment => ({ text: '═', color: (at + frame) % 2 === 0 ? FLAME : GOLD })),
+      { text: '▝▀', color: STEEL },
+      wheel,
+      { text: '▀▀▀▀', color: STEEL },
+      wheel,
+      { text: '▀▘', color: STEEL },
+    ]
   } else if (emote === 'ninja') {
     // Masked in black to the face's edges, only a slit of orange round the eyes showing.
     face = face.map(part => (part.text === '▐' || part.text === '▌' ? { ...part, color: NINJA } : part))
