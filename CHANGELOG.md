@@ -9,6 +9,14 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.15
+
+### Changed
+
+- A prettier DeLorean: a roof over Clawd's head in the cabin, a door seam, a red tail light and a
+  gold headlight, a fire trail that burns down to embers behind the wheels, and blue sparks crackling
+  off the back; the lightning strikes ahead of the car.
+
 ## 0.5.14
 
 ### Changed
