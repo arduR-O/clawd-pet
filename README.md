@@ -1,8 +1,9 @@
 # Clawd: a pet crab for Claude Code
 
 Clawd is a small pixel crab that lives above your prompt in Claude Code. It watches Claude work
-and reacts to it. It puts on glasses to read, gets dizzy when tests fail, and throws confetti
-when Claude commits your work.
+and reacts to it. It rolls its eyes at *"You're absolutely right!"* and keeps count, throws
+confetti when Claude commits your work, drives a DeLorean when Claude reverts, and calls in a crew
+of tiny crabs when you type "ultracode".
 
 <p align="center"><img src="assets/clawd.svg" alt="Clawd above the Claude Code prompt: waving, reading, dizzy, watching you type, a Jedi, singing, petted, meditating and celebrating" width="640"></p>
 
@@ -54,6 +55,12 @@ If Clawd does not appear, see [Troubleshooting](#troubleshooting).
 - When Claude reads a file, Clawd puts on big reading glasses, or now and then holds up a book.
   What it says changes each time, and it names the site when Claude reads the web.
 - When Claude commits your work, Clawd throws confetti.
+- When Claude tells you *"You're absolutely right!"*, Clawd rolls its eyes and keeps count. Now and
+  then it notices Claude's other habits too: apologies, "delve", "great question", em dashes.
+- When the conversation is compacted, Clawd squishes flat, with a different line each time:
+  *"previously, on this session…"*, *"does this message spark joy?"*
+- When the effort level or the model changes, Clawd says so: *"running on 3 neurons."*, *"ooh,
+  Fable. fancy."* An ultracode prompt calls in the whole crew, and a headcount climbs to ×40.
 - When a tool fails, Clawd winces. After two failures in a row, it facepalms. After three, it
   gets dizzy.
 - When Claude finishes a prompt, Clawd celebrates. After more than two minutes of work, it
@@ -64,6 +71,9 @@ If Clawd does not appear, see [Troubleshooting](#troubleshooting).
 **It reacts to you.**
 
 - When you type, its eyes follow the cursor.
+- When you whine or swear at the code ("ugh", "still broken", "wtf"), an ambulance pulls up, siren
+  going: *"wee-woo! someone call the wambulance."* Not more than once every half hour.
+- When you mention strawberries, Clawd tells you how many r's there are. It counted.
 - When you allow a permission request, Clawd thanks you. When you refuse one, it shrugs.
 - After 50 minutes of work, Clawd stretches and tells you to take a break.
 - If you set a leave time, Clawd counts down to it and tells you to go home. It reminds you now and
@@ -86,7 +96,7 @@ If Clawd does not appear, see [Troubleshooting](#troubleshooting).
 Claude can make Clawd act, sing or say how it is, two times per prompt at most. This setting is
 off by default because it adds tokens to each request. See [Costs and privacy](#costs-and-privacy).
 
-<p align="center"><img src="assets/tricks.svg" alt="Clawd watches you type, thanks you when you allow a permission request, has a face for every mood, wears reading glasses, suggests stretch breaks and celebrates long work" width="640"></p>
+<p align="center"><img src="assets/tricks.svg" alt="Clawd watches you type, counts Claude's you're absolutely rights, calls the wambulance, calls in the ultracode crew, has a face for every mood and celebrates long work" width="640"></p>
 
 ## Guests
 
@@ -107,11 +117,12 @@ or another guest still comes at once. Each guest comes for a reason:
 | A mug of coffee | `coffee` | You send your first prompt of the day between 05:00 and 11:00. |
 | An astronaut | `astronaut` | Claude stops because of an API error. Clawd puts on a white spacesuit and helmet. *"Houston, we have a problem."* |
 | A 1-UP mushroom | `oneup` | The tests pass after they failed earlier for the same prompt. |
-| A whale | `whale` | Claude runs `docker` or `podman`. |
+| A whale | `whale` | Claude runs `docker` or `podman`. Clawd rides it. |
+| A gentleman in a top hat and monocle | `posh` | Claude's spinner says "Pontificating". *"Indubitably."* |
 
-`git reset --hard` and `rm -rf` get a warning from Clawd, not a guest.
+`git reset --hard` and `rm -rf` get a warning from Clawd, not a guest. Clearing files out in bulk (`git clean`, `rm -r`) gets a snap: *"Perfectly balanced, as all things should be."*
 
-<p align="center"><img src="assets/guests.svg" alt="Clawd's guests: Sherlock, a Jedi, Gandalf, the Terminator, a DeLorean, a ninja, a rubber duck, Neo, coffee, an astronaut, a 1-UP mushroom and a whale" width="640"></p>
+<p align="center"><img src="assets/guests.svg" alt="Clawd's guests: Sherlock, a Jedi, Gandalf, the Terminator, a DeLorean, a ninja, a rubber duck, Neo, coffee, an astronaut, a 1-UP mushroom, a whale and a gentleman" width="640"></p>
 
 To see a guest now, run `/pet` and its name, for example `/pet sherlock`. To see a random guest,
 run `/pet guest`.
@@ -141,7 +152,7 @@ All commands start with `/pet`. When you type `/pet `, Claude Code shows what ca
 `stargaze`, `wish`, `yawn`, `hearts`, `hop`, `wiggle`, `blush`, `shy`, `bow`, `golden`, `enough`,
 `milestone`, `sixseven`, `seagull`, `molt`, `cousin`, `pearl`, `tide`, `party`, `treat`,
 `meditate`, `uwu`, `stretch`, `facepalm`, `squish`, `rain`, `hiccup`, `fish`, `juggle`, `castle`,
-`sing`, `vibe`, `chef`, `hardhat`, `cry`, `spin`, `dizzy`, `tap`, `book`, and the twelve guests above.
+`sing`, `vibe`, `chef`, `hardhat`, `cry`, `spin`, `dizzy`, `tap`, `book`, `wizard`, and the thirteen guests above.
 
 ## Settings
 

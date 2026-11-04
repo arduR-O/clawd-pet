@@ -111,7 +111,7 @@ export async function typeIn($: Args[0], text: string) {
 export const SUMMARY: SessionMessage = { role: 'user', text: 'summary so far', toolUses: [] }
 
 // The thinking family's acts, in order; the first and fourth are meditations, saying any of CALM.
-export const PONDERING = ['calm', 'shh. big brain at work.', 'blub… deep thoughts…', 'calm', 'thinking about shells…', 'blub… inner peace…']
+export const PONDERING = ['calm', 'shh. big brain at work.', 'blub… deep thoughts…', 'calm', 'thinking about shells…', 'blub… inner peace…', 'as a large language crab, I cannot…', "counting the r's in strawberry…", 'just predicting the next token…']
 
 // Shows the band working with `word` on a thinking spinner. No prompt starts the turn, so
 // Clawd's emotes, which come only in a turn, stay off the spinner's acts.

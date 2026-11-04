@@ -52,6 +52,7 @@ import {
   pickGuest,
   GUESTS,
   spinnerTake,
+  stepRemark,
   spinnerAct,
   spinnerNod,
   SPINNER_CYCLE_MS,
@@ -143,6 +144,11 @@ const life = {
   reads: 0,
   // Commands Clawd had no view on: every other one it just shows, the rest it says its way.
   runs: 0,
+  // The model and effort Claude's requests last named, to notice a change.
+  model: '',
+  effort: '',
+  // When Clawd last made each quip about something Claude said, so none wears thin.
+  quipped: {} as Record<string, number>,
   // A status Clawd holds up, as how `/pet refresh-songs` is going, drawn over whatever comes up meanwhile.
   status: { line: '', until: 0 },
   // Times Claude has talked to Clawd this turn.
@@ -178,13 +184,48 @@ const DESTRUCTIVE = /\brm\s|git\s+reset\s+--hard|git\s+push\b.*(--force|\s-f\b)|
 // A prompt that is debugging out loud: a rubber duck turns up to listen.
 const DEBUGGING = /\b(why|bug|broken|error|fails?|failing|doesn'?t work|weird|stuck)\b/i
 const DUCK_PROMPT = 280
+// Claude telling the person they're absolutely right; the person whining, for the wambulance.
+// Whining: groans, giving up, "still broken", and swearing at the code that won't work.
+const WHINING = new RegExp(
+  [
+    String.raw`\bu+g+h+\b`, String.raw`\ba+r+g+h+\b`, String.raw`\bwh+y{3,}\b`, String.raw`\bno{4,}\b`,
+    String.raw`\b(this|it) (sucks|is (so )?(dumb|stupid|painful|annoying))\b`, String.raw`\bso annoying\b`, String.raw`\bi hate (this|it|you)\b`,
+    String.raw`\bi give up\b`, String.raw`\b(please|pls|plz) (just )?work\b`, String.raw`\bkill me\b`,
+    String.raw`\b(still|again) (broken|not working|failing)\b`, String.raw`\bnothing works\b`, String.raw`\bwhy (won'?t|doesn'?t|isn'?t|can'?t) (this|it)\b`,
+    String.raw`\b(wtf|ffs|fml|omfg)\b`, String.raw`\bfuck(ing)? (this|it|that|you)\b`, String.raw`\b(what|why) the fuck\b`, String.raw`\b(this|that|it'?s) (is )?(bull)?shit\b`,
+    String.raw`\bdamn ?it\b`, String.raw`\bgod ?dam+n?it\b`,
+  ].join('|'),
+  'i',
+)
+const ABSOLUTELY_RIGHT = /\byou['’]re (absolutely|completely|totally|exactly) right\b/i
+// Claude's other tics, and Clawd's quip at each; the same quip comes at most every QUIP_EVERY_MS.
+const QUIP_EVERY_MS = 30 * 60_000
+const CLAUDE_TICS: readonly [Saying, (answer: string) => boolean][] = [
+  ['apology', answer => /\b(I apologi[sz]e|my apologies|sorry for the confusion|sorry about that)\b/i.test(answer)],
+  ['delve', answer => /\bdelv(e|es|ing)\b/i.test(answer)],
+  ['greatQuestion', answer => /\bgreat question\b/i.test(answer)],
+  ['strawberry', answer => /\bstrawberr(y|ies)\b/i.test(answer)],
+  ['emDashes', answer => (answer.match(/—/g) ?? []).length >= 4],
+]
+// Notes the model and effort a request names, and has Clawd remark on a change (or a session that
+// starts on Fable, or on any effort but the default).
+async function noticeStep($: EngineInterface, model: string, effort: string) {
+  const { remark, family } = stepRemark({ family: life.model, effort: life.effort }, model, effort)
+  life.model = family || life.model
+  life.effort = effort || life.effort
+  if (remark === undefined) return
+  const line = say(remark)
+  const now = await $.clock.now()
+  await showEmote($, { name: remark === 'maxEffort' ? 'stretch' : 'peek', line, until: now + stageLeft(now) + EMOTE_MS })
+}
 
 // Clawd's opinions on commands, with the emote it acts out when it has one; the first match speaks.
 // A line that names one of Clawd's sayings rotates through it.
 const ON_COMMANDS: readonly [RegExp, Kind, string, EmoteName?][] = [
-  [/\brm\s+-[a-z]*(rf|fr)/, 'oops', 'rm -rf?! not my shells!'],
+  [/\brm\s+-[a-z]*(rf|fr)/, 'oops', 'rmrf'],
   [/git\s+reset\s+--hard/, 'oops', 'reset --hard. no take-backs.'],
   [FORCE_PUSH, 'run', 'jedi', 'jedi'],
+  [/git\s+push\b.*\b(main|master)\b/, 'happy', 'pushToMain'],
   [/\bsudo\b/, 'run', 'ooh, sudo. fancy.', 'golden'],
   // Digging through who wrote what, and when it broke.
   [/git\s+(blame|bisect)\b|git\s+log\b.*\s-[SG]/, 'read', 'sherlock', 'sherlock'],
@@ -194,6 +235,8 @@ const ON_COMMANDS: readonly [RegExp, Kind, string, EmoteName?][] = [
   [/git\s+stash\b/, 'run', 'ninja', 'ninja'],
   [/\b(kill|pkill|killall)\b/, 'run', 'terminator', 'terminator'],
   [/\b(docker|podman)\b/, 'run', 'whale', 'whale'],
+  // Clearing out files in bulk.
+  [/git\s+clean\b|\brm\s+-[a-z]*r[a-z]*\s/, 'run', 'snap'],
   [/git\s+commit/, 'happy', 'commitIt'],
   [/git\s+(status|diff|log)/, 'read', 'damage', 'peek'],
   [TESTS, 'run', 'watching'],
@@ -214,7 +257,7 @@ const ON_SKILLS: Readonly<Record<string, string>> = {
   'code-review': 'red pen time.',
   'security-review': 'checking the locks.',
   simplify: 'less is more.',
-  clear: 'fresh start. who are you again?',
+  clear: 'cleared',
   compact: 'squishing memories.',
   resume: 'welcome back.',
   theme: 'ooh, new colors?',
@@ -237,7 +280,9 @@ const NAMES_CLAWD = /\bclawd\b/i
 const PRAISES = /\b(thanks?|thank you|ty|good|great|nice|love|best|cute)\b/i
 
 // Clawd's line for a slash command or skill; `fallback` for names it has no view on.
-const onSkill = (name: string, fallback: string) => ON_SKILLS[name.split(':').pop() ?? name] ?? fallback
+// A line that names one of Clawd's sayings rotates through it.
+const skillLine = (line: string) => (isSaying(line) ? say(line) : line)
+const onSkill = (name: string, fallback: string) => skillLine(ON_SKILLS[name.split(':').pop() ?? name] ?? fallback)
 
 // What Clawd remembers of the current turn, to hold opinions about it.
 type Seen = {
@@ -327,7 +372,7 @@ function opinion(e: ToolUse, seen: Seen): [Kind, string, EmoteName?] | undefined
     const known = ON_SKILLS[name.split(':').pop() ?? name]
     if (known === undefined) return ['think', say('neo').replace('{skill}', short(name.split(':').pop() ?? name, 20)), 'neo']
 
-    return ['think', known, skillPose(name)]
+    return ['think', skillLine(known), skillPose(name)]
   }
 
   if (e.tool === 'Bash') {
@@ -864,6 +909,19 @@ export const register: Register = (on, options) => {
         await $.store.set('coffee', today)
         line = say('coffee')
         await showEmote($, ({ name: 'coffee', line, until: now + stageLeft(now) + EMOTE_MS }))
+      } else if (WHINING.test(e.text) && now - (life.quipped.wambulance ?? -Infinity) >= QUIP_EVERY_MS) {
+        // Someone is whining: call the wambulance. Not too often.
+        life.quipped.wambulance = now
+        line = say('wambulance')
+        await showEmote($, ({ name: 'wambulance', line, until: now + stageLeft(now) + EMOTE_MS }))
+      } else if (/\bstrawberr(y|ies)\b/i.test(e.text)) {
+        // The famous count: Clawd has done it.
+        line = say('strawberry')
+        await showEmote($, ({ name: 'peek', line, until: now + stageLeft(now) + EMOTE_MS }))
+      } else if (/\bultracode\b/i.test(e.text)) {
+        // Ultracode: a whole crew of agents is about to set off.
+        line = say('ultracode')
+        await showEmote($, ({ name: 'ultracode', line, until: now + stageLeft(now) + EMOTE_MS }))
       } else if (e.text.length >= DUCK_PROMPT && DEBUGGING.test(e.text)) {
         // A long prompt working through a bug: a rubber duck turns up to listen.
         line = say('duck')
@@ -1000,6 +1058,15 @@ export const register: Register = (on, options) => {
     return next(e)
   }).catch(($, e, next) => next(e))
 
+  // Which model and effort Claude's requests name: Clawd remarks on a change, and on a session that
+  // starts on max, extra-high, high or low effort, or on Fable.
+  // The request goes on at once; Clawd's remark follows beside it.
+  on('turn.step', async function* ($, e, next) {
+    if (e.agentId === undefined) void noticeStep($, e.model, typeof e.effort === 'string' ? e.effort : '')
+
+    return yield* next(e)
+  })
+
   on('turn.complete', async ($, e, next) => {
     // A subagent's end raises this too; only the main conversation's turn counts.
     if (e.agentId !== undefined) {
@@ -1037,9 +1104,29 @@ export const register: Register = (on, options) => {
     }
     const minutes = Math.round(e.durationMs / 60_000)
     const isLong = e.durationMs >= LONG_TURN_MS
+    // What Claude said, when it says the things it's known for: "you're absolutely right" gets an
+    // eye-roll, counted, and its other tics a quip now and then.
+    let quip: string | undefined
+    if (leaving === undefined && stretch === undefined && !isLong) {
+      if (ABSOLUTELY_RIGHT.test(e.answer)) {
+        const times = Number((await $.store.get('absolutelyRight')) ?? 0) + 1
+        await $.store.set('absolutelyRight', times)
+        quip = `"you're absolutely right" #${times}.`
+        await showEmote($, ({ name: 'enough', line: quip, until: now + stageLeft(now) + EMOTE_MS }))
+      } else {
+        // Its other tics, each at most once in a while.
+        const tic = CLAUDE_TICS.find(([name, isIn]) => isIn(e.answer) && now - (life.quipped[name] ?? -Infinity) >= QUIP_EVERY_MS)
+        if (tic !== undefined) {
+          life.quipped[tic[0]] = now
+          quip = say(tic[0])
+          await showEmote($, ({ name: 'peek', line: quip, until: now + stageLeft(now) + EMOTE_MS }))
+        }
+      }
+    }
     const line =
       leaving ??
       stretch ??
+      quip ??
       (isLong
         ? `done! that took ${minutes} min.`
         : seen.tools >= 15

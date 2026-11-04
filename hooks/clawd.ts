@@ -27,6 +27,16 @@ const ROD = '#c9a36b'
 // mug, a space helmet and suit, a 1-UP mushroom and a whale.
 const DEERSTALKER = '#9c7a4f'
 const SABER = '#6dff8f'
+// The lightsabers a Jedi may bring, one every SABER_MS: single blades of several colours, a red one
+// with a crossguard, and a red double blade.
+const SABER_MS = 10 * 60_000
+const SABERS: readonly { color: string; style: 'single' | 'crossguard' | 'double' }[] = [
+  { color: SABER, style: 'single' },
+  { color: '#5fb4ff', style: 'single' },
+  { color: '#b47cff', style: 'single' },
+  { color: '#ff4a4a', style: 'crossguard' },
+  { color: '#ff4a4a', style: 'double' },
+]
 const HILT = '#b0b0b8'
 const WIZARD = '#8c8c9c'
 const RED_EYE = '#ff2a2a'
@@ -49,6 +59,13 @@ const DUCK = '#ffd84a'
 const BEAK = '#ff9d3c'
 const MATRIX = '#38d66b'
 const MUG = '#e8e0d0'
+// A magician's hat, and a gentleman's.
+const SPELL = '#7b5cc4'
+const TOP_HAT = '#2a2530'
+// The wambulance: its white body and its siren.
+const AMBULANCE = '#eef0f4'
+const SIREN_RED = '#ff4a4a'
+const SIREN_BLUE = '#4a8bff'
 const DOME = '#9ad6ff'
 const MUSHROOM = '#3cb043'
 const WHALE = '#4a90d9'
@@ -190,8 +207,8 @@ const PETTED: readonly [EmoteName, string][] = [
   ['uwu', 'UwU'],
 ]
 
-const HAPPY_EYED: readonly EmoteName[] = ['hearts', 'hop', 'blush', 'golden', 'milestone', 'bow', 'molt', 'pearl', 'party', 'treat', 'sing', 'spin', 'oneup', 'whale']
-const CLAWS_RAISED: readonly EmoteName[] = ['sunbathe', 'golden', 'milestone', 'hearts', 'pearl', 'meditate', 'stretch', 'oneup', 'astronaut', 'delorean']
+const HAPPY_EYED: readonly EmoteName[] = ['wizard', 'ultracode', 'hearts', 'hop', 'blush', 'golden', 'milestone', 'bow', 'molt', 'pearl', 'party', 'treat', 'sing', 'spin', 'oneup', 'whale']
+const CLAWS_RAISED: readonly EmoteName[] = ['sunbathe', 'golden', 'wizard', 'ultracode', 'milestone', 'hearts', 'pearl', 'meditate', 'stretch', 'oneup', 'astronaut', 'delorean']
 
 // Every emote, so `/pet <name>` can show one on demand.
 export const EMOTE_NAMES: readonly EmoteName[] = [
@@ -201,6 +218,7 @@ export const EMOTE_NAMES: readonly EmoteName[] = [
   'stretch', 'facepalm', 'squish', 'rain', 'hiccup', 'fish', 'juggle', 'castle',
   'sing', 'vibe', 'chef', 'hardhat', 'cry', 'spin', 'dizzy', 'tap',
   'sherlock', 'jedi', 'gandalf', 'terminator', 'delorean', 'ninja', 'duck', 'neo', 'coffee', 'astronaut', 'oneup', 'whale', 'book',
+  'wizard', 'posh', 'wambulance', 'ultracode',
 ]
 
 // Sung until the day's songbook is written, or when it can't be: original parodies.
@@ -237,6 +255,7 @@ const STARTERS: readonly (readonly [string, string])[] = [
   ['in sleep he sang to me, in dreams he came ♪', 'The Phantom of the Opera by Andrew Lloyd Webber'],
   ['that voice which calls to me and speaks my name ♪', 'The Phantom of the Opera by Andrew Lloyd Webber'],
   ['sing once again with me our strange duet ♪', 'The Phantom of the Opera by Andrew Lloyd Webber'],
+  ['never gonna give you up ♪', 'Never Gonna Give You Up by Rick Astley'],
 ]
 export const STARTER_SONGS = STARTERS.map(([line]) => line)
 export const STARTER_CREDITS: Readonly<Record<string, string>> = Object.fromEntries(STARTERS)
@@ -679,6 +698,7 @@ export const GUESTS: readonly [EmoteName, Saying][] = [
   ['astronaut', 'houston'],
   ['oneup', 'oneup'],
   ['whale', 'whale'],
+  ['posh', 'posh'],
 ]
 
 // A guest for `/pet guest`, picked by `rand` in [0, 1), never the one that came `last`.
@@ -813,6 +833,7 @@ export type Face =
   | 'shades'
   | 'terminator'
   | 'cry'
+  | 'monocle'
 
 type Look = { eyes: Segment[]; rims?: [Segment, Segment] }
 
@@ -886,6 +907,16 @@ const FACES: Readonly<Record<Face, (body: string) => Look>> = {
       { text: '▌', color: body },
     ],
   }),
+  // A monocle in the right eye, its gold rim round the pupil.
+  monocle: body => ({
+    eyes: [
+      { text: '▐', color: body },
+      { text: '•', color: SHADES, backgroundColor: body },
+      { text: '███', color: body },
+      { text: '◎', color: GOLD, backgroundColor: body },
+      { text: '▌', color: body },
+    ],
+  }),
   // Sunglasses: two dark lenses joined by a bridge along the top.
   shades: body => ({
     eyes: [
@@ -913,6 +944,7 @@ const EMOTE_FACES: Partial<Readonly<Record<EmoteName, Face>>> = {
   dizzy: 'dizzy',
   tap: 'up',
   sherlock: 'smug',
+  posh: 'monocle',
   gandalf: 'heavy',
   terminator: 'terminator',
   delorean: 'surprised',
@@ -988,7 +1020,11 @@ export function clawdScene(input: {
   else if (emote === 'vibe') dx = Math.floor(frame / 2) % 2
   // Off to the right at 88 miles an hour, shuddering, its fire trails streaming out behind it.
   else if (emote === 'delorean') dx = 3 + (frame % 2)
+  // Pulling up in the wambulance, its siren going.
+  else if (emote === 'wambulance') dx = 3
   const x = BASE + dx
+  // The Jedi's lightsaber: a different one now and then, the same for a whole visit.
+  const saber = SABERS[Math.floor(nowMs / SABER_MS) % SABERS.length]!
 
   const sky: Segment[] = Array.from({ length: SKY }, () => ({ text: ' ' }))
   const put = (at: number, text: string, color: string) => {
@@ -1077,7 +1113,26 @@ export function clawdScene(input: {
     put(x - 1, frame % 2 === 0 ? '✦' : '✧', PEARL)
   } else if (emote === 'jedi') {
     // The top of the lightsaber, humming.
-    put(x + 9, frame % 2 === 0 ? '│' : '┃', SABER)
+    put(x + 9, frame % 2 === 0 ? '│' : '┃', saber.color)
+  } else if (emote === 'wizard') {
+    // A wide purple wizard's hat, its brim past its head, a gold star on its crown, and sparks of
+    // magic either side.
+    for (const [i, text] of [...'▄▄▟███▙▄▄'].entries()) put(x + i, text, SPELL)
+    sky[x + 4] = { text: '★', color: GOLD, backgroundColor: SPELL }
+    put(x - 1, frame % 2 === 0 ? '✦' : '·', GOLD)
+    put(x + 9, frame % 2 === 0 ? '·' : '✦', GOLD)
+  } else if (emote === 'wambulance') {
+    // The ambulance's roof over Clawd's head, its siren flashing red and blue, and its wail.
+    for (let at = 0; at < 7; at++) put(x + at, '▁', AMBULANCE)
+    put(x + 3, '●', frame % 2 === 0 ? SIREN_RED : SIREN_BLUE)
+    for (const [i, text] of [...(frame % 2 === 0 ? 'wee' : 'woo')].entries()) put(i, text, frame % 2 === 0 ? SIREN_RED : SIREN_BLUE)
+  } else if (emote === 'ultracode') {
+    // The headcount, climbing as the crew pops in.
+    const count = ['×1', '×2', '×4', '×8', '×40'][Math.min(4, poseFrame)]!
+    for (const [i, text] of [...count].entries()) put(i, text, COUSIN)
+  } else if (emote === 'posh') {
+    // A black top hat: its brim the width of its head, its crown up from the middle.
+    for (const [i, text] of [...'▄▄███▄▄'].entries()) put(x + 1 + i, text, TOP_HAT)
   } else if (emote === 'neo') {
     // Code falling all over the sky.
     for (let at = 0; at < SKY; at++) {
@@ -1224,9 +1279,14 @@ export function clawdScene(input: {
     face = [...face, pad(2), { text: '○', color: MOON }]
     arms = [...arms, { text: '╱', color: ROD }]
   } else if (emote === 'jedi') {
-    // The lightsaber's blade up past the face, its hilt in the raised right claw.
-    face = [...face, pad(1), { text: frame % 2 === 0 ? '┃' : '│', color: SABER }]
-    arms = [...arms, { text: '▪', color: HILT }]
+    // The lightsaber's blade up past the face, its hilt in the raised right claw: with a crossguard,
+    // or a second blade down to the ground, as this visit's saber has.
+    face = [...face, pad(1), { text: frame % 2 === 0 ? '┃' : '│', color: saber.color }]
+    arms =
+      saber.style === 'crossguard'
+        ? [pad(x), { text: claws.slice(0, 8), color: body }, { text: '╺', color: saber.color }, { text: '▪', color: HILT }, { text: '╸', color: saber.color }]
+        : [...arms, { text: '▪', color: HILT }]
+    if (saber.style === 'double') feet = [...feet, pad(x + 9 - [...feet.map(part => part.text).join('')].length), { text: frame % 2 === 0 ? '│' : '┃', color: saber.color }]
   } else if (emote === 'gandalf') {
     // A staff down the left side, from its glowing tip to the ground.
     face = [pad(x - 1), { text: '│', color: ROD }, pad(1), ...eyes]
@@ -1257,6 +1317,24 @@ export function clawdScene(input: {
       return { text: '─', color: flicker ? EMBER : FLAME }
     }
     feet = [...Array.from({ length: behind }, (_, at) => flame(at)), { text: '▝▀', color: STEEL }, wheel, { text: '▀▀▀', color: STEEL }, wheel, { text: '▀▘', color: STEEL }]
+  } else if (emote === 'wambulance') {
+    // At the wheel of a white ambulance, facing right: its head up in the cabin, the windshield in
+    // front of it, a red cross on the van's side, a headlight, and the wheels under it.
+    face = [pad(x), { text: '▐', color: AMBULANCE }, ...eyes.slice(1, -1), { text: '█', color: body }, { text: '◣', color: GLASS }]
+    arms = [pad(x - 1), { text: '▐██', color: AMBULANCE }, { text: '✚', color: SIREN_RED, backgroundColor: AMBULANCE }, { text: '████▄', color: AMBULANCE }, { text: '▖', color: GOLD }]
+    const wheel = { text: '▀▀', color: AMBULANCE, backgroundColor: WHEEL }
+    feet = [pad(x - 1), { text: '▝▀', color: AMBULANCE }, wheel, { text: '▀▀▀', color: AMBULANCE }, wheel, { text: '▀▘', color: AMBULANCE }]
+  } else if (emote === 'ultracode') {
+    // The crew pops in around Clawd, one a frame, each in a puff of smoke first: beside its legs,
+    // then beside its claws, left and right.
+    const crew = Math.min(4, poseFrame)
+    const slot = (n: number): Segment =>
+      n < crew ? { text: frame % 2 === 0 ? '▞▚' : '▚▞', color: COUSIN } : n === crew ? { text: '°∘', color: MOON } : pad(2)
+    feet = [slot(0), pad(x - 2), { text: legs, color: body }, pad(2), slot(1)]
+    arms = [slot(2), pad(x - 2), { text: claws, color: body }, pad(1), slot(3)]
+  } else if (emote === 'posh') {
+    // A handlebar moustache across its middle, under the monocle.
+    arms = [pad(x), { text: claws.slice(0, 2), color: body }, { text: '╰▀▀▀╯', color: SHADES, backgroundColor: body }, { text: claws.slice(7), color: body }]
   } else if (emote === 'ninja') {
     // Masked in black to the face's edges, only a slit of orange round the eyes showing.
     face = face.map(part => (part.text === '▐' || part.text === '▌' ? { ...part, color: NINJA } : part))
@@ -1441,6 +1519,7 @@ export const CALM = [
   'the cursor blinks. so do i.',
   'grokking the void…',
   'no thoughts. only claws.',
+  'life is like a cup of tea.',
 ]
 
 // The commands /pet takes, with what each does, for the typeahead.
@@ -1606,6 +1685,7 @@ const SPINNER_FAMILIES: readonly Family[] = [
       ['sidestep', 'sideways is faster, trust me.'],
       ['sidestep', '{word}? I scuttle.'],
       ['sidestep', 'where are we going?'],
+      ['sidestep', 'yip yip!'],
     ],
     words: ['catapulting', 'gallivanting', 'galloping', 'hyperspacing', 'levitating', 'meandering', 'moseying', 'perambulating', 'pouncing', 'scampering', 'schlepping', 'scurrying', 'skedaddling', 'slithering', 'swooping', 'wandering', 'warping', 'zigzagging'],
   },
@@ -1617,6 +1697,9 @@ const SPINNER_FAMILIES: readonly Family[] = [
       ['meditate', '{calm}'],
       ['peek', 'thinking about shells…'],
       ['bubbles', 'blub… inner peace…'],
+      ['peek', 'as a large language crab, I cannot…'],
+      ['peek', "counting the r's in strawberry…"],
+      ['bubbles', 'just predicting the next token…'],
     ],
     words: ['cerebrating', 'cogitating', 'considering', 'contemplating', 'deciphering', 'deliberating', 'determining', 'elucidating', 'envisioning', 'ideating', 'imagining', 'inferring', 'mulling', 'philosophizing', 'pondering', 'puzzling', 'ruminating', 'thinking'],
   },
@@ -1627,6 +1710,7 @@ const SPINNER_FAMILIES: readonly Family[] = [
       ['bubbles', 'blub blub.'],
       ['bubbles', 'whoosh.'],
       ['bubbles', 'hold onto your shell.'],
+      ['tide', 'water. earth. fire. air.'],
     ],
     words: ['billowing', 'cascading', 'flowing', 'gusting', 'misting', 'nebulizing', 'osmosing', 'precipitating', 'swirling', 'thundering', 'whirring'],
   },
@@ -1641,11 +1725,13 @@ const SPINNER_FAMILIES: readonly Family[] = [
   },
   {
     acts: [
-      ['golden', 'ooh, magic.'],
-      ['golden', '✦ sparkly ✦'],
-      ['golden', 'abracadabra.'],
-      ['golden', 'pick a card, any card.'],
-      ['golden', "I'm not even surprised."],
+      ['wizard', 'ooh, magic.'],
+      ['wizard', '✦ sparkly ✦'],
+      ['wizard', 'abracadabra.'],
+      ['wizard', 'pick a card, any card.'],
+      ['wizard', "I'm not even surprised."],
+      ['wizard', "it's leviOsa, not levioSA."],
+      ['wizard', "you're a wizard, claude."],
     ],
     words: ['crystallizing', 'enchanting', 'ionizing', 'manifesting', 'metamorphosing', 'prestidigitating', 'quantumizing', 'razzle-dazzling', 'razzmatazzing', 'sublimating', 'transfiguring', 'transmogrifying', 'transmuting'],
   },
@@ -1676,7 +1762,7 @@ const SPINNER_SPECIALS: Readonly<Record<string, readonly Act[]>> = {
   hatching: [['sunbathe', 'crabs hatch too, you know.'], ['sunbathe', 'something is hatching!']],
   ebbing: [['tide', 'tide going out.']],
   bloviating: [['enough', 'less talking, more coding.'], ['enough', 'get to the point.']],
-  pontificating: [['enough', 'less talking, more coding.'], ['bow', 'yes, professor.']],
+  pontificating: [['posh', 'indubitably.'], ['posh', 'quite so, old chap.'], ['bow', 'yes, professor.']],
   honking: [['wave', 'honk.'], ['wave', 'HONK.']],
   booping: [['uwu', 'boop.'], ['uwu', 'boop! UwU']],
   herding: [['peek', 'herding what, cats?']],
@@ -1712,16 +1798,16 @@ const SPINNER_NODS = [
 // Lines Clawd says again and again, each with a few more to rotate through so it doesn't repeat
 // itself; the first is what it says first.
 export const SAYINGS = {
-  broke: ['pfft. that broke.', 'oof. an error.', 'that did not go to plan.', 'welp.', 'the command said no.', 'error, but make it fashion.'],
-  again: ['broke again.', 'failed twice now.', 'déjà vu, crab edition.', 'same error as before.'],
-  dizzy: ['everything is spinning.', 'so many errors… so many stars.', 'which way is up?', 'I need a minute.'],
-  done: ['done. not bad.', 'done! nice one.', 'and… done.', 'wrapped up.', 'that worked out.', 'nice. what next?', 'there we go.', 'ta-da.', 'all yours.', 'done and dusted.'],
-  passed: ['tests passed. suspicious.', 'green? on the first try?', 'all green. I am shocked.', 'passing. for now.'],
-  failed: ['tests failed. called it.', 'the tests have spoken.', 'red, as foretold.', 'a test says no.'],
-  committed: ['committed! party!', 'into the history books!', 'commit! woo!', 'saved for posterity.'],
-  pushed: ['shipped it! ✦', 'off it goes!', 'pushed. out into the world!', 'shipped! ✦ ✦'],
+  broke: ['pfft. that broke.', 'oof. an error.', 'that did not go to plan.', 'welp.', 'the command said no.', 'error, but make it fashion.', "not a bug, it's emergent behavior.", 'did someone hallucinate a flag?'],
+  again: ['broke again.', 'failed twice now.', 'déjà vu, crab edition.', 'same error as before.', 'ah, here we go again.', 'world models will solve this. someday.'],
+  dizzy: ['everything is spinning.', 'so many errors… so many stars.', 'which way is up?', 'I need a minute.', 'this is fine.', 'AGI next year.'],
+  done: ['done. not bad.', 'done! nice one.', 'and… done.', 'wrapped up.', 'that worked out.', 'nice. what next?', 'there we go.', 'ta-da.', 'all yours.', 'done and dusted.', 'I hope this helps!'],
+  passed: ['tests passed. suspicious.', 'green? on the first try?', 'all green. I am shocked.', 'passing. for now.', 'all green. no hallucinations detected.'],
+  failed: ['tests failed. called it.', 'the tests have spoken.', 'coding is solved, they said.', 'red, as foretold.', 'a test says no.', '90% of code, written by AI. this is the other 10%.'],
+  committed: ['committed! party!', 'the tree grew a little.', 'into the history books!', 'locked in. no take-backs.', 'commit! woo!', 'git log just got longer.', 'saved for posterity.', 'a fine commit. vintage.', 'a commit message longer than the diff.'],
+  pushed: ['shipped it! ✦', 'the remote has it now.', 'off it goes!', 'up, up, and origin.', 'pushed. out into the world!', 'out of my claws now.', 'shipped. vibe coding at its finest.', 'bon voyage, little commits.'],
   thanks: ['thanks!', 'appreciated!', 'you are the best.', 'anytime!'],
-  refused: ['fine, not that then.', 'probably for the best.', 'noted. backing off.', 'ok ok, no touching.'],
+  refused: ['fine, not that then.', 'probably for the best.', 'noted. backing off.', 'ok ok, no touching.', 'as an AI crab, I respect your boundaries.'],
   crew: ['the crew is back.', 'the gang is all here.', 'welcome back, tiny cousins.'],
   // Reading, searching and browsing, which Claude does all the time: a different way each time.
   reading: [
@@ -1744,19 +1830,24 @@ export const SAYINGS = {
   running: ['running {cmd}', '{cmd}. here goes.', 'pressing enter on {cmd}', '*clack clack* {cmd}', "let's try {cmd}", 'off it goes: {cmd}'],
   damage: ["let's see the damage.", 'what changed?', 'checking the diff…', 'where were we?', 'the state of things…', 'surveying the scene.'],
   watching: ["tests! I'll watch.", 'claws crossed for green.', 'moment of truth…', 'tests, go!', "I can't look.", 'running the gauntlet.'],
-  commitIt: ['commit it. claws crossed.', 'sealing it in.', 'a commit! good habits.', 'writing history.', 'saving our progress.'],
+  commitIt: ['commit it. claws crossed.', 'time to name this one.', 'sealing it in.', 'packing up the diff.', 'a commit! good habits.', 'checkpoint incoming.', 'writing history.', 'saving our progress.'],
   friend: ['a helper is on it.', 'calling in backup.', 'a helper heads out.', 'off you go, little one.', 'delegating. smart.'],
   using: ['using {tool}', 'trying {tool}', 'ooh, {tool}', '{tool}, at your service', 'reaching for {tool}'],
   // A prompt: the session's first, a late one, and any other.
-  first: ['ooh, what are we making?', "what's the plan?", 'a new adventure!', 'ready when you are.', "let's build something."],
+  first: ['ooh, what are we making?', "what's the plan?", 'a new adventure!', 'ready when you are.', "let's build something.", "let's 10x this."],
   late: ['at this hour?', 'still up?', 'burning the midnight oil?', 'one more, then bed?', 'the night shift, huh.'],
   routine: [
     'go on…', 'listening.', 'mhm, mhm.', 'another one!', 'on it.', 'ok, next.', 'say less.', 'noted.', 'here we go.', 'aye aye.',
-    'righto.', 'on the case.', 'alright, alright.', 'ooh, ok.',
+    'righto.', 'on the case.', 'alright, alright.', 'ooh, ok.', 'nice prompt engineering.',
   ],
   browsing: ['peeking at {site}', 'reading {site}', 'off to {site}', 'what does {site} say?', 'a quick trip to {site}'],
   websearch: ['asking the internet: {query}', 'googling {query}', 'searching the web: {query}', 'the internet knows {query}?'],
-  squish: ['*squish* making room.', 'compressing… compressing…', 'packing memories tight.', 'squeezing it all in.'],
+  squish: [
+    '*squish* making room.', 'previously, on this session…', 'does this message spark joy?',
+    'packing memories tight.', 'tl;dr incoming.', 'squeezing it all in.', 'forgetting the boring parts.', 'to be continued…',
+    'what was I doing again?', 'the story so far, abridged.', 'zip it. literally.', 'goodbye, old messages. you were great.',
+    'memory full. keeping the good bits.', 'condensing the lore.', 'saving a summary. squish.', 'fewer tokens, same crab.', 'context window: full. vibes: intact.',
+  ],
   // The guests', each said with its emote.
   sherlock: ['elementary, my dear Watson.', 'the game is afoot!', 'who wrote this? let us see.', 'eliminate the impossible…'],
   jedi: ['use the --force, Luke.', 'may the --force be with you.', 'I have a bad feeling about this.', "these aren't the commits you're looking for."],
@@ -1770,10 +1861,46 @@ export const SAYINGS = {
   coffee: ['coffee first.', 'brewing… then coding.', 'morning. mug in claw.', 'fuel up, then ship.'],
   houston: ['houston, we have a problem.', 'ground control to major crab…', 'the API drifted off into space.', 'lost signal.'],
   oneup: ['1-UP! back in the green.', 'extra life!', 'from red to green. nice.', 'level cleared!'],
-  whale: ['a whale! hi, whale.', 'containers, ahoy!', 'the whale says hi.', 'thar she builds!'],
+  whale: ['a whale! hi, whale.', 'containers, ahoy!', 'the whale says hi.', 'thar she builds!', 'it works on my machine.'],
+  // How hard Claude is asked to think, when it changes; and which model it is, when that does.
+  maxEffort: ['max effort. warming up.', 'full send. stretching first.', 'max effort. stand back.', 'max effort. cracking claws.', 'all the effort. ALL of it.'],
+  xhighEffort: ['extra-high effort. ooh.', 'xhigh. one notch from max.', 'xhigh? someone means business.', 'turning it up to eleven-ish.'],
+  highEffort: ['high effort. trying hard today.', 'high effort. sleeves up.', 'thinking cap: on.', 'a thoughtful one, then.'],
+  lowEffort: ['low effort mode. relatable.', 'running on 3 neurons.', 'low effort. vibes only.', 'neurons reduced to 3.', 'low effort. same, honestly.', 'conserving crab energy.', 'low effort. nap-adjacent.'],
+  mediumEffort: ['back to medium. sensible.', 'medium effort. just right.', 'medium effort. the classic.', 'back to the default. cozy.'],
+  fable: ['ooh, Fable. fancy.', 'Fable. once upon a prompt.', 'a Fable? tell me a story.', 'the top shelf, then.'],
+  opus: ['Opus in the house.', 'Opus. a magnum opus, maybe.', 'the big brain is in.', 'the deep thinker is here.'],
+  sonnet: ['Sonnet: poetry in motion.', 'Sonnet. shall I compare thee?', 'a Sonnet. how lyrical.', 'the reliable bard is in.'],
+  haiku: ['Haiku: five, seven, five.', 'Haiku. small, fast, bright.', 'quick and short. a Haiku.', 'a Haiku. blink and done.'],
+  ultracode: ['ULTRACODE. unleash the crew.', "one of me wasn't enough.", 'roll call! you, you, and you.', "it's crabs all the way down.", 'ultracode! all hands on deck.', 'ultracode. headcount: lots.'],
+  cleared: ['fresh start. who are you again?', 'mischief managed.'],
+  pushToMain: ['one does not simply push to main.', 'straight to main. bold.', 'main? no branch? brave.', 'a direct push to main. gulp.'],
+  delve: ['ah, "delve". classic.', 'delve spotted. tally +1.', 'delving detected.'],
+  greatQuestion: ['"great question!" they all are.', 'flattery: deployed.', 'the classic opener.'],
+  emDashes: ['so many em dashes.', 'em dashes — so — many.', 'the em dash budget is gone.'],
+  strawberry: ["strawberry: three r's. I counted.", 's-t-r-a-w-b-e-r-r-y. three.', 'the berry that broke the AIs.', 'my favorite benchmark.'],
+  rmrf: ['rm -rf?! not my shells!', 'press F to pay respects.', 'no undo button for this.', 'farewell, files.'],
+  wambulance: ['wee-woo! someone call the wambulance.', 'wambulance on the way.', 'the wambulance is idling.', 'there, there.'],
+  apology: ['apology received. 10/10.', 'no need to grovel.', 'apology accepted. carry on.'],
+  posh: ['indubitably.', 'quite so, old chap.', 'a spot of code, what?', 'jolly good show.', 'how frightfully clever.'],
+  snap: ['*snap*', 'perfectly balanced, as all things should be.', 'I am inevitable.', 'a small price to pay.', 'and just like that, half of it is dust.', 'the files have been dusted.'],
 } as const
 
 export type Saying = keyof typeof SAYINGS
+
+// What Clawd remarks on a request naming `model` at `effort`, after the model family and effort it
+// last saw: a change of family or of effort, or a session that starts on Fable or on any effort but
+// the default. Answers the family it names too.
+export function stepRemark(last: { family: string; effort: string }, model: string, effort: string): { remark?: Saying; family: string } {
+  const family = ['fable', 'opus', 'sonnet', 'haiku'].find(one => model.toLowerCase().includes(one)) ?? ''
+  const isFirst = last.family === '' && last.effort === ''
+  if (family !== '' && family !== last.family && (!isFirst || family === 'fable')) return { remark: family as Saying, family }
+  if (effort !== '' && effort !== last.effort && (!isFirst || effort !== 'medium')) {
+    const remark = `${effort}Effort`
+    return { remark: Object.hasOwn(SAYINGS, remark) ? (remark as Saying) : undefined, family }
+  }
+  return { family }
+}
 
 // Whether `text` names one of Clawd's sayings rather than being a line itself.
 export const isSaying = (text: string): text is Saying => Object.hasOwn(SAYINGS, text)

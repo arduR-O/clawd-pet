@@ -344,6 +344,11 @@ at('typing', lambda t: typed(t, len('add a dark mode toggle'), 1.7))
 at('jedi', lambda t: (riser(t, 0.35, 0.16), buzz(t + 0.35, 0.1), sparkle(t + 0.4, 0.06)))
 at('gandalf', lambda t: (kick(t + 0.05, 0.7), crash(t + 0.05, 0.22), [lead(t + 0.3, m, 0.6, 0.06, duty=0.5) for m in [45, 52, 57]]))
 at('songbook', sung)
+# A deadpan two-note "mm-hm", the DeLorean's run-up and boom, a pop for each of the crew, a siren.
+at('right', lambda t: (blip(t + 0.1, 64, 0.18, 0.12), blip(t + 0.34, 60, 0.3, 0.12)))
+at('delorean', lambda t: (riser(t, 0.6, 0.16), crash(t + 0.6, 0.22), kick(t + 0.6, 0.5)))
+at('ultracode', lambda t: [pop(t + 0.1 + i * 0.25, 76 + i * 3, 0.12) for i in range(5)])
+at('wambulance', lambda t: [lead(t + 0.1 + i * 0.3, 81 if i % 2 == 0 else 76, 0.28, 0.07, duty=0.5) for i in range(5)])
 at('long', lambda t: [blip(t + 0.05 + i * 0.09, m, 0.09 if i < 3 else 0.35, 0.13, duty=0.25) for i, m in enumerate([72, 76, 79, 84])])
 at('stretch', lambda t: yawn(t + 0.1))
 # The real take's follow-up is typed 0.45-1.35 s into the shot (its `play` in social.json).

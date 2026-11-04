@@ -47,8 +47,16 @@ const TRICKS: Panel[] = [
     frames: [0, 4, 8, 12, 16, 20, 24, 24, 24].map(n => ({ line: '', typed: typing.slice(0, n) })),
   },
   {
-    title: 'thanks you for a yes',
-    frames: [...repeat({ kind: 'happy', emote: 'hop', line: 'thanks!' }, 4), ...repeat({ emote: 'enough', line: 'fine, not that then.' }, 4)],
+    title: 'counts the "absolutely right"s',
+    frames: repeat({ emote: 'enough', line: '"you\'re absolutely right" #47.' }, 6),
+  },
+  {
+    title: 'calls the wambulance on a whine',
+    frames: repeat({ kind: 'happy', emote: 'wambulance', line: 'wee-woo! call the wambulance.' }, 6),
+  },
+  {
+    title: 'ultracode calls in the crew',
+    frames: repeat({ kind: 'happy', emote: 'ultracode', line: "one of me wasn't enough." }, 7),
   },
   {
     title: 'a face for every mood',
@@ -57,16 +65,8 @@ const TRICKS: Panel[] = [
       ...repeat({ kind: 'oops', emote: 'dizzy', line: 'everything is spinning.' }, 3),
       ...repeat({ kind: 'love', emote: 'hearts', line: 'aw, thanks!' }, 2),
       ...repeat({ emote: 'tide', line: "whoa, tide's in!" }, 2),
-      ...repeat({ emote: 'golden', line: 'ooh, sudo. fancy.' }, 2),
+      ...repeat({ kind: 'think', emote: 'wizard', line: "it's leviOsa, not levioSA." }, 2),
     ],
-  },
-  {
-    title: 'reading glasses, same head',
-    frames: repeat({ kind: 'read', line: 'reading clawd.ts' }, 4),
-  },
-  {
-    title: 'stretch breaks',
-    frames: repeat({ kind: 'happy', emote: 'stretch', line: '52 min in. stretch break?' }, 6),
   },
   {
     title: 'long turns end in confetti',
@@ -88,6 +88,7 @@ const GUESTS: [EmoteName, string, Kind?][] = [
   ['astronaut', 'an API error', 'oops'],
   ['oneup', 'red, then green', 'happy'],
   ['whale', 'docker'],
+  ['posh', 'Pontificating…', 'think'],
 ]
 const firstLine: Partial<Record<EmoteName, string>> = {
   sherlock: SAYINGS.sherlock[1],
@@ -102,11 +103,12 @@ const firstLine: Partial<Record<EmoteName, string>> = {
   astronaut: 'houston, a problem.',
   oneup: SAYINGS.oneup[1],
   whale: SAYINGS.whale[0],
+  posh: SAYINGS.posh[0],
 }
 
 const SHEETS: Record<string, Sheet> = {
   tricks: {
-    title: "Clawd's newer tricks: watching you type, thanking you when you allow a permission request, a face for every mood, reading glasses, stretch breaks and confetti for long turns",
+    title: "Clawd's newer tricks: watching you type, counting Claude's \"you're absolutely right\"s, calling the wambulance, calling in the ultracode crew, a face for every mood, and confetti for long turns",
     columns: 2,
     // One cell of the band, as the hero picture draws it.
     cell: { width: 10, height: 20 },
@@ -115,7 +117,7 @@ const SHEETS: Record<string, Sheet> = {
     panels: TRICKS,
   },
   guests: {
-    title: "Clawd's guests: Sherlock, a Jedi, Gandalf, the Terminator, a DeLorean, a ninja, a rubber duck, Neo, coffee, an astronaut, a 1-UP mushroom and a whale",
+    title: "Clawd's guests: Sherlock, a Jedi, Gandalf, the Terminator, a DeLorean, a ninja, a rubber duck, Neo, coffee, an astronaut, a 1-UP mushroom, a whale and a gentleman",
     columns: 3,
     cell: { width: 8, height: 16 },
     panel: { width: 210, height: 150 },

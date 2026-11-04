@@ -18,13 +18,13 @@
       "said": "o/"
     },
     {
-      "id": "glasses",
+      "id": "right",
       "start": 2,
       "end": 4,
-      "caption": "Claude reads a file",
-      "scene": "glasses",
-      "said": "skimming app.py…",
-      "cause": "⏺ Read(src/app.py)"
+      "caption": "Claude says it again",
+      "scene": "right",
+      "said": "\"you're absolutely right\" #47.",
+      "cause": "⏺ You're absolutely right! Let me fix that."
     },
     {
       "id": "commit",
@@ -36,13 +36,13 @@
       "cause": "⏺ Bash(git commit -m \"fix\")"
     },
     {
-      "id": "dizzy",
+      "id": "delorean",
       "start": 6,
       "end": 8,
-      "caption": "the tests fail. again.",
-      "scene": "dizzy",
-      "said": "everything is spinning.",
-      "cause": "⎿ 3 failed, 41 passed"
+      "caption": "git revert",
+      "scene": "delorean",
+      "said": "great scott!",
+      "cause": "⏺ Bash(git revert HEAD)"
     },
     {
       "id": "jedi",
@@ -54,32 +54,31 @@
       "cause": "⏺ Bash(git push --force)"
     },
     {
-      "id": "gandalf",
+      "id": "ultracode",
       "start": 10,
       "end": 12,
-      "caption": "you refuse an rm -rf",
-      "scene": "gandalf",
-      "said": "you shall not pass!",
-      "cause": "✗ Denied: rm -rf build"
+      "caption": "you type \"ultracode\"",
+      "scene": "ultracode",
+      "said": "one of me wasn't enough.",
+      "cause": "> ultracode: refactor billing"
+    },
+    {
+      "id": "wambulance",
+      "start": 12,
+      "end": 14,
+      "caption": "you whine a little",
+      "scene": "wambulance",
+      "said": "wee-woo! someone call the wambulance.",
+      "cause": "> ugh, why is this still broken"
     },
     {
       "id": "songbook",
-      "start": 12,
-      "end": 14,
+      "start": 14,
+      "end": 16,
       "caption": "it sings your Last.fm",
       "scene": "songbook",
       "said": "oh paper moon, come down soooon ♪",
       "credit": "♫ Paper Moon · The Kettles",
-      "label": "AND"
-    },
-    {
-      "id": "night",
-      "start": 14,
-      "end": 16,
-      "caption": "it has deep thoughts",
-      "scene": "night",
-      "said": "detach HEAD. detach ego.",
-      "cause": "✻ Pondering…",
       "label": "AND"
     },
     {

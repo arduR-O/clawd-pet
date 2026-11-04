@@ -9,6 +9,33 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.26
+
+### Added
+
+- Clawd reacts to Claude's habits: *"You're absolutely right!"* gets an eye-roll and a running count
+  across sessions, and apologies, "delve", "great question" and a flood of em dashes get a quip now
+  and then (each at most every half hour).
+- The wambulance: whine or swear at the code in a prompt ("ugh", "still broken", "wtf") and an
+  ambulance pulls up, siren going. At most every half hour.
+- Ultracode calls in the crew: tiny crabs pop in around Clawd while a headcount climbs to ×40.
+- Clawd remarks on a change of effort ("running on 3 neurons.", "max effort. warming up.") or model
+  ("ooh, Fable. fancy."), and on a session that starts on Fable or a non-default effort.
+- A gentleman guest, in a top hat, monocle and moustache, for "Pontificating" (`/pet posh`).
+- A purple wizard's hat for Claude's magic spinner words.
+- The Jedi brings one of five lightsabers: green, blue or purple, red with a crossguard, or red and
+  double-bladed.
+- Strawberries: Clawd knows how many r's.
+- Many more lines where the same few came round: compaction (17 now), commits, pushes, a push to
+  main, `/clear`, `rm -rf`, bulk deletes, every effort and model; and AI clichés and memes where
+  they fit ("coding is solved, they said.", "AGI next year.", "this is fine.", "I hope this helps!").
+- A few Harry Potter and Avatar lines, and a rare Rickroll among the built-in songs.
+
+### Changed
+
+- The social promo cut leads with the eye-roll, then the commit, the DeLorean, the Jedi, the
+  ultracode crew, the wambulance and the songbook.
+
 ## 0.5.25
 
 ### Removed

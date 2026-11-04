@@ -402,3 +402,19 @@ test('every emote, on every frame, by day and by night, fits within the band', (
     }
   }
 })
+
+test('a Jedi brings a different lightsaber now and then, the same one for a whole visit', () => {
+  const local = { hour: 10, weekday: 2, month: 10, day: 27 }
+  const text = (row: { text: string; color?: string }[]) => row.map(part => part.text).join('')
+  const blade = (nowMs: number) => {
+    const scene = clawdScene({ kind: 'run', emote: 'jedi', frame: 0, nowMs, local })
+    const part = scene[1]!.find(one => /[┃│]/.test(one.text))
+    return `${part?.color} ${text(scene[2]!).includes('╺') ? 'crossguard' : ''}${/[┃│]/.test(text(scene[3]!)) ? 'double' : ''}`
+  }
+  const start = Math.floor(NOON_IST / 600_000) * 600_000
+  // Across a visit's ten seconds, one saber.
+  expect(blade(start + 1_000)).toBe(blade(start + 11_000))
+  // Across the day, every kind.
+  const kinds = new Set(Array.from({ length: 10 }, (_, k) => blade(start + k * 600_000)))
+  expect(kinds.size).toBe(5)
+})

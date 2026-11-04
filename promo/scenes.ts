@@ -52,6 +52,10 @@ const scenes: Record<string, string[]> = {
   // Guests full size, for the social cut.
   jedi: run({ kind: 'run', emote: 'jedi', hour: 14 }, 8),
   gandalf: run({ kind: 'idle', emote: 'gandalf', hour: 14 }, 8),
+  right: run({ kind: 'idle', emote: 'enough', hour: 13 }, 8),
+  delorean: run({ kind: 'run', emote: 'delorean', hour: 14 }, 8),
+  ultracode: [...run({ kind: 'happy', emote: 'ultracode', hour: 15 }, 6), ...run({ kind: 'happy', emote: 'ultracode', hour: 15 }, 6).slice(4)],
+  wambulance: run({ kind: 'happy', emote: 'wambulance', hour: 16 }, 8),
 }
 // Each guest, small, for the grid of them.
 const GUESTS: [EmoteName, Kind?][] = [

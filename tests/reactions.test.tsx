@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { faceOf, spinnerActAt, spinnerTake, SAYINGS, sayingOf, type Saying } from '../hooks/clawd'
+import { faceOf, stepRemark, spinnerActAt, spinnerTake, SAYINGS, sayingOf, type Saying } from '../hooks/clawd'
 import {
   BAND,
   auraShown,
@@ -39,7 +39,7 @@ test('Clawd does an emote now and then while Claude works', { options: OPTIONS }
   await clock.advance(24_000)
   // A song shows its first letters so far: one of the starter songs' openings.
   const emotes =
-    /o\/|crab rave|blub|scuttle|did you hear|munch|soaking up the sun|shades on|six… seven|UwU|\*hic\*|SEAGULL|molts|cousin|pearl|tide's in|rain|vibing|wheee|^(mama|is th|we wi|don't|anoth|under|we met|and we|remem|and so|I can|stones|can an|sing us|of all|Amie|nothing|I'll f|they wi|those|please|near|every|welcome|you can|there's|in sleep|that voice|sing once)/
+    /o\/|crab rave|blub|scuttle|did you hear|munch|soaking up the sun|shades on|six… seven|UwU|\*hic\*|SEAGULL|molts|cousin|pearl|tide's in|rain|vibing|wheee|^(mama|is th|we wi|don't|anoth|under|we met|and we|remem|and so|I can|stones|can an|sing us|of all|Amie|nothing|I'll f|they wi|those|please|near|every|welcome|you can|there's|in sleep|that voice|sing once|never g)/
   expect(await ui.find({ type: 'Text', text: emotes })).toBeTruthy()
   await ui.unmount()
 })
@@ -203,7 +203,7 @@ test('while a permission prompt waits, Clawd taps its foot, and thanks the perso
   clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
-  const call = $.tool.call({ tool: 'Bash', command: 'rm -r build' })
+  const call = $.tool.call({ tool: 'Bash', command: 'make build' })
   await clock.advance(4000)
   expect(await ui.find({ type: 'Text', text: /^psst\. Bash needs your ok\.$/ })).toBeTruthy()
   // Still asking well past an ordinary reaction, a claw up, with no idle emote over it.
@@ -671,4 +671,87 @@ test('a long prompt working through a bug gets a rubber duck to listen; a long p
   await $.prompt.submit({ ...SUBMITTED, text: 'Add a settings page with a dark mode toggle, a font size slider and a language picker. '.repeat(4) })
   expect(await ui.find({ type: 'Text', text: saying('duck') })).toBeFalsy()
   await ui.unmount()
+})
+
+test('clearing files out in bulk gets a snap, said rather than drawn', { options: OPTIONS }, async ($, on) => {
+  await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.tool.call({ tool: 'Bash', command: 'git clean -fd' })
+
+  const texts = (await ui.findAll({ type: 'Text' })).map(one => one.text)
+  expect(texts.some(text => (SAYINGS.snap as readonly string[]).includes(text))).toBe(true)
+  await ui.unmount()
+})
+
+test('whining in a prompt brings the wambulance, siren going', { options: OPTIONS }, async ($, on) => {
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.prompt.submit({ ...SUBMITTED, text: 'ugh, why is this still broken' })
+
+  const texts = (await ui.findAll({ type: 'Text' })).map(one => one.text)
+  expect(texts.some(text => (SAYINGS.wambulance as readonly string[]).includes(text))).toBe(true)
+  expect(texts.some(text => text.includes('✚'))).toBe(true)
+  await ui.unmount()
+})
+
+test("Claude's apology gets a quip, not the wambulance", { options: OPTIONS }, async ($, on) => {
+  await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.turn.complete({ answer: 'I apologize for the confusion. Here is the fix.', durationMs: 1000, isAborted: false, turnId: 't1', reason: 'answer' })
+
+  const texts = (await ui.findAll({ type: 'Text' })).map(one => one.text)
+  expect(texts.some(text => (SAYINGS.apology as readonly string[]).includes(text))).toBe(true)
+  expect(texts.some(text => text.includes('✚'))).toBe(false)
+  await ui.unmount()
+})
+test('"you\'re absolutely right" gets an eye-roll, and Clawd keeps count', { options: OPTIONS }, async ($, on) => {
+  const clock = await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+  const done = (n: number) => $.turn.complete({ answer: "You're absolutely right! Let me fix that.", durationMs: 1000, isAborted: false, turnId: `t${n}`, reason: 'answer' })
+
+  await done(1)
+  expect(await ui.find({ type: 'Text', text: /^"you're absolutely right" #1\.$/ })).toBeTruthy()
+  await clock.advance(30_000)
+  await done(2)
+  expect(await ui.find({ type: 'Text', text: /^"you're absolutely right" #2\.$/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('an ultracode prompt sets off confetti and the crew', { options: OPTIONS }, async ($, on) => {
+  on('prompt.submit', (_, e) => ({ text: e.text }))
+  await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+
+  await $.prompt.submit({ ...SUBMITTED, text: 'ultracode: refactor the billing module' })
+
+  const texts = (await ui.findAll({ type: 'Text' })).map(one => one.text)
+  expect(texts.some(text => (SAYINGS.ultracode as readonly string[]).includes(text))).toBe(true)
+  await ui.unmount()
+})
+
+test('Claude saying "delve" gets a quip, once in a while', { options: OPTIONS }, async ($, on) => {
+  const clock = await start($, on, {}, NOON_IST)
+  const ui = await $.ui.mount(BAND)
+  const done = (n: number) => $.turn.complete({ answer: "Let's delve into the logs.", durationMs: 1000, isAborted: false, turnId: `t${n}`, reason: 'answer' })
+
+  await done(1)
+  expect(await ui.find({ type: 'Text', text: /^ah, "delve"\. classic\.$/ })).toBeTruthy()
+  await clock.advance(20_000)
+  await done(2)
+  expect(await ui.find({ type: 'Text', text: /delve/ })).toBeFalsy()
+  await ui.unmount()
+})
+
+test('a change of effort or model gets a remark; a session starting on the defaults, none', () => {
+  const none = { family: '', effort: '' }
+  expect(stepRemark(none, 'claude-opus-x', 'medium').remark).toBeUndefined()
+  expect(stepRemark(none, 'claude-opus-x', 'max').remark).toBe('maxEffort')
+  expect(stepRemark(none, 'claude-fable-x', 'medium').remark).toBe('fable')
+  expect(stepRemark({ family: 'opus', effort: 'medium' }, 'claude-opus-x', 'medium').remark).toBeUndefined()
+  expect(stepRemark({ family: 'opus', effort: 'medium' }, 'claude-opus-x', 'low').remark).toBe('lowEffort')
+  expect(stepRemark({ family: 'opus', effort: 'medium' }, 'claude-sonnet-x', 'medium').remark).toBe('sonnet')
 })

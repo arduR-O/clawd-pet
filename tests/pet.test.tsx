@@ -315,8 +315,11 @@ test('/pet chef, /pet hardhat and /pet cry show those emotes', { options: OPTION
 test('a random guest is never the one that came last, and every guest can come', () => {
   const seen = new Set<string>()
   let last: (typeof GUESTS)[number][0] | undefined
+  // A seeded pseudo-random sequence, the same every run.
+  let seed = 7
   for (let i = 0; i < 200; i++) {
-    const [guest] = pickGuest((i * 0.618) % 1, last)
+    seed = (seed * 16807) % 2147483647
+    const [guest] = pickGuest(seed / 2147483647, last)
     expect(guest).not.toBe(last)
     seen.add(guest)
     last = guest

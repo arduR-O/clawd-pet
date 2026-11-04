@@ -71,6 +71,10 @@ export type EmoteName =
   | 'oneup'
   | 'whale'
   | 'book'
+  | 'wizard'
+  | 'posh'
+  | 'wambulance'
+  | 'ultracode'
 
 export type Emote = { name: EmoteName | null; line: string; until: number }
 

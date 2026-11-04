@@ -26,6 +26,9 @@ A feed plays a video muted, in the middle of a scroll, so the social cut is made
 - **Clawd is on screen from the first frame,** with one bold line ("I gave Claude Code a pet."). The
   first frame is the thumbnail, and the first second or two decide whether someone stops; a dark
   title card there loses them.
+- **The beats are Clawd's best moments:** the "You're absolutely right" eye-roll first (every
+  Claude Code user knows it), then a commit's confetti, the DeLorean, the Jedi, the ultracode crew,
+  the wambulance and the songbook.
 - **Every beat has a big caption,** so it reads with the sound off: what happened ("git push
   --force"), then Clawd's answer. The music is there for whoever turns the sound on.
 - **Portrait, 4:5,** fills far more of a phone's feed than 16:9.
