@@ -1210,6 +1210,9 @@ export function clawdScene(input: {
   else if (emote === 'cry') mark = { text: frame % 2 === 0 ? '‚' : '¸', color: WATER }
 
   const pad = (n: number): Segment => ({ text: ' '.repeat(Math.max(0, n)) })
+  // The face between its two edges, however its eyes are drawn: in a car's cabin, the car is the edges.
+  const inner = (look: readonly Segment[]): Segment[] =>
+    look.map((part, i) => ({ ...part, text: [...part.text].slice(i === 0 ? 1 : 0, i === look.length - 1 ? -1 : undefined).join('') })).filter(part => part.text !== '')
   // Adds `part` to the end of `row` after up to `gap` spaces, closing the gap so the row stays
   // within the sky's width; leaves the row as it is when even no gap would not fit.
   const append = (row: Row, gap: number, part: Segment): Row => {
@@ -1300,7 +1303,7 @@ export function clawdScene(input: {
     // streaks run, and fire trails burn from the wheels down to embers, at 88 miles an hour.
     const behind = x - 1
     const streaks = { text: (frame % 2 === 0 ? '─ ' : ' ─').repeat(behind).slice(0, behind), color: MOON }
-    face = [pad(x - 3), { text: frame % 2 === 0 ? '~ ' : ' ~', color: BOLT }, pad(1), { text: '▐', color: STEEL }, ...eyes.slice(1, -1), { text: '█', color: body }, { text: '◣', color: GLASS }]
+    face = [pad(x - 3), { text: frame % 2 === 0 ? '~ ' : ' ~', color: BOLT }, pad(1), { text: '▐', color: STEEL }, ...inner(eyes), { text: '█', color: body }, { text: '◣', color: GLASS }]
     arms = [
       streaks,
       { text: '▐', color: TAIL_LIGHT },
@@ -1321,7 +1324,7 @@ export function clawdScene(input: {
   } else if (emote === 'wambulance') {
     // At the wheel of a white ambulance, facing right: its head up in the cabin, the windshield in
     // front of it, a red cross on the van's side, a headlight, and the wheels under it.
-    face = [pad(x), { text: '▐', color: AMBULANCE }, ...eyes.slice(1, -1), { text: '█', color: body }, { text: '◣', color: GLASS }]
+    face = [pad(x), { text: '▐', color: AMBULANCE }, ...inner(eyes), { text: '█', color: body }, { text: '◣', color: GLASS }]
     arms = [pad(x - 1), { text: '▐██', color: AMBULANCE }, { text: '✚', color: SIREN_RED, backgroundColor: AMBULANCE }, { text: '████▄', color: AMBULANCE }, { text: '▖', color: GOLD }]
     const wheel = { text: '▀▀', color: AMBULANCE, backgroundColor: WHEEL }
     feet = [pad(x - 1), { text: '▝▀', color: AMBULANCE }, wheel, { text: '▀▀▀', color: AMBULANCE }, wheel, { text: '▀▘', color: AMBULANCE }]

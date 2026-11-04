@@ -1344,7 +1344,7 @@ export const register: Register = (on, options) => {
     if (shown !== undefined) {
       // After treat and trick, which are commands first: a preview, the emote as it plays, with its name for a line.
       const now = await $.clock.now()
-      await showEmote($, ({ name: shown, line: `(${shown})`, until: now + stageLeft(now) + EMOTE_MS }))
+      await showEmote($, ({ name: shown, line: isSaying(shown) ? say(shown) : `(${shown})`, until: now + stageLeft(now) + EMOTE_MS }))
 
       return {}
     }

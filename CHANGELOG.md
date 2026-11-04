@@ -9,6 +9,14 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.28
+
+### Fixed
+
+- Clawd's face is in the wambulance's (and the DeLorean's) cabin again when it comes as a visit;
+  with its plain eyes it went missing.
+- `/pet wambulance`, `/pet posh` and the like show one of the act's own lines rather than its name.
+
 ## 0.5.27
 
 ### Changed
