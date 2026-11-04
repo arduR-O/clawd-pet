@@ -422,8 +422,7 @@ test('a Jedi brings a different lightsaber now and then, the same one for a whol
 test("in the wambulance and the DeLorean, Clawd's face is in the cabin, whatever face it wears", () => {
   const local = { hour: 10, weekday: 2, month: 10, day: 27 }
   const text = (row: { text: string }[]) => row.map(part => part.text).join('')
-  for (const emote of ['wambulance', 'delorean'] as const) {
-    const face = text(clawdScene({ kind: 'idle', emote, frame: 0, nowMs: NOON_IST, local })[1]!)
-    expect(face).toContain('▛███▜')
-  }
+  // Its plain eyes in the wambulance; the DeLorean's own wide eyes in the DeLorean.
+  expect(text(clawdScene({ kind: 'idle', emote: 'wambulance', frame: 0, nowMs: NOON_IST, local })[1]!)).toContain('▛███▜')
+  expect(text(clawdScene({ kind: 'idle', emote: 'delorean', frame: 0, nowMs: NOON_IST, local })[1]!)).toContain('●███●')
 })
