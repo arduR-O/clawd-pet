@@ -18,6 +18,7 @@ import {
   pastimeLine,
   isVibeSinging,
   STARTER_SONGS,
+  STARTER_CREDITS,
   TURNS,
   songbookLines,
   songbookPrompt,
@@ -371,7 +372,7 @@ function say(saying: Saying): string {
 // it through, as a radio names a song after it plays: none while it is still singing it, nor for a
 // line the songbook doesn't credit.
 function creditFor(sung: string): string | undefined {
-  return life.credits[sung]?.replace(' by ', ' · ')
+  return (life.credits[sung] ?? STARTER_CREDITS[sung])?.replace(' by ', ' · ')
 }
 
 // A leave-time reminder at a prompt or a finished turn, if it's been LEAVE_GAP_MS since the last:
@@ -1106,7 +1107,7 @@ export const register: Register = (on, options) => {
       // Which song the line Clawd sang last is from.
       const line = life.lastSung
       if (line === '') return { text: "Clawd hasn't sung yet. /pet sing gets it going." }
-      const credit = life.credits[line]
+      const credit = life.credits[line] ?? STARTER_CREDITS[line]
       const sung = `"${line.replace(/ ♪$/, '')}"`
       return {
         text:
@@ -1114,9 +1115,7 @@ export const register: Register = (on, options) => {
             ? credit.startsWith('after ')
               ? `Clawd last sang ${sung}, its own twist on a line of ${credit.slice('after '.length)}.`
               : `Clawd last sang ${sung}, from ${credit}.`
-            : STARTER_SONGS.includes(line)
-              ? `Clawd last sang ${sung}, one of its built-in songs.`
-              : `Clawd last sang ${sung}. Its songbook doesn't say which song that's from.`,
+            : `Clawd last sang ${sung}. Its songbook doesn't say which song that's from.`,
       }
     }
     if (asked === 'guest') {

@@ -187,7 +187,7 @@ knows of the songs. To turn LRCLIB off, set **Songbook: lyrics** to `off`.
 
 **Which song is that?** When Clawd finishes a line, the song and the artist show quietly under it,
 for example `♫ Piano Man · Billy Joel`. A radio does the same after a song. To ask later, run
-`/pet song`. A joke line names the song that it comes from. The built-in songs show no song name.
+`/pet song`. A joke line names the song that it comes from. The built-in songs are credited too.
 
 **Songs in Devanagari.** By default, Clawd leaves out songs whose lyrics LRCLIB has in Devanagari
 or another Indian script, because those lines do not turn into jokes about code well. Romanized

@@ -9,6 +9,14 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.18
+
+### Changed
+
+- The built-in songs are credited like the songbook's: the song and artist show quietly under a line
+  once Clawd has sung it, and `/pet song` names it. Two lines whose song could not be confirmed are
+  replaced, by Queen's "Somebody to Love" and Billy Joel's "Piano Man".
+
 ## 0.5.17
 
 ### Changed

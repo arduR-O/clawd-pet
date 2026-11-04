@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { STARTER_SONGS, isAwkward, pickedLines, candidatesOfLyrics, sungAloud, isInIndianScript, linesOfLyrics, mixSongbook, twistCredits, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
+import { STARTER_SONGS, STARTER_CREDITS, isAwkward, pickedLines, candidatesOfLyrics, sungAloud, isInIndianScript, linesOfLyrics, mixSongbook, twistCredits, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
 import {
   BAND,
   OPTIONS,
@@ -333,16 +333,25 @@ test('the credit shows however Clawd comes to sing, as when it vibes and sings a
   await ui.unmount()
 })
 
-test('a line from the built-in songs is named as one, and shows no credit', { options: OPTIONS }, async ($, on) => {
-  await start($, on, {}, NOON_IST)
+test('a line from the built-in songs is credited too, once sung through, and /pet song names its song', { options: OPTIONS }, async ($, on) => {
+  const clock = await start($, on, {}, NOON_IST)
   const ui = await $.ui.mount(BAND)
 
   await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
-  expect(await ui.find({ type: 'Text', text: /^♫ / })).toBeFalsy()
+  let shown = false
+  for (let wait = 0; wait < 40 && !shown; wait++) {
+    shown = Boolean(await ui.find({ type: 'Text', text: /^♫ .+ · .+$/ }))
+    if (!shown) await clock.advance(800)
+  }
+  expect(shown).toBe(true)
 
   const asked = await $.command.run({ ...TYPED, command: 'pet', args: 'song' })
-  expect(asked.text).toMatch(/one of its built-in songs\.$/)
+  expect(asked.text).toMatch(/, (from|its own twist on a line of) .+ by .+\.$/)
   await ui.unmount()
+})
+
+test('every built-in song names the song it comes from', () => {
+  for (const line of STARTER_SONGS) expect(STARTER_CREDITS[line]).toMatch(/^(after )?.+ by .+$/)
 })
 
 // Made up for the tests: a romanized Hindi verse, one in Devanagari, and an English one.
