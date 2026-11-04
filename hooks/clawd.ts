@@ -12,6 +12,9 @@ const HEART = '#ff91de'
 const GOLD = '#ffcb6b'
 const GULL = '#e6e6e6'
 const WATER = '#8ab6d6'
+// The sea, and the foam on a wave.
+const SEA = '#5b93c7'
+const FOAM = '#eef6fb'
 const SHELL = '#7a4a2a'
 const COUSIN = '#ffb366'
 const PEARL = '#f4f1de'
@@ -1184,8 +1187,18 @@ export function clawdScene(input: {
 
   let feet: Row = [pad(x), { text: legs, color: suit }]
   if (emote === 'tide') {
-    // The water washes over Clawd's feet, rolling one cell a frame.
-    feet = [{ text: Array.from({ length: SKY }, (_, at) => ((at + frame) % 3 === 0 ? '≈' : '~')).join(''), color: WATER }]
+    // The sea is in, up over Clawd's feet, its surface rolling along a cell a frame. A wave rolls in
+    // from the right, rising as it comes, foams at its crest, and breaks on Clawd in a splash.
+    const SURFACE = '▅▆▇█▇▆'
+    const phase = frame % 4
+    const end = x + claws.length
+    // The water under the wave is full to the top, so the wave rises out of the sea.
+    const wave = phase === 3 ? SKY : SKY - [3, 4, 5][phase]!
+    feet = [{ text: Array.from({ length: SKY }, (_, at) => (at >= wave ? '█' : SURFACE[(at + frame) % SURFACE.length])).join(''), color: SEA }]
+    if (phase === 0) arms = [...arms, pad(SKY - 3 - end), { text: '▁▂▃', color: SEA }]
+    else if (phase === 1) arms = [...arms, pad(SKY - 4 - end), { text: '▂▄▆▄', color: SEA }]
+    else if (phase === 2) arms = [...arms, pad(SKY - 5 - end), { text: '▀', color: FOAM, backgroundColor: SEA }, { text: '█▇▅▃', color: SEA }]
+    else face = [...face, pad(1), { text: frame % 8 === 3 ? '°˙·' : '˙°.', color: FOAM }]
   } else if (emote === 'molt') {
     feet = [...feet, pad(1), { text: '▘ ▝', color: SHELL }]
   } else if (emote === 'cousin') {

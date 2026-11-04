@@ -9,6 +9,13 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.22
+
+### Changed
+
+- The tide comes in properly: the sea rolls up to Clawd's middle, and a wave swells in from the
+  right, crests in foam and breaks beside Clawd in a splash.
+
 ## 0.5.21
 
 ### Fixed
