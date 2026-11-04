@@ -173,10 +173,14 @@ once.
    [last.fm/api/accounts](https://www.last.fm/api/accounts). Claude Code keeps the key in secure
    storage.
 2. Clawd looks your songs up on [LRCLIB](https://lrclib.net), a free lyrics database that music
-   players use. From each song, it takes the first line and the line that the song sings most.
-   That line is usually the chorus.
-3. Clawd sings these lines. It holds the last note, for example `come down sooooon`.
-4. Claude Haiku turns a few of the lines into jokes about code.
+   players use. From each song, it gathers a few lines: the first line, the line that the song
+   sings most (usually the chorus), and a few more.
+3. Claude Haiku picks one or two lines from each song, leaning toward lines that are poignant or
+   memorable. It is only a lean: every song still gets sung. Haiku picks the lines by number, so the
+   words are always the song's own. If Haiku does not answer, Clawd takes each song's first line
+   and chorus.
+4. Clawd sings these lines. It holds the last note, for example `come down sooooon`.
+5. In the same call, Claude Haiku turns a few of the lines into jokes about code.
 
 If LRCLIB has fewer than 3 lines for your songs, Claude Haiku writes the songbook from what it
 knows of the songs. To turn LRCLIB off, set **Songbook: lyrics** to `off`.

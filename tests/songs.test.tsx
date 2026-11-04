@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { STARTER_SONGS, isAwkward, sungAloud, isInIndianScript, linesOfLyrics, mixSongbook, twistCredits, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
+import { STARTER_SONGS, isAwkward, pickedLines, candidatesOfLyrics, sungAloud, isInIndianScript, linesOfLyrics, mixSongbook, twistCredits, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
 import {
   BAND,
   OPTIONS,
@@ -232,8 +232,9 @@ test('with LRCLIB on, the songbook sings the songs\' real lines, looked up by ti
   )
   expect(looked[0]?.url).toContain('track_name=Paper%20Moon&artist_name=The%20Kettles')
   expect(looked[0]?.agent).toContain('clawd')
-  // Claude is given the real lines to twist, not asked to remember any.
-  expect(prompts[0]).toContain('- the kettle hums a lonely tuuune')
+  // Claude is given the real lines, numbered, to pick from and twist, not asked to remember any.
+  expect(prompts[0]).toContain('1. the kettle hums a lonely tuuune')
+  expect(prompts[0]).toContain('poignant')
   // Each line keeps the song it's from; the twist, the song it riffs on.
   expect(written[0]?.credits).toEqual({
     'the kettle hums a lonely tuuune ♪': 'Paper Moon (From "A Film") by The Kettles',
@@ -642,7 +643,7 @@ test("a stale songbook gets the day's lines added once, by Claude in the vibe of
     {
       day: '10-27',
       source: 'lastfm:listener',
-      style: 11,
+      style: 12,
       taste: LASTFM_SONGBOOK.taste,
       // Yesterday's line kept, the day's added after it.
       lines: ['yesterday ♪', 'ooh, the tests are green ♪', 'another one bites the bug ♪', 'we will, we will lint you ♪'],
@@ -839,4 +840,34 @@ test('a songbook already kept loses its awkward lines when Clawd sings from it',
   const book = withStarters(['oh paper moon, come down soooon ♪', "you're my boyfriend, ooh ♪"])
   expect(book).toContain('oh paper moon, come down soooon ♪')
   expect(book.some(line => /boyfriend/.test(line))).toBe(false)
+})
+
+// Two songs' lines to pick from: lines 1-3 and 4-5.
+const CHOICES = [
+  { credit: 'Paper Moon by The Kettles', lines: ['the kettle hums a lonely tuuune ♪', 'oh paper moon, come down soooon ♪', 'we dance around the empty roooom ♪'] },
+  { credit: 'Second Song by The Kettles', lines: ['second song, its first liiine ♪', 'la la la, the chorus heeere ♪'] },
+]
+
+test("Claude picks each song's lines by number, so the words stay the song's own", () => {
+  const picked = pickedLines('2, 3, 5\noh paper moon… merge it sooon', CHOICES)
+  expect(picked.lines).toEqual(['oh paper moon, come down soooon ♪', 'we dance around the empty roooom ♪', 'la la la, the chorus heeere ♪'])
+  expect(picked.twists).toEqual(['oh paper moon… merge it sooon ♪'])
+  // A label before the numbers is fine.
+  expect(pickedLines('picks: 3 and 4', CHOICES).lines).toEqual(['we dance around the empty roooom ♪', 'second song, its first liiine ♪'])
+})
+
+test('the lean toward deep lines is soft: every song is sung, at most two lines each', () => {
+  // Nothing picked from the second song: it gives its first line. Three from the first: two kept.
+  expect(pickedLines('1, 2, 3', CHOICES).lines).toEqual(['the kettle hums a lonely tuuune ♪', 'oh paper moon, come down soooon ♪', 'second song, its first liiine ♪'])
+  // No picks at all, or no answer: each song's first line and chorus, as without Claude.
+  const fallback = ['the kettle hums a lonely tuuune ♪', 'oh paper moon, come down soooon ♪', 'second song, its first liiine ♪', 'la la la, the chorus heeere ♪']
+  expect(pickedLines('the kettle hums… and the build is green', CHOICES).lines).toEqual(fallback)
+  expect(pickedLines(undefined, CHOICES).lines).toEqual(fallback)
+})
+
+test('a song offers more of its lines to pick from: its first, its chorus, then others of four words or more', () => {
+  const lines = candidatesOfLyrics(MADE_UP)
+  expect(lines.slice(0, 2)).toEqual(linesOfLyrics(MADE_UP))
+  expect(lines.length).toBeGreaterThan(2)
+  expect(new Set(lines).size).toBe(lines.length)
 })

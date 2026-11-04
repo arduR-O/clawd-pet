@@ -297,7 +297,7 @@ export function tasteFrom(artists: unknown, weekTracks: unknown, recentPlays: un
 }
 
 // The songbook prompt's version: a songbook written by an older prompt is written again.
-export const SONGBOOK_STYLE = 11
+export const SONGBOOK_STYLE = 12
 
 // What Claude is asked for the songbook: lines actually sung in the songs of `taste`, each from
 // the line's start, most sung as is and about one in four carried on into code.
@@ -426,6 +426,19 @@ export function linesOfLyrics(lyrics: string): string[] {
   return lines.map(line => `${sungAloud(line.replace(/[,.;:!?]+$/, ''))} ♪`)
 }
 
+// More of a song's lines to choose from, up to `most`: the first and the chorus (linesOfLyrics),
+// then its other lines of four words or more, in the order sung; each once, sung aloud.
+export function candidatesOfLyrics(lyrics: string, most = 6): string[] {
+  const picked = linesOfLyrics(lyrics)
+  const others = lyrics
+    .split(/\r?\n/)
+    .map(line => line.trim().replace(/[,.;:!?]+$/, ''))
+    .filter(line => line.length >= 6 && line.length <= 70 && !/^[([].*[)\]]$/.test(line) && line.split(/\s+/).length >= 4 && !isAwkward(line))
+    .map(line => `${sungAloud(line.toLowerCase())} ♪`)
+
+  return [...new Set([...picked, ...others])].slice(0, most)
+}
+
 // Whether lyrics are written in Devanagari or another Indian script, which don't turn into lines
 // about code well; romanized ones do.
 export const isInIndianScript = (lyrics: string) => /[\u0900-\u0DFF]/.test(lyrics)
@@ -446,18 +459,48 @@ export function twistCredits(twists: readonly string[], sung: readonly string[],
   return found
 }
 
-// What Claude is asked to add to a songbook of real lines: a few that carry a line on into code.
-export function twistPrompt(lines: readonly string[]): string {
+// A song's lines to pick from for the songbook, and whose they are.
+export type Choices = { credit: string; lines: readonly string[] }
+
+// What Claude is asked for a songbook of real lines: which of each song's lines Clawd sings, by
+// number (so the words stay the song's own), leaning softly toward the poignant ones; then a few
+// lines that carry a picked one on into code.
+export function songbookPickPrompt(songs: readonly Choices[]): string {
+  let n = 0
   return [
     "Clawd, a tiny crab who lives in a programmer's terminal, sings lines from the songs its person plays.",
-    'Here are some of those lines:',
-    ...lines.map(line => `- ${line.replace(/ ♪$/, '')}`),
-    'Write 4 new lines, each taking the start of a different one of those lines (its first few words,',
-    'as sung) and carrying it on into code (bugs, builds, tests, git) or crab life, keeping its rhythm,',
+    'Here are lines from those songs, numbered:',
+    ...songs.flatMap(song => [song.credit, ...song.lines.map(line => `${(n += 1)}. ${line.replace(/ ♪$/, '')}`)]),
+    'First pick the lines Clawd sings: one or two from every song, so that every song is sung. Lean',
+    'toward lines that are poignant, heartfelt or memorable, the ones a person hums, over filler; it is',
+    "only a lean, so a song of plain lines still gives its best one. Give the picks' numbers on the",
+    'first line of your reply, e.g. "1, 4, 7", and nothing else on it.',
+    'Then write 4 new lines, each taking the start of a different picked line (its first few words, as',
+    'sung) and carrying it on into code (bugs, builds, tests, git) or crab life, keeping its rhythm,',
     'e.g. "before you go… run the linter". Vary the jokes. Keep them fit to be read over a shoulder at',
-    'work: nothing flirty, sexual or profane. At most 12 words a line; lowercase. One',
-    'line each, no numbering, no quotes, no commentary.',
+    'work: nothing flirty, sexual or profane. At most 12 words a line; lowercase. One line each, no',
+    'numbering, no quotes, no commentary.',
   ].join('\n')
+}
+
+// The lines Clawd sings from Claude's reply to songbookPickPrompt, in the songs' order, and its
+// twists. At most two lines a song; a song Claude picked nothing from gives its first line, and with
+// no picks at all, each song gives its first line and chorus, as without Claude.
+export function pickedLines(reply: string | undefined, songs: readonly Choices[]): { lines: string[]; twists: string[] } {
+  const rows = (reply ?? '').split('\n')
+  // The picks: a row of numbers, perhaps after a label ("picks: 1, 4 and 7").
+  const at = rows.findIndex(row => /^(?:[a-z ]+:)?\s*\d+(?:\s*(?:,|and|&)?\s*\d+)*\s*\.?$/i.test(row.trim()))
+  const numbers = at < 0 ? [] : [...rows[at]!.matchAll(/\d+/g)].map(one => Number(one[0]))
+  const twists = songbookLines(rows.filter((_, i) => i !== at).join('\n'))
+  let n = 0
+  const lines = songs.flatMap(song => {
+    const numbered = song.lines.map(line => ({ line, n: (n += 1) }))
+    const chosen = numbered.filter(one => numbers.includes(one.n)).map(one => one.line).slice(0, 2)
+    if (numbers.length === 0) return song.lines.slice(0, 2)
+    return chosen.length > 0 ? chosen : song.lines.slice(0, 1)
+  })
+
+  return { lines: [...new Set(lines)], twists }
 }
 
 // A songbook from real lines and Claude's twists on them: a twist after every three real lines.

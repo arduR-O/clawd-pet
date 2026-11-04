@@ -9,6 +9,16 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.17
+
+### Changed
+
+- The songbook leans toward poignant, memorable lines. Clawd gathers a few lines from each song, and
+  Claude Haiku picks one or two from each, by number, so the words stay the song's own. It is a soft
+  preference: every song is still sung. This happens in the same daily Haiku call that writes the
+  jokes, and without an answer each song gives its first line and chorus as before. Songbooks are
+  written again on the next daily update.
+
 ## 0.5.16
 
 ### Changed

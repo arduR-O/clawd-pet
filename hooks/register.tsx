@@ -23,10 +23,12 @@ import {
   songbookPrompt,
   songsFrom,
   searchTitle,
-  linesOfLyrics,
   sungAloud,
   isInIndianScript,
-  twistPrompt,
+  songbookPickPrompt,
+  pickedLines,
+  candidatesOfLyrics,
+  type Choices,
   mixSongbook,
   creditOf,
   twistCredits,
@@ -504,7 +506,7 @@ async function tasteOf($: EngineInterface, lastfm: { user: string; key: string }
 
 // Real lines of the songs, looked up on LRCLIB, a free lyrics database music players use: a song's
 // first line and its chorus, for up to SUNG_SONGS songs. Only the titles and artists go to it.
-async function lyricLines($: EngineInterface, songs: readonly Song[], isSkippingHindi: boolean): Promise<{ lines: string[]; found: number; skipped: number; credits: Record<string, string> }> {
+async function lyricLines($: EngineInterface, songs: readonly Song[], isSkippingHindi: boolean): Promise<{ choices: Choices[]; found: number; skipped: number }> {
   const search = (song: Song) =>
     $.http.fetch(`https://lrclib.net/api/search?track_name=${encodeURIComponent(searchTitle(song.title))}&artist_name=${encodeURIComponent(song.artist)}`, {
       headers: { 'User-Agent': 'clawd (https://github.com/arduR-O/clawd-pet)' },
@@ -529,7 +531,7 @@ async function lyricLines($: EngineInterface, songs: readonly Song[], isSkipping
         skipped += 1
         return []
       }
-      return linesOfLyrics(hit.plainLyrics as string)
+      return candidatesOfLyrics(hit.plainLyrics as string)
     } catch {
       return []
     }
@@ -542,11 +544,8 @@ async function lyricLines($: EngineInterface, songs: readonly Song[], isSkipping
     found.push(...some.map((song, i) => ({ song, lines: lines[i]! })))
   }
   const sung = found.filter(one => one.lines.length > 0).slice(0, SUNG_SONGS)
-  // Which song each line is from, for the credit under it and `/pet song`.
-  const credits: Record<string, string> = {}
-  for (const { song, lines } of sung) for (const line of lines) credits[line] ??= creditOf(song)
 
-  return { lines: [...new Set(sung.flatMap(one => one.lines))], found: sung.length, skipped, credits }
+  return { choices: sung.map(({ song, lines }) => ({ credit: creditOf(song), lines })), found: sung.length, skipped }
 }
 
 // Loads the songbook, or has Claude write one in the vibe of what you've been playing (tasteOf):
@@ -596,25 +595,31 @@ async function refreshSongbook(
   }
   // The songs' real lines when LRCLIB has enough of them, with a few of Haiku's twists on them; else
   // Haiku writes the songbook from what it knows of the songs.
-  const sung = isLyrics ? await lyricLines($, songs, isSkippingHindi) : { lines: [], found: 0, skipped: 0, credits: {} }
-  if (sung.lines.length >= (isAdding ? 1 : 3)) {
-    const { reply } = await askHaiku($, twistPrompt(sung.lines), effort)
+  const sung = isLyrics ? await lyricLines($, songs, isSkippingHindi) : { choices: [], found: 0, skipped: 0 }
+  if (sung.choices.reduce((all, song) => all + Math.min(2, song.lines.length), 0) >= (isAdding ? 1 : 3)) {
+    // Haiku picks which of each song's lines Clawd sings, by number, and writes a few twists on them;
+    // without its answer, each song gives its first line and chorus.
+    const { reply } = await askHaiku($, songbookPickPrompt(sung.choices), effort)
+    const picked = pickedLines(reply?.isAnswered === true ? reply.text : undefined, sung.choices)
+    // Which song each line is from, for the credit under it and `/pet song`.
+    const credits: Record<string, string> = {}
+    for (const song of sung.choices) for (const line of song.lines) credits[line] ??= song.credit
+    const lines = picked.lines
     // The twists sung like the lines, their last note held, unless Haiku already stretched one.
-    const twists = (reply?.isAnswered === true ? songbookLines(reply.text).slice(0, 4) : []).map(twist =>
-      /([a-z])\1\1/i.test(twist) ? twist : `${sungAloud(twist.replace(/ ♪$/, ''))} ♪`,
-    )
-    const written = mixSongbook(sung.lines, twists)
-    const writtenCredits = { ...sung.credits, ...twistCredits(twists, sung.lines, sung.credits) }
+    const twists = picked.twists.slice(0, 4).map(twist => (/([a-z])\1\1/i.test(twist) ? twist : `${sungAloud(twist.replace(/ ♪$/, ''))} ♪`))
+    const written = mixSongbook(lines, twists)
+    const writtenCredits = {
+      ...Object.fromEntries(lines.filter(line => credits[line] !== undefined).map(line => [line, credits[line]!])),
+      ...twistCredits(twists, lines, credits),
+    }
     if (isAdding) return addToSongbook($, kept, written, writtenCredits, { today, source, taste }, `the lyrics of ${sung.found} more of its songs from LRCLIB`)
-    const lines = written
-    const credits = writtenCredits
-    life.songs = withStarters(lines)
-    life.credits = credits
-    await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines, credits })
+    life.songs = withStarters(written)
+    life.credits = writtenCredits
+    await $.store.set('songbook', { day: today, source, style: SONGBOOK_STYLE, taste, lines: written, credits: writtenCredits })
 
     return {
-      text: `New songbook: ${lines.length} lines from ${lastfm.user}'s Last.fm, the lyrics of ${sung.found} of its ${songs.length} songs from LRCLIB${sung.skipped > 0 ? ` (${sung.skipped} in Devanagari left out)` : ''}, such as "${lines[0]}"`,
-      line: `new songbook: ${lines.length} songs ♪`,
+      text: `New songbook: ${written.length} lines from ${lastfm.user}'s Last.fm, the lyrics of ${sung.found} of its ${songs.length} songs from LRCLIB${sung.skipped > 0 ? ` (${sung.skipped} in Devanagari left out)` : ''}, such as "${written[0]}"`,
+      line: `new songbook: ${written.length} songs ♪`,
     }
   }
   const { reply, refused } = await askHaiku($, songbookPrompt(taste), effort)
