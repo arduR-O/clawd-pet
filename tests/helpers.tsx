@@ -190,8 +190,8 @@ export async function shows(ui: Mounted<'terminal', 'AbovePrompt'>, text: RegExp
   return (await ui.findAll({ type: 'Text', text })).some(one => one.props.color === color)
 }
 
-export const CHEF_LINES = ['chef claude in the kitchen.', 'needs more salt.', 'yes, chef!']
-export const SNACK_LINES = ['smells good. save me some.', 'is that for me?', '*sniff sniff*', 'I brought a fork.']
+export const CHEF_LINES = ['chef claude in the kitchen.', 'needs more salt.', 'a pinch of this, a dash of that.', 'stirring the pot.', "don't rush the sauce.", 'yes, chef!', 'mise en place: done.']
+export const SNACK_LINES = ['smells good. save me some.', 'is that for me?', '*sniff sniff*', 'I brought a fork.', 'can I lick the spoon?', "how long till it's ready?", 'taste test? I volunteer.']
 
 export const RAISED = /^▗▟█████▙▖$/
 export const LOWERED = /^▝▜█████▛▘$/

@@ -39,7 +39,7 @@ test('Clawd does an emote now and then while Claude works', { options: OPTIONS }
   await clock.advance(24_000)
   // A song shows its first letters so far: one of the starter songs' openings.
   const emotes =
-    /o\/|crab rave|blub|scuttle|did you hear|munch|soaking up the sun|shades on|six… seven|UwU|\*hic\*|SEAGULL|molts|cousin|pearl|tide's in|rain|vibing|wheee|^(mama|is th|we wi|don't|anoth|under|we met|and we|remem|and so|I can|stones|I beca|I am w|Amie|nothing|I'll f|they wi|those|please|near|every|welcome|you can|there's|in sleep|that voice|sing once)/
+    /o\/|crab rave|blub|scuttle|did you hear|munch|soaking up the sun|shades on|six… seven|UwU|\*hic\*|SEAGULL|molts|cousin|pearl|tide's in|rain|vibing|wheee|^(mama|is th|we wi|don't|anoth|under|we met|and we|remem|and so|I can|stones|can an|sing us|of all|Amie|nothing|I'll f|they wi|those|please|near|every|welcome|you can|there's|in sleep|that voice|sing once)/
   expect(await ui.find({ type: 'Text', text: emotes })).toBeTruthy()
   await ui.unmount()
 })
@@ -519,7 +519,7 @@ const GUESTS: readonly [string, Saying, RegExp][] = [
   ['git stash', 'ninja', /▗▄▄▄▄▄▖/],
   ['git stash pop', 'ninjaBack', /▗▄▄▄▄▄▖/],
   ['kill -9 4242', 'terminator', /●/],
-  ['docker compose up', 'whale', /▟██▙/],
+  ['docker compose up', 'whale', /▝▙█/],
 ]
 
 test('some commands bring a guest: a Jedi, Sherlock, a DeLorean, a ninja, the Terminator, a whale', { options: OPTIONS }, async ($, on) => {

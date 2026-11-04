@@ -675,7 +675,7 @@ test('without Last.fm, Clawd sings its built-in songs and calls no model', async
   await $.command.run({ ...TYPED, command: 'pet', args: 'sing' })
 
   expect(asked).toBe(0)
-  expect(await ui.find({ type: 'Text', text: /^(mama|is th|we wi|don't|anoth|under|we met|and we|remem|and so|I can|stones|I beca|I am w|Amie|nothing|I'll f|they wi|those|please|near|every|welcome|you can|there's|in sleep|that voice|sing once)/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /^(mama|is th|we wi|don't|anoth|under|we met|and we|remem|and so|I can|stones|can an|sing us|of all|Amie|nothing|I'll f|they wi|those|please|near|every|welcome|you can|there's|in sleep|that voice|sing once)/ })).toBeTruthy()
   await ui.unmount()
 })
 

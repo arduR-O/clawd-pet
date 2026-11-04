@@ -9,6 +9,16 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.20
+
+### Changed
+
+- Two guests drawn again, to sit alongside the DeLorean: the coffee is a proper mug (steam curling
+  over the rim, the coffee showing, a heart on its side, a handle), and Clawd rides the whale, as
+  the containers ride Docker's, its tail's flukes up behind and its spout ahead.
+- Twice as many things to say to a cooking word, chef's and snacker's in turn, so "yes, chef!" comes
+  round less often; a routine prompt gets "aye aye." instead of "yes chef.".
+
 ## 0.5.19
 
 ### Changed

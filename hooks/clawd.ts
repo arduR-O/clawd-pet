@@ -46,6 +46,7 @@ const DUCK = '#ffd84a'
 const BEAK = '#ff9d3c'
 const MATRIX = '#38d66b'
 const MUG = '#e8e0d0'
+const COFFEE = '#7a4b2a'
 const DOME = '#9ad6ff'
 const MUSHROOM = '#3cb043'
 const WHALE = '#4a90d9'
@@ -1080,6 +1081,11 @@ export function clawdScene(input: {
     for (let at = 0; at < SKY; at++) {
       if ((at * 37 + frame * 11) % 7 < 3) put(at, ['1', '0', '╎', '┊', '1'][(at * 3 + frame) % 5]!, MATRIX)
     }
+  } else if (emote === 'whale') {
+    // The spray at the top of the whale's spout.
+    put(SKY - 4, frame % 2 === 0 ? '⁘' : '·', WATER)
+    put(SKY - 3, frame % 2 === 0 ? '·' : '⁘', WATER)
+    put(SKY - 2, frame % 2 === 0 ? '⁘' : '·', WATER)
   } else if (emote === 'delorean') {
     // The speedometer reading 88 mph over the trail it leaves, the car's roof over Clawd's head,
     // and lightning striking ahead of it.
@@ -1267,9 +1273,11 @@ export function clawdScene(input: {
     arms = [...arms, pad(2), { text: '▗█', color: DUCK }, { text: '▸', color: BEAK }]
     feet = [...feet, pad(2), { text: '▜██▛', color: DUCK }]
   } else if (emote === 'coffee') {
-    // A mug in hand, steam curling up over it.
-    face = [...face, pad(2), { text: frame % 2 === 0 ? '(' : ')', color: MOON }]
-    arms = [...arms, pad(1), { text: '█', color: MUG }, { text: '▘', color: MUG }]
+    // A mug of coffee beside it: steam curling up over the rim, the coffee showing at the top, a
+    // heart on its side and its handle.
+    face = [...face, pad(2), { text: frame % 2 === 0 ? '≀ ≀' : ' ≀ ', color: MOON }]
+    arms = [...arms, pad(1), { text: '▗', color: MUG }, { text: '▄', color: COFFEE }, { text: '▖', color: MUG }]
+    feet = [...feet, pad(2), { text: '█', color: MUG }, { text: '♥', color: HEART, backgroundColor: MUG }, { text: '█', color: MUG }, { text: '◗', color: MUG }]
   } else if (emote === 'astronaut') {
     // The helmet's glass either side of its face.
     face = [pad(x), { text: '│', color: DOME }, ...eyes, { text: '│', color: DOME }]
@@ -1278,10 +1286,13 @@ export function clawdScene(input: {
     arms = [...arms, pad(1), { text: '▟', color: MUSHROOM }, { text: '●', color: PEARL, backgroundColor: MUSHROOM }, { text: '▙', color: MUSHROOM }]
     feet = [...feet, pad(3), { text: '█', color: MUG }]
   } else if (emote === 'whale') {
-    // A whale surfacing beside Clawd, spouting.
-    face = [...face, pad(4), { text: frame % 2 === 0 ? '⁚' : '·', color: WATER }]
-    arms = [...arms, pad(1), { text: '▟██▙', color: WHALE }]
-    feet = [...feet, pad(2), { text: '▀▀▀▘', color: WHALE }]
+    // Riding a whale, as the containers ride Docker's: its back the whole way under Clawd, its tail's
+    // flukes up behind, its eye and its spout ahead.
+    const used = [...face.map(part => part.text).join('')].length
+    face = [...face, pad(SKY - 3 - used), { text: '│', color: WATER }]
+    arms = [{ text: frame % 2 === 0 ? '▚▞' : '▞▚', color: WHALE }, pad(x - 2), { text: claws, color: body }]
+    arms = [...arms, pad(SKY - 3 - [...arms.map(part => part.text).join('')].length), { text: '│', color: WATER }]
+    feet = [{ text: '▝▙', color: WHALE }, { text: '█'.repeat(SKY - 4), color: WHALE }, { text: '•', color: SHADES, backgroundColor: WHALE }, { text: '▛', color: WHALE }]
   } else if (emote === 'rain') {
     // The umbrella's shaft comes down from the middle of its canopy and hooks into the right claw.
     face = [...face, pad(2), { text: '│', color: ROD }]
@@ -1552,12 +1563,19 @@ const SPINNER_FAMILIES: readonly Family[] = [
   {
     acts: [
       ['snack', 'smells good. save me some.'],
-      ['snack', 'is that for me?'],
-      ['snack', '*sniff sniff*'],
       ['chef', 'chef claude in the kitchen.'],
+      ['snack', 'is that for me?'],
       ['chef', 'needs more salt.'],
-      ['chef', 'yes, chef!'],
+      ['snack', '*sniff sniff*'],
+      ['chef', 'a pinch of this, a dash of that.'],
       ['snack', 'I brought a fork.'],
+      ['chef', 'stirring the pot.'],
+      ['snack', 'can I lick the spoon?'],
+      ['chef', "don't rush the sauce."],
+      ['snack', "how long till it's ready?"],
+      ['chef', 'yes, chef!'],
+      ['snack', 'taste test? I volunteer.'],
+      ['chef', 'mise en place: done.'],
     ],
     words: ['baking', 'blanching', 'brewing', 'bunning', 'caramelizing', 'churning', 'concocting', 'cooking', 'crunching', 'drizzling', 'fermenting', 'frosting', 'garnishing', 'infusing', 'kneading', 'leavening', 'marinating', 'proofing', 'sautéing', 'seasoning', 'simmering', 'stewing', 'tempering', 'whisking', 'zesting'],
   },
@@ -1723,7 +1741,7 @@ export const SAYINGS = {
   first: ['ooh, what are we making?', "what's the plan?", 'a new adventure!', 'ready when you are.', "let's build something."],
   late: ['at this hour?', 'still up?', 'burning the midnight oil?', 'one more, then bed?', 'the night shift, huh.'],
   routine: [
-    'go on…', 'listening.', 'mhm, mhm.', 'another one!', 'on it.', 'ok, next.', 'say less.', 'noted.', 'here we go.', 'yes chef.',
+    'go on…', 'listening.', 'mhm, mhm.', 'another one!', 'on it.', 'ok, next.', 'say less.', 'noted.', 'here we go.', 'aye aye.',
     'righto.', 'on the case.', 'alright, alright.', 'ooh, ok.',
   ],
   browsing: ['peeking at {site}', 'reading {site}', 'off to {site}', 'what does {site} say?', 'a quick trip to {site}'],
