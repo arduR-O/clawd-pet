@@ -9,6 +9,13 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.24
+
+### Fixed
+
+- No more notch at Clawd's sides when it bows or stretches: its body stays whole to its edges, its
+  claws resting low beside it as it bows, or up over its head as it stretches.
+
 ## 0.5.23
 
 ### Changed

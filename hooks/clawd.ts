@@ -113,9 +113,8 @@ const EYES = '▐▛███▜▌'
 const EYES_UP = '▐▙███▟▌'
 const CLAWS_DOWN = '▝▜█████▛▘'
 const CLAWS_UP = '▗▟█████▙▖'
-const CLAWS_REST = '▗▄█████▄▖'
-// Claws raised high over its head (drawn in the sky row): nothing at its sides.
-const CLAWS_RAISED_HIGH = '  █████  '
+// Claws raised high over its head (drawn in the sky row): its body whole, nothing at its sides.
+const CLAWS_RAISED_HIGH = ' ▐█████▌ '
 const WAVE_LEFT = '▗▟█████▛▘'
 const WAVE_RIGHT = '▝▜█████▙▖'
 const LEGS = '  ▘▘ ▝▝ '
@@ -1126,9 +1125,9 @@ export function clawdScene(input: {
   else if (emote === 'whale') claws = frame % 2 === 0 ? WAVE_LEFT : WAVE_RIGHT
   // A claw up, like a hand raised to ask.
   else if (emote === 'tap') claws = WAVE_LEFT
-  // Unimpressed claws hang still; bowing ones fold low.
+  // Unimpressed claws hang still; bowing ones rest low at its sides.
   else if (emote === 'enough') claws = CLAWS_DOWN
-  else if (emote === 'bow') claws = CLAWS_REST
+  else if (emote === 'bow') claws = CLAWS_UP
   // Stirring the pot, or hammering away.
   else if (emote === 'chef') claws = frame % 2 === 0 ? WAVE_LEFT : CLAWS_DOWN
   else if (emote === 'hardhat') claws = frame % 2 === 0 ? WAVE_RIGHT : CLAWS_DOWN

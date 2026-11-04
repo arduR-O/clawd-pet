@@ -330,17 +330,17 @@ test("the chef's hat sits centered over the face, a wide puff on a thin band, an
   }
 })
 
-test('a bowing Clawd dips every other frame with its claws folded low', () => {
+test('a bowing Clawd dips every other frame, its body whole, its claws low at its sides', () => {
   const local = { hour: 10, weekday: 2, month: 10, day: 27 }
   const text = (row: { text: string }[]) => row.map(part => part.text).join('')
 
   const up = clawdScene({ kind: 'love', emote: 'bow', frame: 0, nowMs: NOON_IST, local })
   const down = clawdScene({ kind: 'love', emote: 'bow', frame: 1, nowMs: NOON_IST, local })
 
-  expect(text(up[2]!)).toContain('▗▄█████▄▖')
+  expect(text(up[2]!)).toContain('▗▟█████▙▖')
   expect(text(up[3]!)).toContain('▘▘ ▝▝')
   expect(text(down[1]!).trim()).toBe('')
-  expect(text(down[3]!)).toContain('▗▄█████▄▖')
+  expect(text(down[3]!)).toContain('▗▟█████▙▖')
 })
 
 test('a meditating Clawd sits with its claws raised beside its face, eyes shut, humming, and floats down and back', () => {
@@ -382,8 +382,8 @@ test('a stretch reaches both claws up over its head, and a yawn opens wide', () 
   const text = (row: { text: string }[]) => row.map(part => part.text).join('')
   const [sky, , claws] = clawdScene({ kind: 'idle', emote: 'stretch', frame: 0, nowMs: NOON_IST, local }).map(text)
   expect(sky).toMatch(/▟.{5}▙/)
-  // Its claws are up there, so nothing at its sides: just its body.
-  expect(claws).toContain('  █████  ')
+  // Its claws are up there, so nothing at its sides: just its body, whole to its edges.
+  expect(claws).toContain(' ▐█████▌ ')
   expect(claws).not.toMatch(/[▗▖▘▝▄]/)
 
   const [, face, body] = clawdScene({ kind: 'idle', emote: 'yawn', frame: 0, nowMs: NOON_IST, local }).map(text)
