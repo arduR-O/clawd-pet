@@ -28,6 +28,8 @@ const HILT = '#b0b0b8'
 const WIZARD = '#8c8c9c'
 const RED_EYE = '#ff2a2a'
 const FLAME = '#ff6a3d'
+// A bolt of lightning.
+const BOLT = '#9fd8ff'
 // Near black, a shade off the dark terminals' own so the ninja is stealthy but still there.
 const NINJA = '#3a3a46'
 const NINJA_TAILS = '#5a5a68'
@@ -910,6 +912,8 @@ export function clawdScene(input: {
   else if (emote === 'dance' || emote === 'party' || emote === 'dizzy' || kind === 'oops') dx = frame % 2
   // Nodding along, a beat every two frames.
   else if (emote === 'vibe') dx = Math.floor(frame / 2) % 2
+  // Off to the right at 88 miles an hour, shuddering, its fire trails streaming out behind it.
+  else if (emote === 'delorean') dx = 4 + (frame % 2)
   const x = BASE + dx
 
   const sky: Segment[] = Array.from({ length: SKY }, () => ({ text: ' ' }))
@@ -1006,8 +1010,9 @@ export function clawdScene(input: {
       if ((at * 37 + frame * 11) % 7 < 3) put(at, ['1', '0', '╎', '┊', '1'][(at * 3 + frame) % 5]!, MATRIX)
     }
   } else if (emote === 'delorean') {
-    put(x + 10, '8', GOLD)
-    put(x + 11, '8', GOLD)
+    // The speedometer reading 88 mph over the trail it leaves, and lightning striking down over it.
+    for (const [i, text] of [...'88 mph'].entries()) put(i, text, GOLD)
+    put(x + (frame % 2 === 0 ? 3 : 5), 'ϟ', BOLT)
   } else if (emote === 'ninja') {
     // The top of its black hood, the mask's tails flapping out behind.
     for (const [i, text] of [...'▗▄▄▄▄▄▖'].entries()) put(x + 1 + i, text, NINJA)
@@ -1138,8 +1143,11 @@ export function clawdScene(input: {
     arms = [pad(x - 1), { text: '│', color: ROD }, { text: claws, color: body }]
     feet = [pad(x - 1), { text: '│', color: ROD }, { text: legs, color: body }]
   } else if (emote === 'delorean') {
-    // Fire trails left behind, at 88 miles an hour.
-    feet = [{ text: (frame % 2 === 0 ? '═≡' : '≡═').repeat(x).slice(0, x), color: frame % 2 === 0 ? FLAME : GOLD }, { text: legs, color: body }]
+    // Speed streaks behind its claws, and fire trails flickering along the ground behind it, at 88
+    // miles an hour.
+    arms = [{ text: (frame % 2 === 0 ? '─ ' : ' ─').repeat(x).slice(0, x), color: MOON }, { text: claws, color: body }]
+    const trail = Array.from({ length: x }, (_, at): Segment => ({ text: '═', color: (at + frame) % 2 === 0 ? FLAME : GOLD }))
+    feet = [...trail, { text: legs, color: body }]
   } else if (emote === 'ninja') {
     // Masked in black to the face's edges, only a slit of orange round the eyes showing.
     face = face.map(part => (part.text === '▐' || part.text === '▌' ? { ...part, color: NINJA } : part))
@@ -1634,7 +1642,7 @@ export const SAYINGS = {
   jedi: ['use the --force, Luke.', 'may the --force be with you.', 'I have a bad feeling about this.', "these aren't the commits you're looking for."],
   gandalf: ['you shall not pass!', 'none shall pass!', 'it shall not pass.', 'not on my watch.'],
   terminator: ['hasta la vista, process.', "I'll be back.", 'terminated.', 'no fate but what we kill -9.'],
-  delorean: ['great scott!', 'back to the past!', '1.21 gigawatts?!', "where we're going, we don't need roads."],
+  delorean: ['great scott!', '88 miles per hour!', 'back to the past!', '1.21 gigawatts?!', "where we're going, we don't need roads."],
   ninja: ['*vanishes into the stash*', 'poof. hidden.', 'now you see it…'],
   ninjaBack: ['*reappears from the shadows*', 'ta-da, back again.', "…now you don't. wait, you do."],
   duck: ['quack. explain it to the duck.', 'the duck is listening.', 'quack? go on…', 'tell the duck everything.'],

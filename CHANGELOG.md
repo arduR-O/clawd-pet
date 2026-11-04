@@ -9,6 +9,14 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.13
+
+### Changed
+
+- The DeLorean reads as one: Clawd shoots off to the right at 88 mph, the speedometer reading
+  "88 mph" over a long, flickering fire trail and speed streaks behind it, and lightning striking
+  above. It says "88 miles per hour!" now and then too.
+
 ## 0.5.12
 
 ### Removed
