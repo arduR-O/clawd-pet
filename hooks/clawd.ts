@@ -46,7 +46,6 @@ const DUCK = '#ffd84a'
 const BEAK = '#ff9d3c'
 const MATRIX = '#38d66b'
 const MUG = '#e8e0d0'
-const COFFEE = '#7a4b2a'
 const DOME = '#9ad6ff'
 const MUSHROOM = '#3cb043'
 const WHALE = '#4a90d9'
@@ -1273,10 +1272,9 @@ export function clawdScene(input: {
     arms = [...arms, pad(2), { text: '▗█', color: DUCK }, { text: '▸', color: BEAK }]
     feet = [...feet, pad(2), { text: '▜██▛', color: DUCK }]
   } else if (emote === 'coffee') {
-    // A mug of coffee beside it: steam curling up over its straight rim, the coffee showing in it,
-    // its handle out to the side.
+    // A mug of coffee beside it, steam curling up over its rim, its handle out to the side.
     face = [...face, pad(2), { text: frame % 2 === 0 ? '≀ ≀' : ' ≀ ', color: MOON }]
-    arms = [...arms, pad(1), { text: '▄', color: MUG }, { text: '▄', color: COFFEE }, { text: '▄', color: MUG }]
+    arms = [...arms, pad(1), { text: '▄▄▄', color: MUG }]
     feet = [...feet, pad(2), { text: '███', color: MUG }, { text: '◗', color: MUG }]
   } else if (emote === 'astronaut') {
     // The helmet's glass either side of its face.

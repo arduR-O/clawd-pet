@@ -13,7 +13,8 @@
 
 ### Fixed
 
-- The coffee mug no longer looks like a bunny: a straight rim with the coffee in it, no heart.
+- The coffee mug no longer looks like a bunny: just a plain mug with a straight rim, steam and a
+  handle.
 
 ## 0.5.20
 
