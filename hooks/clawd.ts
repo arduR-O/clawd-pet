@@ -240,7 +240,8 @@ export const STARTER_SONGS = [
 // spread out through their list, not in order.
 export function withStarters(book: readonly string[]): string[] {
   const mixed: string[] = []
-  book.forEach((line, at) => {
+  // Lines Clawd won't sing are left out, whoever wrote the songbook and whenever.
+  book.filter(line => !isAwkward(line)).forEach((line, at) => {
     mixed.push(line)
     if ((at + 1) % 9 === 0) {
       mixed.push(STARTER_SONGS[(((at + 1) / 9) * 7) % STARTER_SONGS.length]!)
@@ -318,6 +319,8 @@ export function songbookPrompt(taste: string): string {
     "unsure of a song's opening, sing another of its lines you know word for word, from its start.",
     'If the list is grouped, lean on the newest plays and this week\'s repeats, and use an all-time',
     'favourite now and then.',
+    'Keep every line fit to be read over a shoulder at work: nothing flirty, sexual or profane, no',
+    'pet names (baby, honey), no "I want you". Skip such lines; a song\'s other lines will do.',
     'Never join two lines of a song; at most 12 words a line; lowercase;',
     'stretch a vowel in some ("ooooh"). One line each, no numbering, no quotes, no commentary.',
   ].join('\n')
@@ -393,14 +396,26 @@ export function sungAloud(line: string): string {
   return words.join(' ')
 }
 
+// Lines Clawd won't sing: ones that would embarrass its person if a coworker read them over their
+// shoulder. Not love songs as such ("love of my life" is fine), but a line that flirts with
+// someone (pet names, a boyfriend, "I want you"), gets physical, or swears.
+const AWKWARD = [
+  /\b(boy|girl)friends?\b|\b(baby|babe|bae|honey|darling|sweetheart|sweetie|lovers?)\b/,
+  /\bi (love|want|need|miss|adore) you\b|\bin love with you\b|\bmake love\b/,
+  /\b(sexy|sex|naked|nude|horny|kiss(es|ed|ing)?|lips|hips|thighs|bed|body|bodies)\b|\b(touch|hold|kiss) me\b/,
+  /\b(fuck|shit|bitch|cunt|motherfuck|nigg)\w*|\b(ass|asses|asshole|dick|cock|pussy|hoes?|whores?|sluts?)\b/,
+]
+export const isAwkward = (line: string) => AWKWARD.some(pattern => pattern.test(line.toLowerCase()))
+
 // The lines of a song's lyrics worth singing: its first sung line, and the line it sings most (the
-// chorus, mostly) when that is another; lowercase and sung aloud, each with its ♪.
+// chorus, mostly) when that is another; lowercase and sung aloud, each with its ♪. A line Clawd
+// won't sing is passed over for the next.
 export function linesOfLyrics(lyrics: string): string[] {
   const sung = lyrics
     .split(/\r?\n/)
     .map(line => line.trim())
     .filter(line => line !== '' && !/^[([].*[)\]]$/.test(line))
-  const fits = (line: string) => line.length >= 6 && line.length <= 70
+  const fits = (line: string) => line.length >= 6 && line.length <= 70 && !isAwkward(line)
   const first = sung.find(fits)
   if (first === undefined) return []
   const counts = new Map<string, number>()
@@ -439,7 +454,8 @@ export function twistPrompt(lines: readonly string[]): string {
     ...lines.map(line => `- ${line.replace(/ ♪$/, '')}`),
     'Write 4 new lines, each taking the start of a different one of those lines (its first few words,',
     'as sung) and carrying it on into code (bugs, builds, tests, git) or crab life, keeping its rhythm,',
-    'e.g. "before you go… run the linter". Vary the jokes. At most 12 words a line; lowercase. One',
+    'e.g. "before you go… run the linter". Vary the jokes. Keep them fit to be read over a shoulder at',
+    'work: nothing flirty, sexual or profane. At most 12 words a line; lowercase. One',
     'line each, no numbering, no quotes, no commentary.',
   ].join('\n')
 }

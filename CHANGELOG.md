@@ -9,6 +9,16 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.16
+
+### Changed
+
+- Clawd skips song lines that would embarrass you if a coworker read them over your shoulder: pet
+  names (baby, honey), a boyfriend or girlfriend, "I want you" and the like, anything physical, and
+  swearing. Love songs still play. A song whose first line or chorus is one of these gives its next
+  clean line instead, Claude Haiku is asked to keep its lines clean too, and lines already in your
+  songbook are filtered when Clawd sings.
+
 ## 0.5.15
 
 ### Changed

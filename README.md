@@ -189,6 +189,11 @@ for example `♫ Piano Man · Billy Joel`. A radio does the same after a song. T
 or another Indian script, because those lines do not turn into jokes about code well. Romanized
 lyrics stay in. To sing these songs too, set **Songbook: Hindi songs** to `keep`.
 
+**Nothing embarrassing.** Clawd skips lines that you would not want a coworker to read over your
+shoulder: lines that flirt with someone (pet names like baby or honey, a boyfriend or girlfriend,
+"I want you"), lines that get physical, and swearing. Love songs still play; "love of my life" is
+fine. When a song's first line or chorus is one of these, Clawd sings the song's next clean line.
+
 **The songbook grows.** Each day, Clawd adds the songs that you played recently. The songbook keeps
 up to 60 lines. The oldest lines make room for new ones.
 

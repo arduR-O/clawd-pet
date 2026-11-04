@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { STARTER_SONGS, sungAloud, isInIndianScript, linesOfLyrics, mixSongbook, twistCredits, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
+import { STARTER_SONGS, isAwkward, sungAloud, isInIndianScript, linesOfLyrics, mixSongbook, twistCredits, searchTitle, songbookLines, songbookPrompt, songsFrom, tasteFrom, withStarters } from '../hooks/clawd'
 import {
   BAND,
   OPTIONS,
@@ -816,3 +816,27 @@ test('Claude can ask Clawd to sing, and hears the line', LASTFM, async ($, on) =
   expect(sung.result).toBe('Clawd sang: "under pressure… to ship it ♪"')
 })
 
+
+test("Clawd won't sing a line that would embarrass someone reading over its person's shoulder", () => {
+  for (const line of ["my ups man, you're my boyfriend", 'come on baby, light my fire', 'I want you so bad', 'kiss me under the moon', 'what the fuck is up', 'take me to bed']) {
+    expect(isAwkward(line)).toBe(true)
+  }
+  // Love songs as such are fine, and so are words that only contain a flagged one.
+  for (const line of ['love of my life, you hurt me', 'somebody to love', "I'll be there for you", 'pass the salt', 'the assembly line']) {
+    expect(isAwkward(line)).toBe(false)
+  }
+  for (const song of STARTER_SONGS) expect(isAwkward(song)).toBe(false)
+})
+
+test('a song whose first line or chorus is awkward gives its next clean line instead', () => {
+  const lyrics = ['Oh baby, baby, how was I supposed to know', 'The kettle hums a lonely tune', 'Kiss me, kiss me', 'Kiss me, kiss me', 'Paper moon'].join('\n')
+  const lines = linesOfLyrics(lyrics)
+  expect(lines[0]).toBe('the kettle hums a lonely tuuune ♪')
+  expect(lines.some(line => isAwkward(line))).toBe(false)
+})
+
+test('a songbook already kept loses its awkward lines when Clawd sings from it', () => {
+  const book = withStarters(['oh paper moon, come down soooon ♪', "you're my boyfriend, ooh ♪"])
+  expect(book).toContain('oh paper moon, come down soooon ♪')
+  expect(book.some(line => /boyfriend/.test(line))).toBe(false)
+})
