@@ -1273,11 +1273,11 @@ export function clawdScene(input: {
     arms = [...arms, pad(2), { text: '▗█', color: DUCK }, { text: '▸', color: BEAK }]
     feet = [...feet, pad(2), { text: '▜██▛', color: DUCK }]
   } else if (emote === 'coffee') {
-    // A mug of coffee beside it: steam curling up over the rim, the coffee showing at the top, a
-    // heart on its side and its handle.
+    // A mug of coffee beside it: steam curling up over its straight rim, the coffee showing in it,
+    // its handle out to the side.
     face = [...face, pad(2), { text: frame % 2 === 0 ? '≀ ≀' : ' ≀ ', color: MOON }]
-    arms = [...arms, pad(1), { text: '▗', color: MUG }, { text: '▄', color: COFFEE }, { text: '▖', color: MUG }]
-    feet = [...feet, pad(2), { text: '█', color: MUG }, { text: '♥', color: HEART, backgroundColor: MUG }, { text: '█', color: MUG }, { text: '◗', color: MUG }]
+    arms = [...arms, pad(1), { text: '▄', color: MUG }, { text: '▄', color: COFFEE }, { text: '▄', color: MUG }]
+    feet = [...feet, pad(2), { text: '███', color: MUG }, { text: '◗', color: MUG }]
   } else if (emote === 'astronaut') {
     // The helmet's glass either side of its face.
     face = [pad(x), { text: '│', color: DOME }, ...eyes, { text: '│', color: DOME }]

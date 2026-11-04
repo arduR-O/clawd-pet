@@ -9,6 +9,12 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.21
+
+### Fixed
+
+- The coffee mug no longer looks like a bunny: a straight rim with the coffee in it, no heart.
+
 ## 0.5.20
 
 ### Changed
