@@ -244,8 +244,16 @@ updates.
 
 **To update now:**
 
-1. In your terminal, run `claude plugin update clawd@clawd`.
-2. In Claude Code, run `/reload-plugins`.
+1. In your terminal, run `claude plugin marketplace update clawd`. This fetches the newest version
+   from GitHub.
+2. Run `claude plugin update clawd@clawd`. This installs it.
+3. Quit Claude Code and start it again. An update takes effect only after a restart;
+   `/reload-plugins` is not enough.
+
+If step 2 says Clawd is already at the latest version, run `claude plugin marketplace list` and check
+that the `clawd` marketplace comes from `arduR-O/clawd-pet`. If it comes from a folder on your
+computer instead, remove it with `claude plugin marketplace remove clawd` and add it again with
+`claude plugin marketplace add arduR-O/clawd-pet`.
 
 **To update automatically:**
 
