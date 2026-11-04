@@ -1147,7 +1147,6 @@ export function clawdScene(input: {
   else if (emote === 'shy' || emote === 'seagull' || (emote === 'hop' && frame % 2 === 0)) mark = { text: '!', color: GOLD }
   else if (emote === 'peek') mark = { text: '?', color: GOLD }
   else if (emote === 'tap') mark = frame % 2 === 0 ? { text: '?', color: GOLD } : undefined
-  else if (emote === 'enough') mark = { text: '…', color: MOON }
   else if (emote === 'uwu') mark = { text: '♡', color: HEART }
   else if (emote === 'bubbles') mark = { text: frame % 2 === 0 ? 'o' : '°', color: WATER }
   else if (emote === 'hiccup' && frame % 3 === 0) mark = { text: 'hic!', color: GOLD }

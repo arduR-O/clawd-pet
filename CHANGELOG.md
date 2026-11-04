@@ -9,6 +9,13 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.25
+
+### Removed
+
+- The "…" beside Clawd's face when it is unimpressed (tests passing "suspiciously", a petting spree,
+  more dependencies): its heavy lids say it.
+
 ## 0.5.24
 
 ### Fixed

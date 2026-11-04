@@ -119,7 +119,8 @@ test('a pet gets a reaction, and only a long spree gets told off', { options: OP
   // Past the crouch between one pose and the next: heavy lids rather than eyes that vanish.
   await clock.advance(800)
   expect(await ui.find({ type: 'Text', text: /^▀$/ })).toBeTruthy()
-  expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeTruthy()
+  // Just the lids: no trail of dots beside its face.
+  expect(await ui.find({ type: 'Text', text: /^…$/ })).toBeFalsy()
   await ui.unmount()
 })
 
