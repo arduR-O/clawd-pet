@@ -165,7 +165,7 @@ Clawd sings a line now and then. It sings the line to its end. If something happ
 song, Clawd reacts after the song. If you pet Clawd or run a `/pet` command, the song stops at
 once.
 
-**Without Last.fm,** Clawd sings its 30 built-in lines. This costs nothing.
+**Without Last.fm,** Clawd sings its 31 built-in lines. This costs nothing.
 
 **With Last.fm,** Clawd sings the songs that you play:
 

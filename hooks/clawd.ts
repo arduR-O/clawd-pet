@@ -218,6 +218,7 @@ const STARTERS: readonly (readonly [string, string])[] = [
   ['and so it iiis, just like you said ♪', "The Blower's Daughter by Damien Rice"],
   ["I can't take my eyes off of you ♪", "The Blower's Daughter by Damien Rice"],
   ['stones taught me to fly ♪', 'Cannonball by Damien Rice'],
+  ['of all the foolish things to do, I became a connoisseur of great excuse ♪', 'Connoisseur of Great Excuse by Damien Rice'],
   ['Amie, come sit on my wall and read me the story of O ♪', 'Amie by Damien Rice'],
   ['nothing unusual, nothing strange ♪', 'Older Chests by Damien Rice'],
   ["I'll follow you into the dark ♪", 'I Will Follow You into the Dark by Death Cab for Cutie'],

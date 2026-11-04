@@ -9,6 +9,13 @@
   poses. The promo video is cut again (40 s): big glasses and the book, the songbook with its credit,
   meditation with opinions.
 
+## 0.5.19
+
+### Changed
+
+- Back among the built-in songs, credited: "of all the foolish things to do, I became a connoisseur
+  of great excuse", from Damien Rice's "Connoisseur of Great Excuse".
+
 ## 0.5.18
 
 ### Changed
